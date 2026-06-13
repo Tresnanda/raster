@@ -13,10 +13,10 @@ export default function App() {
   // Mount global keyboard shortcuts once at the App level.
   useKeyboardShortcuts()
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       <div className="flex min-h-0 flex-1">
         <Sidebar svgRef={svgRef} />
-        <main className="min-w-0 flex-1">
+        <main className="min-h-0 min-w-0 flex-1">
           <CanvasStage svgRef={svgRef} />
         </main>
         <ComposerRail />

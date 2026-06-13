@@ -175,7 +175,7 @@ export function ComposerRail() {
 
   return (
     <aside
-      className="w-[248px] shrink-0 border-l border-neutral-200 bg-white overflow-y-auto flex flex-col"
+      className="w-[248px] shrink-0 min-h-0 border-l border-neutral-200 bg-white overflow-y-auto flex flex-col"
       aria-label="Composer"
     >
       {/* COMPOSE header + Undo/Redo */}

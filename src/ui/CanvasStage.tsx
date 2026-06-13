@@ -4,6 +4,7 @@ import { Renderer } from '../render/Renderer'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { FreeOverlay } from './FreeOverlay'
+import { EditOverlay } from './EditOverlay'
 
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
@@ -40,7 +41,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
         }}
       >
         <Renderer design={design} svgRef={svgRef} />
-        {design.mode === 'free' && <FreeOverlay scale={scale} />}
+        {design.mode === 'free' ? <FreeOverlay scale={scale} /> : <EditOverlay scale={scale} />}
       </div>
     </div>
   )

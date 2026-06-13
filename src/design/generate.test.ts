@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { generate } from './generate'
+import { generate, cellsIntersect } from './generate'
 import type { Design, GridCell } from '../types'
 
 const COLS = 12
@@ -128,4 +128,76 @@ test('generate returns fresh seed each call', () => {
     seeds.add(generate('3:4').seed)
   }
   expect(seeds.size).toBeGreaterThan(5)
+})
+
+// ---------------------------------------------------------------------------
+// Fix #2 — zero text-on-text overlaps over 100 runs
+// ---------------------------------------------------------------------------
+
+const TEXT_ROLES = new Set(['headline', 'subhead', 'caption', 'date', 'index', 'glyph', 'mark'])
+
+function countTextOverlaps(d: Design): number {
+  const textSlots = d.slots.filter(s => TEXT_ROLES.has(s.role))
+  let overlaps = 0
+  for (let i = 0; i < textSlots.length; i++) {
+    for (let j = i + 1; j < textSlots.length; j++) {
+      if (cellsIntersect(textSlots[i].cell, textSlots[j].cell)) overlaps++
+    }
+  }
+  return overlaps
+}
+
+test('100 runs: zero text-on-text overlaps (collision guard)', () => {
+  for (let i = 0; i < 100; i++) {
+    const d = generate('3:4')
+    const overlaps = countTextOverlaps(d)
+    expect(overlaps, `run ${i}: found ${overlaps} text-on-text overlap(s) in slots: ${JSON.stringify(d.slots.filter(s => TEXT_ROLES.has(s.role)).map(s => ({ role: s.role, cell: s.cell })))}`).toBe(0)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Fix #3 — dominant text hierarchy: largest text size >= 2x the next size
+// ---------------------------------------------------------------------------
+
+test('100 runs: generated poster has a clearly dominant text size (≥2×)', () => {
+  for (let i = 0; i < 100; i++) {
+    const d = generate('3:4')
+    const textSizes = d.slots
+      .filter(s => s.text && (s.typeClass === 'title' || s.typeClass === 'headline'))
+      .map(s => s.text!.size)
+      .sort((a, b) => b - a)
+
+    // Need at least one title/headline slot
+    if (textSizes.length < 2) continue
+
+    const largest = textSizes[0]
+    const second = textSizes[1]
+    // The dominant element must be at least 2× the next text size
+    expect(
+      largest / second,
+      `run ${i}: dominant=${largest} second=${second} ratio=${(largest / second).toFixed(2)} — no clear hierarchy`
+    ).toBeGreaterThanOrEqual(2.0)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// cellsIntersect unit tests
+// ---------------------------------------------------------------------------
+
+test('cellsIntersect: overlapping cells return true', () => {
+  const a: GridCell = { c: 0, cs: 4, r: 0, rs: 4 }
+  const b: GridCell = { c: 2, cs: 4, r: 2, rs: 4 }
+  expect(cellsIntersect(a, b)).toBe(true)
+})
+
+test('cellsIntersect: adjacent (touching) cells return false', () => {
+  const a: GridCell = { c: 0, cs: 4, r: 0, rs: 4 }
+  const b: GridCell = { c: 4, cs: 4, r: 0, rs: 4 } // starts exactly where a ends
+  expect(cellsIntersect(a, b)).toBe(false)
+})
+
+test('cellsIntersect: non-overlapping cells return false', () => {
+  const a: GridCell = { c: 0, cs: 3, r: 0, rs: 3 }
+  const b: GridCell = { c: 6, cs: 3, r: 6, rs: 3 }
+  expect(cellsIntersect(a, b)).toBe(false)
 })

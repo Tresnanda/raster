@@ -70,6 +70,86 @@ function clampCell(c: GridCell): GridCell {
 }
 
 // ---------------------------------------------------------------------------
+// Collision helpers
+// ---------------------------------------------------------------------------
+
+/** Returns true when cell a and cell b overlap (share at least one grid unit). */
+function cellsIntersect(a: GridCell, b: GridCell): boolean {
+  const aR = a.r + a.rs   // exclusive bottom
+  const bR = b.r + b.rs
+  const aC = a.c + a.cs   // exclusive right
+  const bC = b.c + b.cs
+  return a.r < bR && aR > b.r && a.c < bC && aC > b.c
+}
+
+/**
+ * Resolve text-on-text overlaps.  Image / block / line slots may sit below
+ * text — that's intentional.  Only TEXT roles are checked.
+ *
+ * Strategy:
+ *  1. Walk slots in order; if a text slot overlaps an already-kept text slot,
+ *     try to shift it to the nearest free corner row/col that is in-bounds and
+ *     non-colliding with all kept text slots.
+ *  2. If no such position is found, shrink rs to 1 and try again; if still
+ *     colliding, drop the slot.
+ */
+function resolveTextCollisions(slots: Slot[], cols: number, rows: number): Slot[] {
+  const TEXT_ROLES = new Set(['headline', 'subhead', 'caption', 'date', 'index', 'glyph', 'mark'])
+  const kept: Slot[] = []
+
+  for (const slot of slots) {
+    if (!TEXT_ROLES.has(slot.role)) {
+      // non-text: always keep, don't participate in collision resolution
+      kept.push(slot)
+      continue
+    }
+
+    const keptText = kept.filter(s => TEXT_ROLES.has(s.role))
+    const collides = (cell: GridCell) => keptText.some(k => cellsIntersect(k.cell, cell))
+
+    if (!collides(slot.cell)) {
+      kept.push(slot)
+      continue
+    }
+
+    // Try candidate positions: corners + near-original shifted cells
+    const { cs, rs } = slot.cell
+    const candidateRows = [0, 1, 2, rows - 2, rows - 1, rows - rs]
+    const candidateCols = [0, cols - cs, Math.floor((cols - cs) / 2)]
+    const candidates: GridCell[] = []
+    for (const r of candidateRows) {
+      for (const c of candidateCols) {
+        const cell = clampCell({ c, cs, r, rs })
+        candidates.push(cell)
+      }
+    }
+
+    let resolved: GridCell | null = null
+    for (const cell of candidates) {
+      if (!collides(cell)) {
+        resolved = cell
+        break
+      }
+    }
+
+    if (!resolved) {
+      // Try shrinking to rs:1
+      const thinCell = clampCell({ c: slot.cell.c, cs, r: slot.cell.r, rs: 1 })
+      if (!collides(thinCell)) {
+        resolved = thinCell
+      }
+    }
+
+    if (resolved) {
+      kept.push({ ...slot, cell: resolved })
+    }
+    // else: drop the slot (no valid non-colliding position found)
+  }
+
+  return kept
+}
+
+// ---------------------------------------------------------------------------
 // Default text styles by role class
 // ---------------------------------------------------------------------------
 function titleText(size: number, align: 'left' | 'center' | 'right' = 'left'): TextStyle {
@@ -91,7 +171,12 @@ function captionText(size: number = 18, align: 'left' | 'center' | 'right' = 'le
 // ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
-// full-bleed image; 1–2 small caption clusters in random corners; optional mark.
+// full-bleed image; 1–2 small caption clusters in corners; optional mark.
+//
+// FIX #1 (big-word): when a mark is emitted at r:ROWS-1, the bottom-left
+// caption corner would collide with it (r:ROWS-2, rs:2 bleeds into ROWS-1).
+// We either: (a) exclude the bottom-left corner when a mark will be placed,
+// or (b) keep the caption at rs:1 only.  We choose (a) to preserve variety.
 // ---------------------------------------------------------------------------
 function bigWord(id: () => string): Slot[] {
   const slots: Slot[] = []
@@ -123,15 +208,31 @@ function bigWord(id: () => string): Slot[] {
     })
   }
 
-  // 1–2 caption clusters in corners
+  // Decide mark first so we know whether bottom-left is safe
+  const emitMark = maybe(0.5)
+
+  // 1–2 caption clusters in corners.
+  // When a mark occupies r:ROWS-1 (bottom-left corner, c:0), exclude that
+  // bottom-left corner from the caption set to avoid overlap.
+  //   cornerIdx 0 = top-left    (r:0,    c:0)
+  //   cornerIdx 1 = bottom-left (r:ROWS-2, c:0)  ← overlaps mark when rs:2
+  //   cornerIdx 2 = top-right   (r:0,    c:COLS-4)
+  //   cornerIdx 3 = bottom-right(r:ROWS-2, c:COLS-4)
   const captionCount = randInt(1, 2)
   const cornerR = [0, ROWS - 2]
   const cornerC = [0, COLS - 4]
+
+  // When mark is emitted, exclude cornerIdx 1 (bottom-left)
+  const availableCorners = emitMark
+    ? [0, 2, 3]   // skip bottom-left (idx 1)
+    : [0, 1, 2, 3]
+
   const usedCorners = new Set<number>()
-  for (let i = 0; i < captionCount; i++) {
-    let cornerIdx = Math.floor(Math.random() * 4)
-    while (usedCorners.has(cornerIdx)) cornerIdx = Math.floor(Math.random() * 4)
-    usedCorners.add(cornerIdx)
+  for (let i = 0; i < Math.min(captionCount, availableCorners.length); i++) {
+    let pick_idx = Math.floor(Math.random() * availableCorners.length)
+    while (usedCorners.has(pick_idx)) pick_idx = Math.floor(Math.random() * availableCorners.length)
+    usedCorners.add(pick_idx)
+    const cornerIdx = availableCorners[pick_idx]
     const r = cornerR[cornerIdx % 2]
     const c = cornerC[Math.floor(cornerIdx / 2)]
     slots.push({
@@ -143,13 +244,14 @@ function bigWord(id: () => string): Slot[] {
     })
   }
 
-  // Optional small mark / footer
-  if (maybe(0.5)) {
+  // Optional small mark / footer — moved to right side (c:8) to avoid overlap
+  // with any caption that may be in the top-left or bottom-left corners.
+  if (emitMark) {
     slots.push({
       id: id(), role: 'mark', z: 4,
-      cell: clampCell({ c: 0, cs: 4, r: ROWS - 1, rs: 1 }),
+      cell: clampCell({ c: 8, cs: 4, r: ROWS - 1, rs: 1 }),
       content: pick(FOOTERS),
-      text: captionText(16, 'left'),
+      text: captionText(16, 'right'),
       typeClass: 'body',
     })
   }
@@ -161,6 +263,10 @@ function bigWord(id: () => string): Slot[] {
 // Strategy 2: editorial-zones
 // Headline top-left or top-right; date/number block opposite; framed image
 // in a random column band; 2–3 caption blocks in corners.
+//
+// FIX #1 (editorial-zones):
+//  - r:1 is reserved (headline + date live there) — never seed a caption at r:1.
+//  - Captions go on the OPPOSITE column-half from the date block.
 // ---------------------------------------------------------------------------
 function editorialZones(id: () => string): Slot[] {
   const slots: Slot[] = []
@@ -178,7 +284,8 @@ function editorialZones(id: () => string): Slot[] {
     typeClass: 'title',
   })
 
-  // Date/number block in opposing region
+  // Date/number block in opposing region — track its column start.
+  // typeClass:'body' so the headline unambiguously dominates the hierarchy.
   const dateCols = randInt(3, 5)
   const dateColStart = headlineLeft ? COLS - dateCols : 0
   const dateSize = randInt(60, 90)
@@ -187,7 +294,7 @@ function editorialZones(id: () => string): Slot[] {
     cell: clampCell({ c: dateColStart, cs: dateCols, r: 1, rs: 2 }),
     content: pick(DATES),
     text: headlineText(dateSize, headlineLeft ? 'right' : 'left'),
-    typeClass: 'headline',
+    typeClass: 'body',
   })
 
   // Framed image — mid band
@@ -201,15 +308,25 @@ function editorialZones(id: () => string): Slot[] {
     content: '',
   })
 
-  // 2–3 caption blocks
-  const captionRows = [imageRowStart + imageRowSpan + 1, 1, ROWS - 2]
-  const captionCols = [0, COLS - 4]
+  // Captions:
+  //  - Never use r:1 (reserved for headline/date band).
+  //  - Place captions on the column side OPPOSITE the date block.
+  //    date is on the right when headlineLeft=true → captions go left (c:0).
+  //    date is on the left when headlineLeft=false → captions go right (c:COLS-4).
+  const captionColStart = headlineLeft ? 0 : COLS - 4
+  const captionAlign = headlineLeft ? 'left' : 'right'
+
+  // Safe caption rows: after the image ends, or near the bottom — never r:1.
+  const afterImageRow = Math.min(imageRowStart + imageRowSpan + 1, ROWS - 3)
+  const captionRows = [afterImageRow, ROWS - 3, ROWS - 2]
+
   for (let i = 0; i < randInt(2, 3); i++) {
+    const capRow = captionRows[i] ?? (ROWS - 2)
     slots.push({
       id: id(), role: 'caption', z: 4,
-      cell: clampCell({ c: captionCols[i % 2], cs: 4, r: captionRows[i] ?? (ROWS - 2), rs: 1 }),
+      cell: clampCell({ c: captionColStart, cs: 4, r: capRow, rs: 1 }),
       content: i === 0 ? pick(VOLUMES) : i === 1 ? pick(CITIES) : pick(FOOTERS),
-      text: captionText(18, i % 2 === 0 ? 'left' : 'right'),
+      text: captionText(18, captionAlign),
       typeClass: 'body',
     })
   }
@@ -367,6 +484,13 @@ function numeral(id: () => string): Slot[] {
 // Strategy 5: diptych
 // Hard split — image one half, stacked title+caption text the other;
 // optional accent block or line at the divide.
+//
+// FIX #1 (diptych): ensure titleRowStart + titleRowSpan + 1 + 2 <= ROWS - 2
+// so the subhead never runs into r:15 (the footer row).
+// Cap titleRowStart at 8 (was 9) so with titleRowSpan up to 4:
+//   worst case subhead row = 8+4+1 = 13, rs:2 → ends at 15 ≤ ROWS-1=15 ✓
+//   footer at r:15 stays clear of subhead which ends at ≤15.
+// If they still touch, resolveTextCollisions will relocate the subhead.
 // ---------------------------------------------------------------------------
 function diptych(id: () => string): Slot[] {
   const slots: Slot[] = []
@@ -388,9 +512,9 @@ function diptych(id: () => string): Slot[] {
     content: '',
   })
 
-  // Title on text side
+  // Title on text side — cap titleRowStart at 8 (down from 9) so subhead fits
   const titleSize = randInt(80, 140)
-  const titleRowStart = randInt(6, 9)
+  const titleRowStart = randInt(6, 8)
   const titleRowSpan = randInt(3, 4)
   slots.push({
     id: id(), role: 'headline', z: 3,
@@ -409,16 +533,17 @@ function diptych(id: () => string): Slot[] {
     typeClass: 'body',
   })
 
-  // Subhead
+  // Subhead — placed just after the title; capped so it doesn't hit r:ROWS-1
+  const subheadRow = Math.min(titleRowStart + titleRowSpan + 1, ROWS - 3)
   slots.push({
     id: id(), role: 'subhead', z: 3,
-    cell: clampCell({ c: textColStart, cs: textCols, r: titleRowStart + titleRowSpan + 1, rs: 2 }),
+    cell: clampCell({ c: textColStart, cs: textCols, r: subheadRow, rs: 2 }),
     content: pick(SUBHEADS),
     text: bodyText(20, textAlign),
     typeClass: 'body',
   })
 
-  // Footer
+  // Footer at r:ROWS-1
   slots.push({
     id: id(), role: 'caption', z: 3,
     cell: clampCell({ c: textColStart, cs: textCols, r: ROWS - 1, rs: 1 }),
@@ -485,7 +610,10 @@ export function generate(format: Format): Design {
   }
 
   // Assign z by order of insertion (strategy fns already set z, but ensure all have it)
-  const slots = rawSlots.map((s, i) => ({ ...s, z: s.z ?? i }))
+  const preSlots = rawSlots.map((s, i) => ({ ...s, z: s.z ?? i }))
+
+  // Final-pass collision guard: resolve text-on-text overlaps
+  const slots = resolveTextCollisions(preSlots, COLS, ROWS)
 
   // Random typography (sane ranges)
   const typography = {
@@ -513,3 +641,4 @@ export function generate(format: Format): Design {
 }
 
 export type { Strategy }
+export { cellsIntersect, resolveTextCollisions }

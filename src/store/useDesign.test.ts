@@ -32,3 +32,9 @@ test('setText patches a slot text style', () => {
   expect(word.text!.weight).toBe(900)
   expect(word.text!.tracking).toBe(-0.05)
 })
+
+test('setBox sets a free-mode absolute box on a slot', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().setBox('word', { x: 100, y: 100, w: 400, h: 200 })
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.box).toEqual({ x: 100, y: 100, w: 400, h: 200 })
+})

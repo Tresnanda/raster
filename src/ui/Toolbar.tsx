@@ -6,10 +6,17 @@ import { exportRaster, exportSvg } from '../export/useExport'
 export function Toolbar({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
   const shuffle = useDesign(s => s.shuffle)
+  const setMode = useDesign(s => s.setMode)
   const name = `raster-${design.archetype}-${design.seed}`
   return (
     <div className="flex items-center gap-2 border-b border-neutral-200 bg-white p-3">
       <Button onClick={shuffle}>Shuffle</Button>
+      <Button
+        variant={design.mode === 'free' ? 'default' : 'outline'}
+        onClick={() => setMode(design.mode === 'free' ? 'grid' : 'free')}
+      >
+        {design.mode === 'free' ? 'Free' : 'Grid'}
+      </Button>
       <div className="ml-auto flex gap-2">
         <Button
           variant="outline"

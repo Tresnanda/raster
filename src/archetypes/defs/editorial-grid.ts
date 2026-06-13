@@ -7,7 +7,7 @@ const editorialGrid: ArchetypeDef = {
   ground: 'dark',
   slots: [
     { id: 'headline', role: 'headline', placeholder: 'THE GRID',
-      text: { family: 'display', weight: 800, size: 120, tracking: -0.02, leading: 0.9, align: 'left', fit: 'auto' } },
+      text: { family: 'display', weight: 800, size: 76, tracking: -0.02, leading: 0.9, align: 'left', fit: 'auto' } },
     { id: 'meta', role: 'caption', placeholder: 'Vol. 04 / 2026',
       text: { family: 'sans', weight: 500, size: 22, tracking: 0.02, leading: 1.2, align: 'left', fit: 'fixed' } },
     { id: 'image', role: 'image', placeholder: '' },

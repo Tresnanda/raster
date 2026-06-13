@@ -7,7 +7,6 @@ import { classOf } from '../design/typeclass'
 import { resolveTextStyle } from './resolve-style'
 import { SlotImage } from './slot-image'
 import { SlotText } from './slot-text'
-import { GrainAnimator } from '../ui/GrainAnimator'
 
 const GRAIN_SEED = 7
 
@@ -63,14 +62,7 @@ export function Renderer({ design, measure, svgRef }: {
     )
   })()
 
-  // Grain animator needs a RefObject, not a Ref (callback ref or RefObject).
-  // Only wire it when svgRef is a RefObject (has .current property).
-  const svgRefObj = svgRef && typeof svgRef === 'object' && 'current' in svgRef
-    ? (svgRef as React.RefObject<SVGSVGElement | null>)
-    : null
-
   return (
-    <>
       <svg
         ref={svgRef}
         xmlns="http://www.w3.org/2000/svg"
@@ -155,11 +147,5 @@ export function Renderer({ design, measure, svgRef }: {
           />
         )}
       </svg>
-
-      {/* Grain seed animator — outside <svg> to avoid SVG namespace, returns null */}
-      {style.filmGrain && svgRefObj && (
-        <GrainAnimator svgRef={svgRefObj} enabled={style.filmGrain} />
-      )}
-    </>
   )
 }

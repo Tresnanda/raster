@@ -72,6 +72,8 @@ export function reShuffle(design: Design): Design {
     return {
       ...s,
       cell: { c, cs, r, rs },
+      // Drop any free-mode absolute box so the new grid cell actually takes effect.
+      box: undefined,
       text: s.text && newAlign !== align ? { ...s.text, align: newAlign } : s.text,
     }
   })

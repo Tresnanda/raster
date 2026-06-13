@@ -21,3 +21,13 @@ test('does not throw when layout changes (motion reflow hook)', () => {
   })
   unmount()
 })
+
+test('store snap defaults to true', () => {
+  expect(useDesign.getState().snap).toBe(true)
+})
+
+test('setSnap updates store snap', () => {
+  useDesign.getState().setSnap(false)
+  expect(useDesign.getState().snap).toBe(false)
+  useDesign.getState().setSnap(true)
+})

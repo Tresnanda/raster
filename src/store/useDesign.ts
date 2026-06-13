@@ -86,11 +86,15 @@ interface State {
   bringForward: (id: string) => void
   sendBackward: (id: string) => void
 
+  snap: boolean
+  setSnap: (snap: boolean) => void
+
   // Crop flow — not persisted
   /** Transient UI state. Non-null while the crop modal is open. */
   cropRequest: { slotId: string; src: string } | null
   requestCrop: (slotId: string, src: string) => void
   cancelCrop: () => void
+  setFill: (slotId: string, fill: string) => void
 }
 
 import '../archetypes/index'
@@ -101,6 +105,11 @@ export const useDesign = create<State>((set, get) => ({
   design: initial,
   selectedId: null,
   cropRequest: null,
+  snap: true,
+
+  setSnap: (snap) => {
+    set({ snap })
+  },
 
   reset: (archetypeId, format) => {
     const d = buildDesign(archetypeId, format, 0)
@@ -380,5 +389,11 @@ export const useDesign = create<State>((set, get) => ({
 
   cancelCrop: () => {
     set({ cropRequest: null })
+  },
+
+  setFill: (slotId, fill) => {
+    const d = { ...get().design, slots: get().design.slots.map(s =>
+      s.id === slotId ? { ...s, fill } : s) }
+    persist(d); set({ design: d })
   },
 }))

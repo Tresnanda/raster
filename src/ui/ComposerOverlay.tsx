@@ -46,6 +46,7 @@ function isImageSlot(slot: Slot): boolean {
 }
 
 function slotColor(slot: Slot, design: { palette: { accent: string; text: string }; style: { accentHeadline: boolean } }): string {
+  if (slot.color) return slot.color
   const tc = slot.typeClass ?? (isTextSlot(slot) ? classOf(slot.role as never) : undefined)
   if (design.style.accentHeadline && tc === 'title') return design.palette.accent
   return design.palette.text

@@ -126,3 +126,45 @@ test('typography is applied: title class uses typography.title as font-size', ()
   // fit:'fixed' pins at resolvedText.size which is typography.title = 200
   expect(textEl.getAttribute('font-size')).toBe('200')
 })
+
+test('slot.color overrides palette.text for text slot fill', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.accentHeadline = false
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  wordSlot.color = '#ff0000'
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const textEl = container.querySelector(`[data-slot="${wordSlot.id}"] text`)!
+  expect(textEl.getAttribute('fill')).toBe('#ff0000')
+})
+
+test('slot.color overrides palette.accent for title slot when accentHeadline=true', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.accentHeadline = true
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  wordSlot.color = '#00ff00'
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const textEl = container.querySelector(`[data-slot="${wordSlot.id}"] text`)!
+  expect(textEl.getAttribute('fill')).toBe('#00ff00')
+})
+
+test('slot.bw=false overrides global bwImage=true: image has no bw filter', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.bwImage = true
+  const imgSlot = d.slots.find(s => s.role === 'image')!
+  imgSlot.content = 'data:image/png;base64,xx'
+  imgSlot.bw = false
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const img = container.querySelector(`[data-slot="${imgSlot.id}"] image`)!
+  expect(img.getAttribute('filter')).toBeNull()
+})
+
+test('slot.bw=true overrides global bwImage=false: image gets bw filter', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.bwImage = false
+  const imgSlot = d.slots.find(s => s.role === 'image')!
+  imgSlot.content = 'data:image/png;base64,xx'
+  imgSlot.bw = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const img = container.querySelector(`[data-slot="${imgSlot.id}"] image`)!
+  expect(img.getAttribute('filter')).toBe('url(#raster-bw)')
+})

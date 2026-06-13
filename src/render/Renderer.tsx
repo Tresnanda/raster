@@ -98,7 +98,7 @@ export function Renderer({ design, measure, svgRef }: {
           if (slot.role === 'image') {
             return (
               <g key={slot.id} data-slot={slot.id}>
-                <SlotImage box={box} src={slot.content} bw={style.bwImage} />
+                <SlotImage box={box} src={slot.content} bw={slot.bw ?? style.bwImage} />
               </g>
             )
           }
@@ -126,9 +126,8 @@ export function Renderer({ design, measure, svgRef }: {
           // Text slot
           const resolvedText = resolveTextStyle(slot, typography)
           const cls = slot.typeClass ?? classOf(slot.role)
-          const color = (style.accentHeadline && cls === 'title')
-            ? palette.accent
-            : palette.text
+          const color = slot.color ??
+            ((style.accentHeadline && cls === 'title') ? palette.accent : palette.text)
 
           return (
             <g key={slot.id} data-slot={slot.id}>

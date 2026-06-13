@@ -1,12 +1,43 @@
 // src/ui/sidebar/LayoutGrid.tsx
+import { useRef } from 'react'
+import gsap from 'gsap'
 import { useDesign } from '../../store/useDesign'
 import { LAYOUTS } from '../../design/layouts'
 
 export function LayoutGrid() {
   const layout = useDesign(s => s.design.layout)
   const setLayout = useDesign(s => s.setLayout)
-  const shuffle = useDesign(s => s.shuffle)
-  const surprise = useDesign(s => s.surprise)
+  const shuffleAction = useDesign(s => s.shuffle)
+  const surpriseAction = useDesign(s => s.surprise)
+
+  const shuffleIconRef = useRef<HTMLSpanElement>(null)
+  const surpriseIconRef = useRef<HTMLSpanElement>(null)
+
+  function handleShuffle() {
+    shuffleAction()
+    const icon = shuffleIconRef.current
+    if (!icon) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mq.matches) return
+    // Quick horizontal nudge: left -3px then back
+    gsap.fromTo(icon, { x: -3 }, { x: 0, duration: 0.2, ease: 'power3.out' })
+  }
+
+  function handleSurprise() {
+    surpriseAction()
+    const icon = surpriseIconRef.current
+    if (!icon) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mq.matches) return
+    // Snap-in from slight negative rotation + scale — one-shot, 300ms
+    gsap.from(icon, {
+      rotation: -30,
+      scale: 0.8,
+      duration: 0.3,
+      ease: 'power3.out',
+      transformOrigin: '50% 50%',
+    })
+  }
 
   return (
     <div className="sb-section space-y-3">
@@ -33,16 +64,16 @@ export function LayoutGrid() {
       </div>
       <div className="flex gap-2">
         <button
-          onClick={shuffle}
+          onClick={handleShuffle}
           className="flex-1 rounded-md border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition-transform duration-[160ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] hover:border-neutral-400 active:scale-[0.97]"
         >
-          ⇄ Shuffle
+          <span ref={shuffleIconRef} style={{ display: 'inline-block' }}>⇄</span>{' '}Shuffle
         </button>
         <button
-          onClick={surprise}
+          onClick={handleSurprise}
           className="flex-1 rounded-md border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition-transform duration-[160ms] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] hover:border-neutral-400 active:scale-[0.97]"
         >
-          ✦ Surprise
+          <span ref={surpriseIconRef} style={{ display: 'inline-block' }}>✦</span>{' '}Surprise
         </button>
       </div>
     </div>

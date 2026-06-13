@@ -110,3 +110,109 @@ test('align left button calls setText with align:left', () => {
   fireEvent.click(screen.getByLabelText('Align left'))
   expect(setText).toHaveBeenCalledWith(textSlot.id, { align: 'left' })
 })
+
+// ── Rich inspector ─────────────────────────────────────────────────────────────
+
+test('selecting a text element shows Typeface select', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Typeface')).toBeTruthy()
+})
+
+test('selecting a text element shows Tracking input', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Tracking')).toBeTruthy()
+})
+
+test('selecting a text element shows Leading input', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Leading')).toBeTruthy()
+})
+
+test('selecting a text element shows Weight select', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Weight')).toBeTruthy()
+})
+
+test('changing Size input calls overrideText with size and fit:fixed', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const overrideText = vi.spyOn(useDesign.getState(), 'overrideText')
+  render(<ComposerRail />)
+  const sizeInput = screen.getByLabelText('Size') as HTMLInputElement
+  fireEvent.change(sizeInput, { target: { value: '200' } })
+  expect(overrideText).toHaveBeenCalledWith(textSlot.id, { size: 200, fit: 'fixed' })
+})
+
+test('changing Typeface select calls overrideText with family', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const overrideText = vi.spyOn(useDesign.getState(), 'overrideText')
+  render(<ComposerRail />)
+  const typefaceSelect = screen.getByLabelText('Typeface') as HTMLSelectElement
+  fireEvent.change(typefaceSelect, { target: { value: 'mono' } })
+  expect(overrideText).toHaveBeenCalledWith(textSlot.id, { family: 'mono' })
+})
+
+test('selecting an image element shows B&W checkbox', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Black & white')).toBeTruthy()
+})
+
+test('toggling B&W checkbox on image calls setBw', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  const setBw = vi.spyOn(useDesign.getState(), 'setBw')
+  render(<ComposerRail />)
+  const bwLabel = screen.getByLabelText('Black & white')
+  fireEvent.click(bwLabel)
+  expect(setBw).toHaveBeenCalled()
+})
+
+test('selecting a shape element shows Fill: Accent and Text buttons', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  render(<ComposerRail />)
+  // Find all buttons with name matching /accent/i and /text/i
+  // (there may be multiple due to other UI elements like "Add text element")
+  const accentBtns = screen.getAllByRole('button', { name: /accent/i })
+  expect(accentBtns.length).toBeGreaterThan(0)
+  const textBtns = screen.getAllByRole('button', { name: /text/i })
+  expect(textBtns.length).toBeGreaterThan(0)
+})
+
+test('position inputs are shown for selected element', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('X position')).toBeTruthy()
+  expect(screen.getByLabelText('Y position')).toBeTruthy()
+  expect(screen.getByLabelText('Width')).toBeTruthy()
+  expect(screen.getByLabelText('Height')).toBeTruthy()
+})

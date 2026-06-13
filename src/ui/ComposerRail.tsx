@@ -4,7 +4,8 @@ import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
-import type { Slot } from '../types'
+import { resolveTextStyle } from '../render/resolve-style'
+import type { FontFamily, Slot } from '../types'
 
 // ── Micro label ──────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,70 @@ function Checkbox({ id, label, checked, onChange }: { id: string; label: string;
   )
 }
 
+// ── NumberField ───────────────────────────────────────────────────────────────
+function NumberField({
+  id,
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: number
+  min?: number
+  max?: number
+  step?: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <label
+        htmlFor={id}
+        className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+      >
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className={[
+          'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+          'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+        ].join(' ')}
+      />
+    </div>
+  )
+}
+
+// ── InspectorRow ──────────────────────────────────────────────────────────────
+function InspectorRow({ label, children, overridden }: { label: string; children: React.ReactNode; overridden?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          {label}
+        </span>
+        {overridden && (
+          <span
+            title="Overridden"
+            className="inline-block h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0"
+            aria-label="field overridden"
+          />
+        )}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function ComposerRail() {
   const design = useDesign(s => s.design)
@@ -77,6 +142,13 @@ export function ComposerRail() {
   const sendBackward = useDesign(s => s.sendBackward)
   const setText = useDesign(s => s.setText)
   const setFill = useDesign(s => s.setFill)
+  const setBox = useDesign(s => s.setBox)
+  const setContent = useDesign(s => s.setContent)
+  const overrideText = useDesign(s => s.overrideText)
+  const setColor = useDesign(s => s.setColor)
+  const setBw = useDesign(s => s.setBw)
+  const resetElement = useDesign(s => s.resetElement)
+  const requestCrop = useDesign(s => s.requestCrop)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
   const undo = useDesign(s => s.undo)
@@ -255,8 +327,8 @@ export function ComposerRail() {
 
       <Divider />
 
-      {/* Selected element mini-panel */}
-      <SectionLabel>Selected</SectionLabel>
+      {/* Selected element inspector */}
+      <SectionLabel>Properties</SectionLabel>
       <div className="px-4 pb-4">
         {!selectedSlot && (
           <p className="text-xs text-neutral-400 leading-relaxed">
@@ -264,97 +336,348 @@ export function ComposerRail() {
           </p>
         )}
 
-        {selectedSlot && (
-          <div className="space-y-3">
-            {/* Text-slot controls */}
-            {selectedSlot.text && (
-              <div className="space-y-2">
-                {/* Align */}
-                <div>
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Align</div>
-                  <div className="flex gap-1">
-                    {(['left', 'center', 'right'] as const).map(a => (
-                      <button
-                        key={a}
-                        onClick={() => setText(selectedSlot.id, { align: a })}
-                        aria-label={`Align ${a}`}
-                        className={[
-                          'flex-1 flex items-center justify-center rounded border py-1.5',
-                          'transition-colors duration-100',
-                          selectedSlot.text?.align === a
-                            ? 'border-neutral-900 bg-neutral-900 text-white'
-                            : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
-                        ].join(' ')}
-                      >
-                        {a === 'left' && <AlignLeft size={13} />}
-                        {a === 'center' && <AlignCenter size={13} />}
-                        {a === 'right' && <AlignRight size={13} />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {selectedSlot && (() => {
+          const isText = selectedSlot.role !== 'image' && selectedSlot.role !== 'block' && selectedSlot.role !== 'line'
+          const isImage = selectedSlot.role === 'image'
+          const isShape = selectedSlot.role === 'block' || selectedSlot.role === 'line'
+          const hasOverrides = !!(selectedSlot.overridden?.length || selectedSlot.color !== undefined || selectedSlot.bw !== undefined)
+          const ov = selectedSlot.overridden ?? []
+          const resolvedText = isText && selectedSlot.text
+            ? resolveTextStyle(selectedSlot, design.typography)
+            : null
 
-                {/* Size */}
-                <div>
-                  <label
-                    htmlFor="rail-text-size"
-                    className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-                  >
-                    Size
-                  </label>
-                  <input
-                    id="rail-text-size"
-                    type="number"
-                    min={10}
-                    max={600}
-                    value={selectedSlot.text.size}
-                    onChange={e => setText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
-                    className="w-full rounded-md border border-neutral-200 px-2.5 py-1.5 text-sm tabular-nums text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
-                  />
-                </div>
+          const typeLabel = isImage ? 'Image' : isShape ? (selectedSlot.role === 'line' ? 'Line' : 'Shape') : 'Text'
+
+          const iconBtnCls = [
+            'rounded p-1 text-neutral-500',
+            'hover:bg-neutral-100 hover:text-neutral-900',
+            'active:scale-[0.97] transition-transform duration-150',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+          ].join(' ')
+
+          return (
+            <div className="space-y-3">
+              {/* Header: type label + action buttons */}
+              <div className="flex items-center gap-1">
+                <span className="flex-1 text-xs font-semibold text-neutral-700">{typeLabel}</span>
+                <button
+                  onClick={() => duplicateElement(selectedSlot.id)}
+                  className={iconBtnCls}
+                  aria-label="Duplicate element"
+                  title="Duplicate"
+                >
+                  <Copy size={13} />
+                </button>
+                <button
+                  onClick={() => bringForward(selectedSlot.id)}
+                  className={iconBtnCls}
+                  aria-label="Bring forward"
+                  title="Bring forward"
+                >
+                  <ChevronUp size={13} />
+                </button>
+                <button
+                  onClick={() => sendBackward(selectedSlot.id)}
+                  className={iconBtnCls}
+                  aria-label="Send backward"
+                  title="Send backward"
+                >
+                  <ChevronDown size={13} />
+                </button>
+                <button
+                  onClick={() => deleteElement(selectedSlot.id)}
+                  className={[iconBtnCls, 'hover:bg-red-50 hover:text-red-600'].join(' ')}
+                  aria-label="Delete element"
+                  title="Delete"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
-            )}
 
-            {/* Block/Line fill */}
-            {(selectedSlot.role === 'block' || selectedSlot.role === 'line') && (
-              <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Fill</div>
-                <div className="flex gap-1">
-                  {(['accent', 'text'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setFill(selectedSlot.id, f)}
+              {/* Reset to global — only when overrides present */}
+              {hasOverrides && (
+                <button
+                  onClick={() => resetElement(selectedSlot.id)}
+                  className={[
+                    'w-full rounded border border-blue-200 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-blue-600',
+                    'hover:bg-blue-50 active:scale-[0.97] transition-transform duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40',
+                  ].join(' ')}
+                >
+                  Reset to global
+                </button>
+              )}
+
+              {/* TEXT controls */}
+              {isText && selectedSlot.text && (
+                <div className="space-y-2.5">
+                  {/* Content */}
+                  <InspectorRow label="Content">
+                    <textarea
+                      aria-label="Content"
+                      rows={2}
+                      value={selectedSlot.content}
+                      onChange={e => setContent(selectedSlot.id, e.target.value)}
                       className={[
-                        'flex-1 rounded border py-1.5 text-xs font-medium capitalize',
-                        'transition-colors duration-100',
-                        selectedSlot.fill === f
-                          ? 'border-neutral-900 bg-neutral-900 text-white'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs text-neutral-800 resize-none',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                  </InspectorRow>
+
+                  {/* Typeface */}
+                  <InspectorRow label="Typeface" overridden={ov.includes('family')}>
+                    <select
+                      id={`insp-typeface-${selectedSlot.id}`}
+                      aria-label="Typeface"
+                      value={resolvedText!.family}
+                      onChange={e => overrideText(selectedSlot.id, { family: e.target.value as FontFamily })}
+                      className={[
+                        'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
                       ].join(' ')}
                     >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                      <option value="display">Archivo Display</option>
+                      <option value="sans">Inter</option>
+                      <option value="condensed">Archivo Narrow</option>
+                      <option value="mono">Space Mono</option>
+                    </select>
+                  </InspectorRow>
 
-            {/* Box readouts */}
-            {resolvedBox && (
-              <div>
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Position</div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(['x', 'y', 'w', 'h'] as const).map(k => (
-                    <div key={k} className="flex items-center gap-1 rounded border border-neutral-200 px-2 py-1">
-                      <span className="text-[10px] font-semibold uppercase text-neutral-400 w-3 shrink-0">{k}</span>
-                      <span className="text-xs tabular-nums text-neutral-700">{Math.round(resolvedBox[k])}</span>
+                  {/* Size */}
+                  <InspectorRow label="Size" overridden={ov.includes('size')}>
+                    <input
+                      id={`insp-size-${selectedSlot.id}`}
+                      aria-label="Size"
+                      type="number"
+                      min={10}
+                      max={600}
+                      value={resolvedText!.size}
+                      onChange={e => overrideText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
+                      className={[
+                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                  </InspectorRow>
+
+                  {/* Weight */}
+                  <InspectorRow label="Weight">
+                    <select
+                      id={`insp-weight-${selectedSlot.id}`}
+                      aria-label="Weight"
+                      value={selectedSlot.text.weight}
+                      onChange={e => setText(selectedSlot.id, { weight: Number(e.target.value) })}
+                      className={[
+                        'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    >
+                      {[100, 200, 300, 400, 500, 600, 700, 800, 900].map(w => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </InspectorRow>
+
+                  {/* Tracking */}
+                  <InspectorRow label="Tracking" overridden={ov.includes('tracking')}>
+                    <input
+                      id={`insp-tracking-${selectedSlot.id}`}
+                      aria-label="Tracking"
+                      type="number"
+                      step={0.005}
+                      value={resolvedText!.tracking}
+                      onChange={e => overrideText(selectedSlot.id, { tracking: Number(e.target.value) })}
+                      className={[
+                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                  </InspectorRow>
+
+                  {/* Leading */}
+                  <InspectorRow label="Leading" overridden={ov.includes('leading')}>
+                    <input
+                      id={`insp-leading-${selectedSlot.id}`}
+                      aria-label="Leading"
+                      type="number"
+                      step={0.01}
+                      value={resolvedText!.leading}
+                      onChange={e => overrideText(selectedSlot.id, { leading: Number(e.target.value) })}
+                      className={[
+                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                  </InspectorRow>
+
+                  {/* Align */}
+                  <InspectorRow label="Align">
+                    <div className="flex gap-1">
+                      {(['left', 'center', 'right'] as const).map(a => (
+                        <button
+                          key={a}
+                          onClick={() => setText(selectedSlot.id, { align: a })}
+                          aria-label={`Align ${a}`}
+                          className={[
+                            'flex-1 flex items-center justify-center rounded border py-1.5',
+                            'transition-colors duration-100',
+                            selectedSlot.text?.align === a
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                          ].join(' ')}
+                        >
+                          {a === 'left' && <AlignLeft size={13} />}
+                          {a === 'center' && <AlignCenter size={13} />}
+                          {a === 'right' && <AlignRight size={13} />}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                  </InspectorRow>
+
+                  {/* Fit */}
+                  <InspectorRow label="Fit" overridden={ov.includes('fit')}>
+                    <div className="flex gap-1">
+                      {(['auto', 'fixed'] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setText(selectedSlot.id, { fit: f })}
+                          className={[
+                            'flex-1 rounded border py-1.5 text-xs font-medium capitalize',
+                            'transition-colors duration-100',
+                            selectedSlot.text?.fit === f
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                          ].join(' ')}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </InspectorRow>
+
+                  {/* Colour */}
+                  <InspectorRow label="Colour" overridden={selectedSlot.color !== undefined}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        aria-label="Element colour"
+                        value={selectedSlot.color ?? design.palette.text}
+                        onChange={e => setColor(selectedSlot.id, e.target.value)}
+                        className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
+                      />
+                      {!selectedSlot.color && (
+                        <span className="text-[10px] text-neutral-400">using global</span>
+                      )}
+                    </div>
+                  </InspectorRow>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+              {/* IMAGE controls */}
+              {isImage && (
+                <div className="space-y-2.5">
+                  {/* Replace / Re-crop */}
+                  <button
+                    onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
+                    className={[
+                      'w-full rounded border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700',
+                      'hover:border-neutral-400 active:scale-[0.97] transition-transform duration-150',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                    ].join(' ')}
+                  >
+                    {selectedSlot.content ? 'Re-crop / Replace' : 'Choose image'}
+                  </button>
+
+                  {/* B&W */}
+                  <InspectorRow label="Black & white" overridden={selectedSlot.bw !== undefined}>
+                    <Checkbox
+                      id={`insp-bw-${selectedSlot.id}`}
+                      label="Black & white"
+                      checked={selectedSlot.bw ?? design.style.bwImage}
+                      onChange={v => setBw(selectedSlot.id, v)}
+                    />
+                  </InspectorRow>
+                </div>
+              )}
+
+              {/* SHAPE / LINE controls */}
+              {isShape && (
+                <div className="space-y-2.5">
+                  <InspectorRow label="Fill">
+                    <div className="flex gap-1 flex-wrap">
+                      {(['accent', 'text'] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setFill(selectedSlot.id, f)}
+                          className={[
+                            'flex-1 rounded border py-1.5 text-xs font-medium capitalize',
+                            'transition-colors duration-100',
+                            selectedSlot.fill === f
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                          ].join(' ')}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                      {/* Custom colour */}
+                      <input
+                        type="color"
+                        aria-label="Custom fill colour"
+                        value={
+                          !['accent', 'text'].includes(selectedSlot.fill ?? '')
+                            ? (selectedSlot.fill ?? design.palette.accent)
+                            : design.palette.accent
+                        }
+                        onChange={e => setFill(selectedSlot.id, e.target.value)}
+                        title="Custom colour"
+                        className="h-8 w-8 cursor-pointer rounded border border-neutral-200 p-0.5"
+                      />
+                    </div>
+                  </InspectorRow>
+                </div>
+              )}
+
+              {/* Position & Size */}
+              {resolvedBox && (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                    Position & Size
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <NumberField
+                      id={`insp-x-${selectedSlot.id}`}
+                      label="X position"
+                      value={Math.round(resolvedBox.x)}
+                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, x: v })}
+                    />
+                    <NumberField
+                      id={`insp-y-${selectedSlot.id}`}
+                      label="Y position"
+                      value={Math.round(resolvedBox.y)}
+                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, y: v })}
+                    />
+                    <NumberField
+                      id={`insp-w-${selectedSlot.id}`}
+                      label="Width"
+                      value={Math.round(resolvedBox.w)}
+                      min={1}
+                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, w: v })}
+                    />
+                    <NumberField
+                      id={`insp-h-${selectedSlot.id}`}
+                      label="Height"
+                      value={Math.round(resolvedBox.h)}
+                      min={1}
+                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, h: v })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       <div className="mt-auto">

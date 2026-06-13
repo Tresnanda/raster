@@ -61,6 +61,16 @@ export interface Slot {
   typeClass?: 'title' | 'headline' | 'body'
   /** Z-order for rendering; fallback = array index. */
   z?: number
+  /**
+   * Names of TextStyle fields that have been explicitly overridden for this
+   * element (e.g. ['size', 'family']). When a field name is in this list,
+   * resolveTextStyle uses slot.text[field] instead of the global typography value.
+   */
+  overridden?: string[]
+  /** Per-element text colour override (hex). Overrides palette.text / accent logic. */
+  color?: string
+  /** Per-element B&W override for image slots. Overrides style.bwImage when set. */
+  bw?: boolean
 }
 
 export interface Palette { bg: string; text: string; accent: string }

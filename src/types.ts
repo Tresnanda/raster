@@ -47,7 +47,7 @@ export interface TextStyle {
 
 export type SlotRole =
   | 'headline' | 'subhead' | 'caption' | 'date' | 'index' | 'glyph'
-  | 'mark' | 'image' | 'block'
+  | 'mark' | 'image' | 'block' | 'line'
 
 export interface Slot {
   id: string
@@ -59,6 +59,8 @@ export interface Slot {
   text?: TextStyle       // present for text roles
   fill?: string          // for 'block' role (uses palette token name or hex)
   typeClass?: 'title' | 'headline' | 'body'
+  /** Z-order for rendering; fallback = array index. */
+  z?: number
 }
 
 export interface Palette { bg: string; text: string; accent: string }
@@ -66,6 +68,7 @@ export interface Palette { bg: string; text: string; accent: string }
 export interface Design {
   format: Format
   grid: Grid
+  /** Archetype id, or `'generated'` for procedurally generated designs. */
   archetype: string
   palette: Palette
   seed: number
@@ -73,5 +76,6 @@ export interface Design {
   slots: Slot[]
   typography: Typography
   style: StyleOptions
+  /** Layout number 1–19, or `0` for a procedurally generated design. */
   layout: number
 }

@@ -7,6 +7,7 @@ import { classOf } from '../design/typeclass'
 import { resolveTextStyle } from './resolve-style'
 import { SlotImage } from './slot-image'
 import { SlotText } from './slot-text'
+import { orderedSlots } from '../design/order'
 
 const GRAIN_SEED = 7
 
@@ -90,8 +91,8 @@ export function Renderer({ design, measure, svgRef }: {
           )}
         </defs>
 
-        {/* Slots — each wrapped in <g data-slot> for Phase 5 motion */}
-        {design.slots.map(slot => {
+        {/* Slots — rendered in ascending z-order, each wrapped in <g data-slot> */}
+        {orderedSlots(design).map(slot => {
           const box = slotBox(canvas, design.grid, slot)
 
           if (slot.role === 'image') {
@@ -103,6 +104,16 @@ export function Renderer({ design, measure, svgRef }: {
           }
 
           if (slot.role === 'block') {
+            const fill = slot.fill === 'accent' ? palette.accent
+              : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
+            return (
+              <g key={slot.id} data-slot={slot.id}>
+                <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
+              </g>
+            )
+          }
+
+          if (slot.role === 'line') {
             const fill = slot.fill === 'accent' ? palette.accent
               : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
             return (

@@ -4,7 +4,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ComposerRail } from './ComposerRail'
 import { useDesign } from '../store/useDesign'
 import '../archetypes/index'
-import React from 'react'
 
 beforeEach(() => {
   useDesign.getState().reset('mega-word', '4:5')

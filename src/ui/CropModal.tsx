@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import 'react-easy-crop/react-easy-crop.css'
@@ -29,6 +31,10 @@ export function CropModal() {
   const croppedAreaPixelsRef = useRef<Area | null>(null)
   const [applying, setApplying] = useState(false)
 
+  // Refs for motion targets
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+
   // Reset crop position when a new request arrives
   useEffect(() => {
     if (cropRequest) {
@@ -51,6 +57,36 @@ export function CropModal() {
   const onCropComplete = useCallback((_: Area, pixels: Area) => {
     croppedAreaPixelsRef.current = pixels
   }, [])
+
+  // ── Motion: modal entrance ────────────────────────────────────────────────
+  // Runs on mount (i.e., each time the modal becomes visible because CropModal
+  // returns null when cropRequest is null, so mount === open).
+  useGSAP(() => {
+    if (!backdropRef.current || !cardRef.current) return
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      // Backdrop fade in
+      gsap.from(backdropRef.current!, {
+        opacity: 0,
+        duration: 0.15,
+        ease: 'none',
+      })
+      // Card scale from center
+      gsap.from(cardRef.current!, {
+        scale: 0.96,
+        opacity: 0,
+        transformOrigin: '50% 50%',
+        duration: 0.2,
+        ease: 'power3.out',
+        force3D: true,
+      })
+    })
+    mm.add('(prefers-reduced-motion: reduce)', () => {
+      // Reduced motion: just fade, no scale
+      gsap.from(backdropRef.current!, { opacity: 0, duration: 0.15, ease: 'none' })
+    })
+    return () => mm.revert()
+  }, { scope: backdropRef, dependencies: [] })
 
   const handleApply = async () => {
     if (!cropRequest || applying) return
@@ -78,6 +114,7 @@ export function CropModal() {
   return (
     // Backdrop
     <div
+      ref={backdropRef}
       role="dialog"
       aria-modal="true"
       aria-label="Crop image"
@@ -97,6 +134,7 @@ export function CropModal() {
     >
       {/* Modal card */}
       <div
+        ref={cardRef}
         role="document"
         style={{
           background: '#fff',

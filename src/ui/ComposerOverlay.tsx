@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
@@ -103,6 +105,36 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
 
   const slots = orderedSlots(design)
   const boundaries = gridBoundaries(canvas, design.grid)
+
+  // Root ref for useGSAP scope
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  // ── Motion: selection outline animate in ─────────────────────────────────
+  // When selectedId changes to a non-null value, fade+scale the slot div in.
+  // Kept very fast (120ms) — selection is frequent, motion must be subtle.
+  useGSAP(() => {
+    if (!selectedId || !overlayRef.current) return
+    const slotEl = overlayRef.current.querySelector<HTMLElement>(
+      `[data-composer-slot="${CSS.escape(selectedId)}"]`,
+    )
+    if (!slotEl) return
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.from(slotEl, {
+        opacity: 0,
+        scale: 0.98,
+        transformOrigin: '50% 50%',
+        duration: 0.12,
+        ease: 'power3.out',
+        force3D: true,
+        // Only animate the visual overlay, not the element content itself —
+        // we can't easily isolate just the outline, so we do a very subtle
+        // scale on the whole slot div (barely perceptible, 0.98 → 1).
+      })
+    })
+    // Reduced motion: instant (no animation added)
+    return () => mm.revert()
+  }, { scope: overlayRef, dependencies: [selectedId] })
 
   // ── Keyboard handler ──────────────────────────────────────────────────────
 
@@ -271,6 +303,7 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
 
   return (
     <div
+      ref={overlayRef}
       data-composer-overlay
       className="absolute inset-0 overflow-hidden"
       style={{

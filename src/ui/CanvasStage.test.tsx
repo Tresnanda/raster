@@ -31,3 +31,26 @@ test('setSnap updates store snap', () => {
   expect(useDesign.getState().snap).toBe(false)
   useDesign.getState().setSnap(true)
 })
+
+// ── Phase E motion smoke tests ────────────────────────────────────────────────
+
+test('add-element pop: adding an element does not throw (motion hook fires)', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { unmount } = render(<CanvasStage svgRef={svgRef} />)
+  // Adding an element increments slots.length, triggering the pop hook
+  act(() => {
+    useDesign.getState().addElement('text')
+  })
+  unmount()
+})
+
+test('surprise entrance amplification: surprise() does not throw (motion reflow detects generated archetype)', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { unmount } = render(<CanvasStage svgRef={svgRef} />)
+  act(() => {
+    useDesign.getState().surprise()
+  })
+  unmount()
+})

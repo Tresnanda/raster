@@ -156,3 +156,18 @@ test('clicking the backdrop (not the card) closes the modal', async () => {
 
   expect(useDesign.getState().cropRequest).toBeNull()
 })
+
+// ── Phase E motion smoke test ─────────────────────────────────────────────────
+
+test('modal entrance motion: renders with GSAP wired without throwing', async () => {
+  const slotId = useDesign.getState().design.slots[0].id
+
+  await act(async () => {
+    useDesign.getState().requestCrop(slotId, TEST_SRC)
+  })
+
+  // Should not throw even with useGSAP motion hooks (jsdom stubs matchMedia)
+  const { getByRole, unmount } = render(<CropModal />)
+  expect(getByRole('dialog')).toBeTruthy()
+  unmount()
+})

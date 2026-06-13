@@ -30,6 +30,10 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     return () => ro.disconnect()
   }, [c.w])
 
+  // ── Tracks for add-element pop and surprise detection ─────────────────────
+  const prevSlotsLenRef = useRef(design.slots.length)
+  const prevArchetypeRef = useRef(design.archetype)
+
   // ── Motion 1: mount entrance (once) ──────────────────────────────────────
   useGSAP(() => {
     if (!containerRef.current) return
@@ -47,21 +51,41 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   }, { scope: containerRef, dependencies: [] })
 
   // ── Motion 2: poster reflow on layout/seed change ─────────────────────────
+  // For Surprise (archetype just became 'generated'), use a bigger flourish.
   useGSAP(() => {
     const groups = svgRef.current?.querySelectorAll('[data-slot]')
     if (!groups?.length) return
+
+    const wasGenerated =
+      design.archetype === 'generated' && prevArchetypeRef.current !== 'generated'
+    prevArchetypeRef.current = design.archetype
+
     const mm = gsap.matchMedia()
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      gsap.from(groups, {
-        y: 26,
-        opacity: 0,
-        scale: 0.985,
-        transformOrigin: '50% 50%',
-        duration: 0.5,
-        ease: 'power3.out',
-        stagger: 0.035,
-        force3D: true,
-      })
+      if (wasGenerated) {
+        // Surprise: slightly bigger flourish
+        gsap.from(groups, {
+          y: 40,
+          opacity: 0,
+          scale: 0.97,
+          transformOrigin: '50% 50%',
+          duration: 0.55,
+          ease: 'power3.out',
+          stagger: 0.045,
+          force3D: true,
+        })
+      } else {
+        gsap.from(groups, {
+          y: 26,
+          opacity: 0,
+          scale: 0.985,
+          transformOrigin: '50% 50%',
+          duration: 0.5,
+          ease: 'power3.out',
+          stagger: 0.035,
+          force3D: true,
+        })
+      }
     })
     mm.add('(prefers-reduced-motion: reduce)', () => {
       gsap.from(groups, { opacity: 0, duration: 0.2, stagger: 0.02 })
@@ -84,6 +108,39 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     })
     return () => mm.revert()
   }, { scope: containerRef, dependencies: [design.format] })
+
+  // ── Motion 4: add-element pop ─────────────────────────────────────────────
+  // Runs when a new slot is added (slots.length increases). Animates the LAST
+  // added [data-slot] group in the SVG. Guard: only on increase, not on delete.
+  useGSAP(() => {
+    const currentLen = design.slots.length
+    const prevLen = prevSlotsLenRef.current
+    prevSlotsLenRef.current = currentLen
+
+    // Only animate on increase (add), not delete/initial render
+    if (currentLen <= prevLen) return
+
+    const groups = svgRef.current?.querySelectorAll('[data-slot]')
+    if (!groups?.length) return
+    const newGroup = groups[groups.length - 1]
+    if (!newGroup) return
+
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.from(newGroup, {
+        scale: 0.96,
+        opacity: 0,
+        transformOrigin: '50% 50%',
+        duration: 0.2,
+        ease: 'power3.out',
+        force3D: true,
+      })
+    })
+    mm.add('(prefers-reduced-motion: reduce)', () => {
+      gsap.from(newGroup, { opacity: 0, duration: 0.15 })
+    })
+    return () => mm.revert()
+  }, { scope: containerRef, dependencies: [design.slots.length] })
 
   return (
     <div className="flex h-full items-center justify-center bg-neutral-200 p-8">

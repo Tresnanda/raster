@@ -323,3 +323,27 @@ test('deselecting clears handles and toolbar', async () => {
   expect(container.querySelector('[data-composer-toolbar]')).toBeNull()
   expect(container.querySelectorAll('[data-handle]').length).toBe(0)
 })
+
+// ── Phase E motion smoke test ─────────────────────────────────────────────────
+
+test('selection outline motion: selecting an element does not throw (GSAP useGSAP hook fires)', async () => {
+  const { container, unmount } = render(<ComposerOverlay scale={1} />)
+  const firstSlot = getSlots(container)[0] as HTMLElement
+
+  // Select — triggers the selection animation useGSAP hook
+  await act(async () => {
+    fireEvent.click(firstSlot)
+  })
+
+  expect(useDesign.getState().selectedId).not.toBeNull()
+
+  // Select a second slot — exercises selectedId change path
+  const slots = getSlots(container)
+  if (slots.length > 1) {
+    await act(async () => {
+      fireEvent.click(slots[1] as HTMLElement)
+    })
+  }
+
+  unmount()
+})

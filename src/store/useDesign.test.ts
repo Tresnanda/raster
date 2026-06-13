@@ -106,12 +106,20 @@ test('prevLayout decrements layout, wrapping at 1→19', () => {
   expect(useDesign.getState().design.layout).toBe(19)
 })
 
-test('surprise produces a valid design with layout in 1..19', () => {
+// surprise now calls generate() → layout=0, archetype='generated'
+test('surprise produces a valid procedurally generated design', () => {
   useDesign.getState().surprise()
   const d = useDesign.getState().design
-  expect(d.layout).toBeGreaterThanOrEqual(1)
-  expect(d.layout).toBeLessThanOrEqual(19)
+  expect(d.layout).toBe(0)
+  expect(d.archetype).toBe('generated')
   expect(d.format).toBe('4:5') // format preserved
+  expect(d.slots.length).toBeGreaterThan(0)
+})
+
+test('surprise clears selectedId', () => {
+  useDesign.getState().selectElement('word')
+  useDesign.getState().surprise()
+  expect(useDesign.getState().selectedId).toBeNull()
 })
 
 test('reset populates typography and style with defaults', () => {
@@ -153,4 +161,205 @@ test('localStorage migration: old save without typography loads with defaults me
   expect(migrated.layout).toBe(1)
   expect(migrated.slots[0].typeClass).toBe('title') // headline → title
   expect(migrated.slots[0].content).toBe('OLD')
+})
+
+test('localStorage migration: z is added to slots missing it', () => {
+  const oldDesign = {
+    format: '4:5',
+    grid: { cols: 12, rows: 16, margin: 64, gutter: 24 },
+    archetype: 'mega-word',
+    palette: { bg: '#0a0a0a', text: '#ffffff', accent: '#d6231f' },
+    seed: 0,
+    mode: 'grid',
+    slots: [
+      { id: 'word', role: 'headline', cell: { c: 0, cs: 12, r: 6, rs: 4 }, content: 'A' },
+      { id: 'sub', role: 'caption', cell: { c: 0, cs: 6, r: 12, rs: 1 }, content: 'B' },
+    ],
+    typography: DEFAULT_TYPOGRAPHY,
+    style: DEFAULT_STYLE,
+    layout: 1,
+  }
+  localStorage.setItem('raster:design', JSON.stringify(oldDesign))
+  const parsed = JSON.parse(localStorage.getItem('raster:design')!)
+  const migrated = {
+    ...parsed,
+    typography: { ...DEFAULT_TYPOGRAPHY, ...(parsed.typography ?? {}) },
+    style: { ...DEFAULT_STYLE, ...(parsed.style ?? {}) },
+    layout: parsed.layout ?? 1,
+    slots: (parsed.slots ?? []).map((s: any, i: number) => ({
+      ...s,
+      typeClass: s.typeClass ?? (s.role !== 'image' && s.role !== 'block' && s.role !== 'line' ? classOf(s.role) : undefined),
+      z: s.z ?? i,
+    })),
+  }
+  expect(migrated.slots[0].z).toBe(0)
+  expect(migrated.slots[1].z).toBe(1)
+})
+
+// ── selectedId state ───────────────────────────────────────────────────────────
+
+test('selectedId starts as null after reset', () => {
+  expect(useDesign.getState().selectedId).toBeNull()
+})
+
+test('selectElement sets and clears selectedId', () => {
+  useDesign.getState().selectElement('word')
+  expect(useDesign.getState().selectedId).toBe('word')
+  useDesign.getState().selectElement(null)
+  expect(useDesign.getState().selectedId).toBeNull()
+})
+
+// ── addElement ────────────────────────────────────────────────────────────────
+
+test('addElement(text) appends a text slot with box and auto-selects', () => {
+  useDesign.getState().addElement('text')
+  const { design, selectedId } = useDesign.getState()
+  const added = design.slots.find(s => s.id === selectedId)
+  expect(added).toBeDefined()
+  expect(added!.role).toBe('caption')
+  expect(added!.box).toBeDefined()
+  expect(added!.text).toBeDefined()
+  expect(added!.content).toBe('Text')
+  expect(typeof added!.z).toBe('number')
+})
+
+test('addElement(image) appends an image slot', () => {
+  useDesign.getState().addElement('image')
+  const { design, selectedId } = useDesign.getState()
+  const added = design.slots.find(s => s.id === selectedId)
+  expect(added!.role).toBe('image')
+  expect(added!.box).toBeDefined()
+})
+
+test('addElement(block) appends a block slot with fill=accent', () => {
+  useDesign.getState().addElement('block')
+  const { design, selectedId } = useDesign.getState()
+  const added = design.slots.find(s => s.id === selectedId)
+  expect(added!.role).toBe('block')
+  expect(added!.fill).toBe('accent')
+})
+
+test('addElement(line) appends a line slot with h=4', () => {
+  useDesign.getState().addElement('line')
+  const { design, selectedId } = useDesign.getState()
+  const added = design.slots.find(s => s.id === selectedId)
+  expect(added!.role).toBe('line')
+  expect(added!.box!.h).toBe(4)
+})
+
+test('addElement z = maxZ + 1 of existing slots', () => {
+  const before = useDesign.getState().design.slots
+  const maxZBefore = before.reduce((m, s, i) => Math.max(m, s.z ?? i), -1)
+  useDesign.getState().addElement('text')
+  const { design, selectedId } = useDesign.getState()
+  const added = design.slots.find(s => s.id === selectedId)
+  expect(added!.z).toBe(maxZBefore + 1)
+})
+
+// ── deleteElement ─────────────────────────────────────────────────────────────
+
+test('deleteElement removes the slot', () => {
+  const before = useDesign.getState().design.slots.length
+  useDesign.getState().deleteElement('subhead')
+  expect(useDesign.getState().design.slots.length).toBe(before - 1)
+  expect(useDesign.getState().design.slots.find(s => s.id === 'subhead')).toBeUndefined()
+})
+
+test('deleteElement clears selectedId if that element was selected', () => {
+  useDesign.getState().selectElement('mark')
+  useDesign.getState().deleteElement('mark')
+  expect(useDesign.getState().selectedId).toBeNull()
+})
+
+test('deleteElement preserves selectedId if a different element was selected', () => {
+  useDesign.getState().selectElement('word')
+  useDesign.getState().deleteElement('mark')
+  expect(useDesign.getState().selectedId).toBe('word')
+})
+
+// ── duplicateElement ──────────────────────────────────────────────────────────
+
+test('duplicateElement adds a copy and auto-selects it', () => {
+  const beforeCount = useDesign.getState().design.slots.length
+  useDesign.getState().duplicateElement('word')
+  const { design, selectedId } = useDesign.getState()
+  expect(design.slots.length).toBe(beforeCount + 1)
+  const copy = design.slots.find(s => s.id === selectedId)
+  expect(copy).toBeDefined()
+  expect(copy!.content).toBe(design.slots.find(s => s.id === 'word')!.content)
+})
+
+test('duplicateElement gives copy a higher z than original', () => {
+  useDesign.getState().duplicateElement('word')
+  const { design, selectedId } = useDesign.getState()
+  const copy = design.slots.find(s => s.id === selectedId)
+  const original = design.slots.find(s => s.id === 'word')
+  const origZ = original!.z ?? design.slots.indexOf(original!)
+  expect(copy!.z).toBeGreaterThan(origZ)
+})
+
+test('duplicateElement resolves box from grid cell when slot has no box', () => {
+  useDesign.getState().duplicateElement('word')
+  const { design, selectedId } = useDesign.getState()
+  const copy = design.slots.find(s => s.id === selectedId)
+  // The copy must have a box (resolved + offset)
+  expect(copy!.box).toBeDefined()
+  expect(typeof copy!.box!.x).toBe('number')
+  expect(typeof copy!.box!.y).toBe('number')
+})
+
+test('duplicateElement of slot with existing box offsets that box by +24,+24', () => {
+  useDesign.getState().setBox('word', { x: 100, y: 200, w: 400, h: 300 })
+  useDesign.getState().duplicateElement('word')
+  const { design, selectedId } = useDesign.getState()
+  const copy = design.slots.find(s => s.id === selectedId)
+  expect(copy!.box!.x).toBe(124)
+  expect(copy!.box!.y).toBe(224)
+})
+
+// ── bringForward / sendBackward ───────────────────────────────────────────────
+
+test('bringForward raises an element above its neighbor', () => {
+  // mega-word slots: image(z by idx 0), word(1), subhead(2), mark(3)
+  useDesign.getState().bringForward('image')
+  const d = useDesign.getState().design
+  const imageAfter = d.slots.find(s => s.id === 'image')!.z!
+  const wordAfter = d.slots.find(s => s.id === 'word')!.z!
+  // image moved up, word moved down
+  expect(imageAfter).toBeGreaterThan(wordAfter)
+})
+
+test('sendBackward lowers an element below its neighbor', () => {
+  useDesign.getState().sendBackward('mark')
+  const d = useDesign.getState().design
+  const mark = d.slots.find(s => s.id === 'mark')!.z!
+  const subhead = d.slots.find(s => s.id === 'subhead')!.z!
+  expect(mark).toBeLessThan(subhead)
+})
+
+test('bringForward on the highest element does not crash', () => {
+  // 'mark' is the highest z by array index
+  expect(() => useDesign.getState().bringForward('mark')).not.toThrow()
+})
+
+test('sendBackward on the lowest element does not crash', () => {
+  expect(() => useDesign.getState().sendBackward('image')).not.toThrow()
+})
+
+// ── pickForMe ─────────────────────────────────────────────────────────────────
+
+test('pickForMe sets layout to a value in 1..19', () => {
+  useDesign.getState().pickForMe()
+  const { design } = useDesign.getState()
+  expect(design.layout).toBeGreaterThanOrEqual(1)
+  expect(design.layout).toBeLessThanOrEqual(19)
+})
+
+test('pickForMe produces multiple distinct layouts across calls', () => {
+  const layouts = new Set<number>()
+  for (let i = 0; i < 40; i++) {
+    useDesign.getState().pickForMe()
+    layouts.add(useDesign.getState().design.layout)
+  }
+  expect(layouts.size).toBeGreaterThan(3)
 })

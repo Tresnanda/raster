@@ -23,3 +23,40 @@ test('dark archetype gets dark default palette', () => {
   expect(d.palette.bg).toBe('#0a0a0a')
   expect(d.palette.text).toBe('#ffffff')
 })
+
+test('buildDesign populates typography with defaults', () => {
+  const d = buildDesign('mega-word', '4:5', 0)
+  expect(d.typography.typeface).toBe('display')
+  expect(d.typography.title).toBe(120)
+  expect(d.typography.headline).toBe(220)
+  expect(d.typography.body).toBe(18)
+})
+
+test('buildDesign populates style with defaults', () => {
+  const d = buildDesign('mega-word', '4:5', 0)
+  expect(d.style.bwImage).toBe(true)
+  expect(d.style.filmGrain).toBe(true)
+  expect(d.style.accentHeadline).toBe(false)
+  expect(d.style.gridOverlay).toBe(false)
+})
+
+test('buildDesign sets layout to 1', () => {
+  const d = buildDesign('mega-word', '4:5', 0)
+  expect(d.layout).toBe(1)
+})
+
+test('text slots have typeClass set', () => {
+  const d = buildDesign('mega-word', '4:5', 0)
+  // 'word' slot has role 'headline' → typeClass 'title'
+  const word = d.slots.find(s => s.id === 'word')!
+  expect(word.typeClass).toBe('title')
+  // 'subhead' role → body
+  const subhead = d.slots.find(s => s.id === 'subhead')!
+  expect(subhead.typeClass).toBe('body')
+})
+
+test('image slot has no typeClass', () => {
+  const d = buildDesign('mega-word', '4:5', 0)
+  const image = d.slots.find(s => s.id === 'image')!
+  expect(image.typeClass).toBeUndefined()
+})

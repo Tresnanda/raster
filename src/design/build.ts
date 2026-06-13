@@ -1,6 +1,7 @@
 import type { Design, Format, Palette, Slot, TextStyle } from '../types'
 import { getArchetype } from '../archetypes'
 import { defaultGrid } from './formats'
+import { classOf, DEFAULT_TYPOGRAPHY, DEFAULT_STYLE } from './typeclass'
 
 const DEFAULT_TEXT: TextStyle = {
   family: 'sans', weight: 700, size: 48, tracking: 0, leading: 1, align: 'left', fit: 'fixed',
@@ -20,6 +21,7 @@ export function buildDesign(archetypeId: string, format: Format, seed: number): 
       cell: variant[def.id],
       content: def.placeholder,
       text: isText ? { ...DEFAULT_TEXT, ...def.text } : undefined,
+      typeClass: isText ? classOf(def.role) : undefined,
     }
   })
   return {
@@ -30,5 +32,8 @@ export function buildDesign(archetypeId: string, format: Format, seed: number): 
     seed,
     mode: 'grid',
     slots,
+    typography: { ...DEFAULT_TYPOGRAPHY },
+    style: { ...DEFAULT_STYLE },
+    layout: 1,
   }
 }

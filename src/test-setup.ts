@@ -19,3 +19,18 @@ if (typeof ResizeObserver === 'undefined') {
     disconnect() {}
   }
 }
+
+// jsdom does not implement window.matchMedia; stub it for GSAP's gsap.matchMedia().
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList
+}

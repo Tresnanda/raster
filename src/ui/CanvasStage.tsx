@@ -5,8 +5,7 @@ import { useGSAP } from '@gsap/react'
 import { Renderer } from '../render/Renderer'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
-import { FreeOverlay } from './FreeOverlay'
-import { EditOverlay } from './EditOverlay'
+import { ComposerOverlay } from './ComposerOverlay'
 import { GrainAnimator } from './GrainAnimator'
 
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
@@ -19,6 +18,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   // scale = renderedPixelWidth / canvas.w — used by FreeOverlay to align handles.
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+  const [snap, setSnap] = useState(true)
 
   useLayoutEffect(() => {
     const el = containerRef.current
@@ -99,7 +99,31 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
         }}
       >
         <Renderer design={design} svgRef={svgRef} />
-        {design.mode === 'free' ? <FreeOverlay scale={scale} /> : <EditOverlay scale={scale} />}
+        <ComposerOverlay scale={scale} snap={snap} />
+        {/* Snap toggle — Phase D will style this properly */}
+        <label
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            fontSize: 11,
+            fontFamily: "'Inter', sans-serif",
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            color: '#6b7280',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={snap}
+            onChange={e => setSnap(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          Snap
+        </label>
       </div>
       <GrainAnimator svgRef={svgRef} enabled={design.style.filmGrain} />
     </div>

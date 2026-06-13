@@ -1,5 +1,5 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2 } from 'lucide-react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
 import { canvasFor } from '../design/formats'
@@ -79,6 +79,10 @@ export function ComposerRail() {
   const setFill = useDesign(s => s.setFill)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
+  const undo = useDesign(s => s.undo)
+  const redo = useDesign(s => s.redo)
+  const canUndo = useDesign(s => s.past.length > 0)
+  const canRedo = useDesign(s => s.future.length > 0)
 
   const canvas = canvasFor(design.format)
   const layers = [...orderedSlots(design)].reverse() // topmost first
@@ -102,10 +106,42 @@ export function ComposerRail() {
       className="w-[248px] shrink-0 border-l border-neutral-200 bg-white overflow-y-auto flex flex-col"
       aria-label="Composer"
     >
-      {/* COMPOSE header */}
-      <div className="px-4 pt-4 pb-2">
+      {/* COMPOSE header + Undo/Redo */}
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-900">
           Compose
+        </div>
+        <div className="flex items-center gap-0.5">
+          <button
+            aria-label="Undo"
+            title="Undo (Cmd+Z)"
+            onClick={undo}
+            disabled={!canUndo}
+            data-undo-btn
+            className={[
+              'rounded p-1 transition-colors duration-100',
+              canUndo
+                ? 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                : 'text-neutral-300 cursor-not-allowed',
+            ].join(' ')}
+          >
+            <Undo2 size={14} />
+          </button>
+          <button
+            aria-label="Redo"
+            title="Redo (Cmd+Shift+Z)"
+            onClick={redo}
+            disabled={!canRedo}
+            data-redo-btn
+            className={[
+              'rounded p-1 transition-colors duration-100',
+              canRedo
+                ? 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                : 'text-neutral-300 cursor-not-allowed',
+            ].join(' ')}
+          >
+            <Redo2 size={14} />
+          </button>
         </div>
       </div>
 

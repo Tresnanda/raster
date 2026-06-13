@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { Design } from '../types'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
@@ -6,6 +7,7 @@ import { classOf } from '../design/typeclass'
 import { resolveTextStyle } from './resolve-style'
 import { SlotImage } from './slot-image'
 import { SlotText } from './slot-text'
+import { GrainAnimator } from '../ui/GrainAnimator'
 
 const GRAIN_SEED = 7
 
@@ -61,90 +63,103 @@ export function Renderer({ design, measure, svgRef }: {
     )
   })()
 
+  // Grain animator needs a RefObject, not a Ref (callback ref or RefObject).
+  // Only wire it when svgRef is a RefObject (has .current property).
+  const svgRefObj = svgRef && typeof svgRef === 'object' && 'current' in svgRef
+    ? (svgRef as React.RefObject<SVGSVGElement | null>)
+    : null
+
   return (
-    <svg
-      ref={svgRef}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox={`0 0 ${canvas.w} ${canvas.h}`}
-      width="100%" height="100%"
-    >
-      {/* Background — stays as sibling, not wrapped */}
-      <rect data-bg x={0} y={0} width={canvas.w} height={canvas.h} fill={palette.bg} />
+    <>
+      <svg
+        ref={svgRef}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox={`0 0 ${canvas.w} ${canvas.h}`}
+        width="100%" height="100%"
+      >
+        {/* Background — stays as sibling, not wrapped */}
+        <rect data-bg x={0} y={0} width={canvas.w} height={canvas.h} fill={palette.bg} />
 
-      {/* Defs: filters for bw and grain */}
-      <defs>
-        <filter id="raster-bw">
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        {style.filmGrain && (
-          <filter id="raster-grain">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.9"
-              numOctaves={2}
-              stitchTiles="stitch"
-              seed={GRAIN_SEED}
-            />
+        {/* Defs: filters for bw and grain */}
+        <defs>
+          <filter id="raster-bw">
+            <feColorMatrix type="saturate" values="0" />
           </filter>
+          {style.filmGrain && (
+            <filter id="raster-grain">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.9"
+                numOctaves={2}
+                stitchTiles="stitch"
+                seed={GRAIN_SEED}
+              />
+            </filter>
+          )}
+        </defs>
+
+        {/* Slots — each wrapped in <g data-slot> for Phase 5 motion */}
+        {design.slots.map(slot => {
+          const box = slotBox(canvas, design.grid, slot)
+
+          if (slot.role === 'image') {
+            return (
+              <g key={slot.id} data-slot={slot.id}>
+                <SlotImage box={box} src={slot.content} bw={style.bwImage} />
+              </g>
+            )
+          }
+
+          if (slot.role === 'block') {
+            const fill = slot.fill === 'accent' ? palette.accent
+              : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
+            return (
+              <g key={slot.id} data-slot={slot.id}>
+                <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
+              </g>
+            )
+          }
+
+          // Text slot
+          const resolvedText = resolveTextStyle(slot, typography)
+          const cls = slot.typeClass ?? classOf(slot.role)
+          const color = (style.accentHeadline && cls === 'title')
+            ? palette.accent
+            : palette.text
+
+          return (
+            <g key={slot.id} data-slot={slot.id}>
+              <SlotText
+                box={box}
+                text={resolvedText}
+                content={slot.content}
+                color={color}
+                measure={m}
+              />
+            </g>
+          )
+        })}
+
+        {/* Grid overlay — above slots */}
+        {gridLines}
+
+        {/* Film grain — topmost, above everything */}
+        {style.filmGrain && (
+          <rect
+            data-grain
+            x={0} y={0} width={canvas.w} height={canvas.h}
+            filter="url(#raster-grain)"
+            opacity={0.12}
+            style={{ mixBlendMode: 'overlay' }}
+            pointerEvents="none"
+          />
         )}
-      </defs>
+      </svg>
 
-      {/* Slots — each wrapped in <g data-slot> for Phase 5 motion */}
-      {design.slots.map(slot => {
-        const box = slotBox(canvas, design.grid, slot)
-
-        if (slot.role === 'image') {
-          return (
-            <g key={slot.id} data-slot={slot.id}>
-              <SlotImage box={box} src={slot.content} bw={style.bwImage} />
-            </g>
-          )
-        }
-
-        if (slot.role === 'block') {
-          const fill = slot.fill === 'accent' ? palette.accent
-            : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
-          return (
-            <g key={slot.id} data-slot={slot.id}>
-              <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
-            </g>
-          )
-        }
-
-        // Text slot
-        const resolvedText = resolveTextStyle(slot, typography)
-        const cls = slot.typeClass ?? classOf(slot.role)
-        const color = (style.accentHeadline && cls === 'title')
-          ? palette.accent
-          : palette.text
-
-        return (
-          <g key={slot.id} data-slot={slot.id}>
-            <SlotText
-              box={box}
-              text={resolvedText}
-              content={slot.content}
-              color={color}
-              measure={m}
-            />
-          </g>
-        )
-      })}
-
-      {/* Grid overlay — above slots */}
-      {gridLines}
-
-      {/* Film grain — topmost, above everything */}
-      {style.filmGrain && (
-        <rect
-          data-grain
-          x={0} y={0} width={canvas.w} height={canvas.h}
-          filter="url(#raster-grain)"
-          opacity={0.12}
-          style={{ mixBlendMode: 'overlay' }}
-          pointerEvents="none"
-        />
+      {/* Grain seed animator — outside <svg> to avoid SVG namespace, returns null */}
+      {style.filmGrain && svgRefObj && (
+        <GrainAnimator svgRef={svgRefObj} enabled={style.filmGrain} />
       )}
-    </svg>
+    </>
   )
 }

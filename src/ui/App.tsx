@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { CanvasStage } from './CanvasStage'
 import { BottomBar } from './BottomBar'
 import { CropModal } from './CropModal'
+import { ComposerRail } from './ComposerRail'
 import '../archetypes/index'
 
 export default function App() {
@@ -15,9 +16,9 @@ export default function App() {
         <main className="min-w-0 flex-1">
           <CanvasStage svgRef={svgRef} />
         </main>
+        <ComposerRail />
       </div>
       <BottomBar />
-      {/* Phase C: crop modal, shown when cropRequest is non-null */}
       <CropModal />
     </div>
   )

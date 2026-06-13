@@ -88,6 +88,7 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
   const selectElement = useDesign(s => s.selectElement)
   const setBox = useDesign(s => s.setBox)
   const setContent = useDesign(s => s.setContent)
+  const requestCrop = useDesign(s => s.requestCrop)
   const deleteElement = useDesign(s => s.deleteElement)
   const duplicateElement = useDesign(s => s.duplicateElement)
   const bringForward = useDesign(s => s.bringForward)
@@ -255,8 +256,8 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
     const reader = new FileReader()
     reader.onload = () => {
       const dataUrl = String(reader.result)
-      // TODO(phase C): route through CropModal before setContent
-      setContent(slotId, dataUrl)
+      // Phase C: route through CropModal before setContent
+      requestCrop(slotId, dataUrl)
     }
     reader.readAsDataURL(file)
   }

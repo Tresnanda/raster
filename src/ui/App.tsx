@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import { Sidebar } from './Sidebar'
 import { CanvasStage } from './CanvasStage'
 import { BottomBar } from './BottomBar'
+import { CropModal } from './CropModal'
 import '../archetypes/index'
 
 export default function App() {
@@ -16,6 +17,8 @@ export default function App() {
         </main>
       </div>
       <BottomBar />
+      {/* Phase C: crop modal, shown when cropRequest is non-null */}
+      <CropModal />
     </div>
   )
 }

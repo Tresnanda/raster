@@ -85,6 +85,12 @@ interface State {
   duplicateElement: (id: string) => void
   bringForward: (id: string) => void
   sendBackward: (id: string) => void
+
+  // Crop flow — not persisted
+  /** Transient UI state. Non-null while the crop modal is open. */
+  cropRequest: { slotId: string; src: string } | null
+  requestCrop: (slotId: string, src: string) => void
+  cancelCrop: () => void
 }
 
 import '../archetypes/index'
@@ -94,6 +100,7 @@ const initial = load() ?? buildDesign('mega-word', '4:5', 0)
 export const useDesign = create<State>((set, get) => ({
   design: initial,
   selectedId: null,
+  cropRequest: null,
 
   reset: (archetypeId, format) => {
     const d = buildDesign(archetypeId, format, 0)
@@ -361,5 +368,17 @@ export const useDesign = create<State>((set, get) => ({
 
     const d = { ...design, slots: updated }
     persist(d); set({ design: d })
+  },
+
+  // ---------------------------------------------------------------------------
+  // Crop flow
+  // ---------------------------------------------------------------------------
+
+  requestCrop: (slotId, src) => {
+    set({ cropRequest: { slotId, src } })
+  },
+
+  cancelCrop: () => {
+    set({ cropRequest: null })
   },
 }))

@@ -6,6 +6,8 @@ export const FORMATS: Record<Format, Canvas> = {
   '9:16': { w: 1080, h: 1920 },
   '1:1': { w: 1080, h: 1080 },
   '16:9': { w: 1920, h: 1080 },
+  '3:4': { w: 1080, h: 1440 },
+  'A4': { w: 1080, h: 1527 },
 }
 
 export function canvasFor(f: Format): Canvas { return FORMATS[f] }

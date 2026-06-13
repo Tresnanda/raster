@@ -8,7 +8,12 @@ test('every format has a canvas with the right ratio', () => {
 })
 
 test('format list is complete', () => {
-  expect(Object.keys(FORMATS)).toEqual(['4:5', '2:3', '9:16', '1:1', '16:9'])
+  expect(Object.keys(FORMATS)).toEqual(['4:5', '2:3', '9:16', '1:1', '16:9', '3:4', 'A4'])
+})
+
+test('3:4 and A4 have correct dimensions', () => {
+  expect(canvasFor('3:4')).toEqual({ w: 1080, h: 1440 })
+  expect(canvasFor('A4')).toEqual({ w: 1080, h: 1527 })
 })
 
 test('default grid is 12 cols 16 rows', () => {

@@ -10,6 +10,9 @@ test('Design shape is constructible', () => {
     seed: 1,
     mode: 'grid',
     slots: [],
+    typography: { typeface: 'display', title: 120, headline: 220, body: 18, tracking: -0.02, leading: 0.92 },
+    style: { accentHeadline: false, bwImage: true, filmGrain: true, gridOverlay: false },
+    layout: 1,
   }
   expect(d.slots).toEqual([])
 })

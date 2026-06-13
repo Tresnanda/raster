@@ -1,4 +1,4 @@
-export type Format = '4:5' | '2:3' | '9:16' | '1:1' | '16:9'
+export type Format = '4:5' | '2:3' | '9:16' | '1:1' | '16:9' | '3:4' | 'A4'
 
 export interface Canvas { w: number; h: number }
 
@@ -16,6 +16,22 @@ export interface GridCell { c: number; cs: number; r: number; rs: number }
 export interface Box { x: number; y: number; w: number; h: number }
 
 export type FontFamily = 'sans' | 'display' | 'mono' | 'condensed'
+
+export interface Typography {
+  typeface: FontFamily
+  title: number
+  headline: number
+  body: number
+  tracking: number
+  leading: number
+}
+
+export interface StyleOptions {
+  accentHeadline: boolean
+  bwImage: boolean
+  filmGrain: boolean
+  gridOverlay: boolean
+}
 export type Align = 'left' | 'center' | 'right'
 
 export interface TextStyle {
@@ -42,6 +58,7 @@ export interface Slot {
   content: string        // text, or image src (objectURL / dataURL / http URL)
   text?: TextStyle       // present for text roles
   fill?: string          // for 'block' role (uses palette token name or hex)
+  typeClass?: 'title' | 'headline' | 'body'
 }
 
 export interface Palette { bg: string; text: string; accent: string }
@@ -54,4 +71,7 @@ export interface Design {
   seed: number
   mode: 'grid' | 'free'
   slots: Slot[]
+  typography: Typography
+  style: StyleOptions
+  layout: number
 }

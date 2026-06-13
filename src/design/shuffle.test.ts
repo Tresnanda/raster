@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest'
 import { buildDesign } from './build'
-import { reShuffle, surprise, mergeContent } from './shuffle'
-import { PRESET_PALETTES } from './palettes'
+import { reShuffle, mergeContent } from './shuffle'
 import '../archetypes/index'
 
 // ── reShuffle ─────────────────────────────────────────────────────────────────
@@ -59,52 +58,6 @@ test('reShuffle keeps all slot cells within grid bounds over 50 runs', () => {
       expect(r + rs, `slot ${slot.id} r+rs out of bounds`).toBeLessThanOrEqual(ROWS)
     }
   }
-})
-
-// ── surprise ──────────────────────────────────────────────────────────────────
-
-test('surprise returns a valid Design', () => {
-  const base = buildDesign('mega-word', '4:5', 0)
-  const next = surprise(base)
-  expect(next.format).toBe(base.format)
-  expect(next.layout).toBeGreaterThanOrEqual(1)
-  expect(next.layout).toBeLessThanOrEqual(19)
-  expect(next.slots.length).toBeGreaterThan(0)
-  for (const slot of next.slots) {
-    expect(slot.cell).toBeDefined()
-  }
-})
-
-test('surprise uses a preset palette', () => {
-  const base = buildDesign('mega-word', '4:5', 0)
-  const presetBgs = PRESET_PALETTES.map(p => p.palette.bg)
-  // Run a few times — should always land on a preset palette bg
-  for (let i = 0; i < 10; i++) {
-    const next = surprise(base)
-    expect(presetBgs).toContain(next.palette.bg)
-  }
-})
-
-test('surprise preserves content for matching slot ids', () => {
-  const base = buildDesign('mega-word', '4:5', 0)
-  base.slots.find(s => s.id === 'word')!.content = 'PRESERVED'
-  // Run surprise — if same archetype is chosen, word slot should keep content
-  for (let i = 0; i < 30; i++) {
-    const next = surprise(base)
-    const wordSlot = next.slots.find(s => s.id === 'word')
-    if (wordSlot) {
-      expect(wordSlot.content).toBe('PRESERVED')
-      return // test passed
-    }
-  }
-  // If no matching slot ever found in 30 tries, that's fine — the test is conditional
-})
-
-test('surprise keeps current typography', () => {
-  const base = buildDesign('mega-word', '4:5', 0)
-  base.typography.title = 200
-  const next = surprise(base)
-  expect(next.typography.title).toBe(200)
 })
 
 // ── mergeContent ──────────────────────────────────────────────────────────────

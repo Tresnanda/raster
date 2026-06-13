@@ -1,7 +1,5 @@
 import type { Design, Slot } from '../types'
 import { getArchetype } from '../archetypes'
-import { PRESET_PALETTES } from './palettes'
-import { LAYOUTS, buildFromLayout } from './layouts'
 
 /** Merge content from `from` into `into`: copy content for slots whose id
  *  appears in both designs. New slots in `into` keep their placeholder. */
@@ -79,32 +77,4 @@ export function reShuffle(design: Design): Design {
   })
 
   return { ...design, seed, slots }
-}
-
-/** Randomize everything: random layout, random preset palette, random style toggles.
- *  Content for matching slot ids is preserved from the current design. */
-export function surprise(design: Design): Design {
-  const layoutIdx = Math.floor(Math.random() * LAYOUTS.length)
-  const layoutN = LAYOUTS[layoutIdx].n
-  const newDesign = buildFromLayout(layoutN, design.format)
-
-  const paletteIdx = Math.floor(Math.random() * PRESET_PALETTES.length)
-  const palette = { ...PRESET_PALETTES[paletteIdx].palette }
-
-  const style = {
-    accentHeadline: Math.random() > 0.5,
-    bwImage: Math.random() > 0.5,
-    filmGrain: Math.random() > 0.5,
-    gridOverlay: Math.random() > 0.5,
-  }
-
-  const withContent = mergeContent(newDesign, design)
-  return {
-    ...withContent,
-    palette,
-    style,
-    typography: { ...design.typography },
-    mode: design.mode,
-    seed: Math.floor(Math.random() * 1_000_000_000),
-  }
 }

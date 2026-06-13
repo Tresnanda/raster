@@ -97,6 +97,11 @@ export function CropModal() {
     try {
       const croppedUrl = await getCroppedDataUrl(cropRequest.src, pixels)
       setContent(cropRequest.slotId, croppedUrl)
+    } catch {
+      // CORS-blocked external URL (image load or tainted-canvas failure):
+      // fall back to placing the original image uncropped rather than
+      // silently dropping it.
+      setContent(cropRequest.slotId, cropRequest.src)
     } finally {
       setApplying(false)
       cancelCrop()

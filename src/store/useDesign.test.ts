@@ -24,3 +24,11 @@ test('setFormat switches canvas', () => {
   useDesign.getState().setFormat('9:16')
   expect(useDesign.getState().design.format).toBe('9:16')
 })
+
+test('setText patches a slot text style', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setText('word', { weight: 900, tracking: -0.05 })
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.text!.weight).toBe(900)
+  expect(word.text!.tracking).toBe(-0.05)
+})

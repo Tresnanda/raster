@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { Toolbar } from './Toolbar'
 import { CanvasStage } from './CanvasStage'
 import { FormatSwitcher } from './FormatSwitcher'
+import { SlotInspector } from './SlotInspector'
 import '../archetypes/index'
 
 export default function App() {
@@ -13,9 +14,9 @@ export default function App() {
         <main className="min-w-0 flex-1">
           <CanvasStage svgRef={svgRef} />
         </main>
-        <aside className="w-80 overflow-y-auto border-l border-neutral-200 p-4">
+        <aside className="w-80 overflow-y-auto border-l border-neutral-200 p-4 space-y-4">
           <FormatSwitcher />
-          {/* SlotInspector + PalettePicker mount here in Tasks 19-20 */}
+          <SlotInspector />
         </aside>
       </div>
     </div>

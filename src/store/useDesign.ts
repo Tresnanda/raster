@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Design, Format, Palette } from '../types'
+import type { Design, Format, Palette, TextStyle } from '../types'
 import { buildDesign } from '../design/build'
 import { reShuffle } from '../design/shuffle'
 
@@ -19,6 +19,7 @@ interface State {
   setFormat: (format: Format) => void
   setPalette: (p: Palette) => void
   setMode: (mode: 'grid' | 'free') => void
+  setText: (slotId: string, patch: Partial<TextStyle>) => void
   shuffle: () => void
 }
 
@@ -36,5 +37,10 @@ export const useDesign = create<State>((set, get) => ({
   setFormat: (format) => { const d = { ...get().design, format }; persist(d); set({ design: d }) },
   setPalette: (palette) => { const d = { ...get().design, palette }; persist(d); set({ design: d }) },
   setMode: (mode) => { const d = { ...get().design, mode }; persist(d); set({ design: d }) },
+  setText: (slotId, patch) => {
+    const d = { ...get().design, slots: get().design.slots.map(s =>
+      s.id === slotId && s.text ? { ...s, text: { ...s.text, ...patch } } : s) }
+    persist(d); set({ design: d })
+  },
   shuffle: () => { const d = reShuffle(get().design); persist(d); set({ design: d }) },
 }))

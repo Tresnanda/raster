@@ -1,28 +1,21 @@
+// src/ui/App.tsx
 import { useRef } from 'react'
-import { Toolbar } from './Toolbar'
+import { Sidebar } from './Sidebar'
 import { CanvasStage } from './CanvasStage'
-import { FormatSwitcher } from './FormatSwitcher'
-import { ArchetypePicker } from './ArchetypePicker'
-import { PalettePicker } from './PalettePicker'
-import { SlotInspector } from './SlotInspector'
+import { BottomBar } from './BottomBar'
 import '../archetypes/index'
 
 export default function App() {
   const svgRef = useRef<SVGSVGElement>(null)
   return (
     <div className="flex h-screen flex-col">
-      <Toolbar svgRef={svgRef} />
       <div className="flex min-h-0 flex-1">
+        <Sidebar svgRef={svgRef} />
         <main className="min-w-0 flex-1">
           <CanvasStage svgRef={svgRef} />
         </main>
-        <aside className="w-80 overflow-y-auto border-l border-neutral-200 p-4 space-y-4">
-          <FormatSwitcher />
-          <ArchetypePicker />
-          <PalettePicker />
-          <SlotInspector />
-        </aside>
       </div>
+      <BottomBar />
     </div>
   )
 }

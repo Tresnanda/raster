@@ -7,8 +7,10 @@ export function SlotText({ box, slot, color, measure }: {
 }) {
   const t = slot.text!
   const m = (text: string, size: number) => measure(text, size, t.family, t.weight)
-  const max = t.fit === 'auto' ? t.size : t.size
-  const { size, lines } = fitText(slot.content, box, { maxSize: max, minSize: 9, leading: t.leading }, m)
+  // 'auto' shrinks from t.size down to 9 to fit the box; 'fixed' pins at t.size
+  // (still wraps at that size, allowing overflow rather than shrinking).
+  const minSize = t.fit === 'fixed' ? t.size : 9
+  const { size, lines } = fitText(slot.content, box, { maxSize: t.size, minSize, leading: t.leading }, m)
 
   const anchor = t.align === 'center' ? 'middle' : t.align === 'right' ? 'end' : 'start'
   const ax = t.align === 'center' ? box.x + box.w / 2 : t.align === 'right' ? box.x + box.w : box.x

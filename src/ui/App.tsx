@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import { Toolbar } from './Toolbar'
 import { CanvasStage } from './CanvasStage'
 import { FormatSwitcher } from './FormatSwitcher'
+import { ArchetypePicker } from './ArchetypePicker'
+import { PalettePicker } from './PalettePicker'
 import { SlotInspector } from './SlotInspector'
 import '../archetypes/index'
 
@@ -16,6 +18,8 @@ export default function App() {
         </main>
         <aside className="w-80 overflow-y-auto border-l border-neutral-200 p-4 space-y-4">
           <FormatSwitcher />
+          <ArchetypePicker />
+          <PalettePicker />
           <SlotInspector />
         </aside>
       </div>

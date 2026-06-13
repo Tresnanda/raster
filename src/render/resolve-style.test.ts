@@ -94,3 +94,82 @@ test('preserves weight, align, fit from slot', () => {
   expect(result.align).toBe('center')
   expect(result.fit).toBe('auto')
 })
+
+// ── Override-aware tests ─────────────────────────────────────────────────────
+
+function makeOverriddenSlot(
+  role: Slot['role'],
+  typeClass: Slot['typeClass'],
+  textOverrides: Partial<NonNullable<Slot['text']>>,
+  overridden: string[],
+): Slot {
+  return {
+    id: 'override-test',
+    role,
+    cell: { c: 0, cs: 1, r: 0, rs: 1 },
+    content: 'X',
+    text: {
+      family: 'sans',
+      weight: 700,
+      size: 48,
+      tracking: 0,
+      leading: 1,
+      align: 'left',
+      fit: 'fixed',
+      ...textOverrides,
+    },
+    typeClass,
+    overridden,
+  }
+}
+
+test('title class with no overrides: size = global typography.title', () => {
+  const slot = makeOverriddenSlot('headline', 'title', {}, [])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.size).toBe(typography.title) // 120
+})
+
+test('title class with overridden:["size"]: size = slot.text.size (999)', () => {
+  const slot = makeOverriddenSlot('headline', 'title', { size: 999 }, ['size'])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.size).toBe(999)
+})
+
+test('title class with overridden:["family"]: family = slot.text.family (mono)', () => {
+  const slot = makeOverriddenSlot('headline', 'title', { family: 'mono' }, ['family'])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.family).toBe('mono')
+  // size is NOT overridden, so still uses global
+  expect(result.size).toBe(typography.title)
+})
+
+test('title class with overridden:["tracking"]: tracking = slot.text.tracking (0.05)', () => {
+  const slot = makeOverriddenSlot('headline', 'title', { tracking: 0.05 }, ['tracking'])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.tracking).toBe(0.05)
+})
+
+test('title class with overridden:["leading"]: leading = slot.text.leading (1.8)', () => {
+  const slot = makeOverriddenSlot('headline', 'title', { leading: 1.8 }, ['leading'])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.leading).toBe(1.8)
+})
+
+test('body class with overridden:["size"]: size = slot.text.size (999)', () => {
+  const slot = makeOverriddenSlot('caption', 'body', { size: 999 }, ['size'])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.size).toBe(999)
+})
+
+test('body class with empty overridden: size = global typography.body', () => {
+  const slot = makeOverriddenSlot('caption', 'body', {}, [])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.size).toBe(typography.body) // 18
+})
+
+test('weight and align are never globally governed; not affected by overridden', () => {
+  const slot = makeOverriddenSlot('headline', 'title', { weight: 300, align: 'right' }, [])
+  const result = resolveTextStyle(slot, typography)
+  expect(result.weight).toBe(300)
+  expect(result.align).toBe('right')
+})

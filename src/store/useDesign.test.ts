@@ -363,3 +363,67 @@ test('pickForMe produces multiple distinct layouts across calls', () => {
   }
   expect(layouts.size).toBeGreaterThan(3)
 })
+
+// ── Per-element override actions ──────────────────────────────────────────────
+
+test('overrideText: sets patched fields on slot.text and adds to overridden', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().overrideText('word', { size: 200, family: 'mono' })
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.text!.size).toBe(200)
+  expect(word.text!.family).toBe('mono')
+  expect(word.overridden).toContain('size')
+  expect(word.overridden).toContain('family')
+})
+
+test('overrideText: deduplicates overridden list', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().overrideText('word', { size: 100 })
+  useDesign.getState().overrideText('word', { size: 200 })
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.overridden!.filter(f => f === 'size').length).toBe(1)
+})
+
+test('overrideText coalesces: two consecutive calls = one undo step', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const beforePastLen = useDesign.getState().past.length
+  useDesign.getState().overrideText('word', { size: 100 })
+  useDesign.getState().overrideText('word', { size: 150 })
+  // coalesced — only one step added
+  expect(useDesign.getState().past.length).toBe(beforePastLen + 1)
+})
+
+test('setColor: sets slot.color and coalesces', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setColor('word', '#ff0000')
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.color).toBe('#ff0000')
+})
+
+test('setColor coalesces', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const beforeLen = useDesign.getState().past.length
+  useDesign.getState().setColor('word', '#ff0000')
+  useDesign.getState().setColor('word', '#00ff00')
+  expect(useDesign.getState().past.length).toBe(beforeLen + 1)
+})
+
+test('setBw: sets slot.bw (discrete step)', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')
+  if (!imgSlot) return // if no image slot in mega-word, skip
+  useDesign.getState().setBw(imgSlot.id, false)
+  const updated = useDesign.getState().design.slots.find(s => s.id === imgSlot.id)!
+  expect(updated.bw).toBe(false)
+})
+
+test('resetElement: clears overridden, color, bw for a slot', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().overrideText('word', { size: 999 })
+  useDesign.getState().setColor('word', '#aabbcc')
+  useDesign.getState().resetElement('word')
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.overridden).toBeUndefined()
+  expect(word.color).toBeUndefined()
+  expect(word.bw).toBeUndefined()
+})

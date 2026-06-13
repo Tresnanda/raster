@@ -120,6 +120,12 @@ interface State {
   requestCrop: (slotId: string, src: string) => void
   cancelCrop: () => void
   setFill: (slotId: string, fill: string) => void
+
+  // Per-element overrides
+  overrideText: (slotId: string, patch: Partial<TextStyle>) => void
+  setColor: (slotId: string, hex: string) => void
+  setBw: (slotId: string, bw: boolean) => void
+  resetElement: (slotId: string) => void
 }
 
 import '../archetypes/index'
@@ -556,6 +562,49 @@ export const useDesign = create<State>((set, get) => {
     setFill: (slotId, fill) => {
       const d = { ...get().design, slots: get().design.slots.map(s =>
         s.id === slotId ? { ...s, fill } : s) }
+      commit(d)
+    },
+
+    overrideText: (slotId, patch) => {
+      const design = get().design
+      const newFields = Object.keys(patch) as string[]
+      const d = {
+        ...design,
+        slots: design.slots.map(s => {
+          if (s.id !== slotId || !s.text) return s
+          const prevOverridden = s.overridden ?? []
+          const overridden = [...new Set([...prevOverridden, ...newFields])]
+          return { ...s, text: { ...s.text, ...patch }, overridden }
+        }),
+      }
+      commit(d, { coalesceKey: `text:${slotId}` })
+    },
+
+    setColor: (slotId, hex) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => s.id === slotId ? { ...s, color: hex } : s),
+      }
+      commit(d, { coalesceKey: `color:${slotId}` })
+    },
+
+    setBw: (slotId, bw) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => s.id === slotId ? { ...s, bw } : s),
+      }
+      commit(d)
+    },
+
+    resetElement: (slotId) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => {
+          if (s.id !== slotId) return s
+          const { overridden: _o, color: _c, bw: _b, ...rest } = s
+          return rest
+        }),
+      }
       commit(d)
     },
   }

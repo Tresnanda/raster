@@ -53,3 +53,8 @@ test('style checkbox toggles design.style', () => {
   fireEvent.click(filmGrainLabel)
   expect(useDesign.getState().design.style.filmGrain).toBe(!before)
 })
+
+test('sidebar mounts with GSAP stagger hook without throwing', () => {
+  const { container } = render(<Sidebar svgRef={svgRef} />)
+  expect(container.querySelector('aside')).toBeTruthy()
+})

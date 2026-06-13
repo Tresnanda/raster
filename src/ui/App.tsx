@@ -5,10 +5,13 @@ import { CanvasStage } from './CanvasStage'
 import { BottomBar } from './BottomBar'
 import { CropModal } from './CropModal'
 import { ComposerRail } from './ComposerRail'
+import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import '../archetypes/index'
 
 export default function App() {
   const svgRef = useRef<SVGSVGElement>(null)
+  // Mount global keyboard shortcuts once at the App level.
+  useKeyboardShortcuts()
   return (
     <div className="flex h-screen flex-col">
       <div className="flex min-h-0 flex-1">

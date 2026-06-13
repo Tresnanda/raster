@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useDesign } from '../store/useDesign'
@@ -95,6 +95,8 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
   const duplicateElement = useDesign(s => s.duplicateElement)
   const bringForward = useDesign(s => s.bringForward)
   const sendBackward = useDesign(s => s.sendBackward)
+  // Note: global keyboard shortcuts (Delete, arrows, Cmd+D, Esc, etc.) are handled
+  // by useKeyboardShortcuts in App.tsx — not here. Only textarea-local handling remains.
 
   const canvas = canvasFor(design.format)
   const safeScale = scale > 0 ? scale : 1
@@ -135,53 +137,6 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
     // Reduced motion: instant (no animation added)
     return () => mm.revert()
   }, { scope: overlayRef, dependencies: [selectedId] })
-
-  // ── Keyboard handler ──────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Don't fire while typing in an input/textarea
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-
-      if (!selectedId) return
-
-      if (e.key === 'Escape') {
-        if (editingId) setEditingId(null)
-        else selectElement(null)
-        return
-      }
-
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault()
-        deleteElement(selectedId)
-        return
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
-        e.preventDefault()
-        duplicateElement(selectedId)
-        return
-      }
-
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-        e.preventDefault()
-        const slot = design.slots.find(s => s.id === selectedId)
-        if (!slot) return
-        const b = slotBox(canvas, design.grid, slot)
-        const step = e.shiftKey ? 10 : 1
-        let { x, y, w, h } = b
-        if (e.key === 'ArrowLeft')  x -= step
-        if (e.key === 'ArrowRight') x += step
-        if (e.key === 'ArrowUp')    y -= step
-        if (e.key === 'ArrowDown')  y += step
-        setBox(selectedId, { x, y, w, h })
-      }
-    }
-
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selectedId, editingId, design.slots, canvas, design.grid, selectElement, deleteElement, duplicateElement, setBox])
 
   // ── Move drag ─────────────────────────────────────────────────────────────
 

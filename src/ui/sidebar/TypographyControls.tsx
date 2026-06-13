@@ -97,7 +97,7 @@ export function TypographyControls() {
       </div>
 
       <p className="text-xs text-neutral-400">
-        Tracking and leading shape the display type (title + headline).
+        Global defaults — select any element to override it. Tracking and leading apply to title + headline.
       </p>
     </div>
   )

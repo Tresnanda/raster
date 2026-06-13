@@ -127,6 +127,10 @@ export function StyleControls() {
           />
         ))}
       </div>
+
+      <p className="text-xs text-neutral-400">
+        Global defaults — select any element to override per-element style.
+      </p>
     </div>
   )
 }

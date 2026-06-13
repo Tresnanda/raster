@@ -34,3 +34,95 @@ test('image slot with src renders <image> with cover', () => {
   const img = container.querySelector('image')!
   expect(img.getAttribute('preserveAspectRatio')).toBe('xMidYMid slice')
 })
+
+test('slots are wrapped in <g data-slot>', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const slotGroups = container.querySelectorAll('[data-slot]')
+  expect(slotGroups.length).toBeGreaterThan(0)
+})
+
+test('background rect is not inside a data-slot group', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const bg = container.querySelector('rect[data-bg]')!
+  expect(bg.closest('[data-slot]')).toBeNull()
+})
+
+test('style.bwImage: image gets bw filter applied', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.slots.find(s => s.id === 'image')!.content = 'data:image/png;base64,xx'
+  d.style.bwImage = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const img = container.querySelector('image')!
+  expect(img.getAttribute('filter')).toBe('url(#raster-bw)')
+})
+
+test('style.bwImage false: image has no bw filter', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.slots.find(s => s.id === 'image')!.content = 'data:image/png;base64,xx'
+  d.style.bwImage = false
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const img = container.querySelector('image')!
+  expect(img.getAttribute('filter')).toBeNull()
+})
+
+test('style.filmGrain: data-grain rect exists', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.filmGrain = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  expect(container.querySelector('[data-grain]')).toBeTruthy()
+})
+
+test('style.filmGrain false: no data-grain rect', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.filmGrain = false
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  expect(container.querySelector('[data-grain]')).toBeNull()
+})
+
+test('style.gridOverlay: data-grid group exists', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.gridOverlay = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  expect(container.querySelector('[data-grid]')).toBeTruthy()
+})
+
+test('style.gridOverlay false: no data-grid group', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.gridOverlay = false
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  expect(container.querySelector('[data-grid]')).toBeNull()
+})
+
+test('style.accentHeadline: title-class text slot uses palette.accent as fill', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.accentHeadline = true
+  // mega-word has a 'word' slot with role 'headline' → typeClass 'title'
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  expect(wordSlot.typeClass).toBe('title')
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  // The title-class text element should have fill = palette.accent
+  const textEl = container.querySelector(`[data-slot="${wordSlot.id}"] text`)!
+  expect(textEl.getAttribute('fill')).toBe(d.palette.accent)
+})
+
+test('style.accentHeadline false: title-class text slot uses palette.text', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.style.accentHeadline = false
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const textEl = container.querySelector(`[data-slot="${wordSlot.id}"] text`)!
+  expect(textEl.getAttribute('fill')).toBe(d.palette.text)
+})
+
+test('typography is applied: title class uses typography.title as font-size', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  d.typography.title = 200
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  expect(wordSlot.typeClass).toBe('title')
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const textEl = container.querySelector(`[data-slot="${wordSlot.id}"] text`)!
+  // fit:'fixed' pins at resolvedText.size which is typography.title = 200
+  expect(textEl.getAttribute('font-size')).toBe('200')
+})

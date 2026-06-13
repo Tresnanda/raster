@@ -15,6 +15,8 @@ export function SlotInspector() {
           <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{slot.role}</div>
           {slot.role === 'image' ? (
             <ImageInput slotId={slot.id} />
+          ) : !slot.text ? (
+            <p className="text-xs text-neutral-500">Decorative block — fill follows the accent color.</p>
           ) : (
             <>
               <label className="sr-only" htmlFor={slot.id}>{slot.id}</label>

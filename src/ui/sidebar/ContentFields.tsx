@@ -14,9 +14,9 @@ export function ContentFields() {
   const setContent = useDesign(s => s.setContent)
 
   const textSlots = design.slots.filter(
-    s => s.role !== 'image' && s.role !== 'block',
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line',
   )
-  const imageSlot = design.slots.find(s => s.role === 'image')
+  const imageSlots = design.slots.filter(s => s.role === 'image')
 
   return (
     <div className="sb-section space-y-4">
@@ -39,14 +39,14 @@ export function ContentFields() {
         </div>
       ))}
 
-      {imageSlot && (
-        <div className="space-y-1">
+      {imageSlots.map((slot, i) => (
+        <div key={slot.id} className="space-y-1">
           <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-            Image
+            {imageSlots.length > 1 ? `Image ${i + 1}` : 'Image'}
           </div>
-          <ImageInput slotId={imageSlot.id} />
+          <ImageInput slotId={slot.id} />
         </div>
-      )}
+      ))}
 
       <p className="text-xs text-neutral-400">
         Tip — click any text on the poster to edit it in place. Click or drop an image onto the photo frame.

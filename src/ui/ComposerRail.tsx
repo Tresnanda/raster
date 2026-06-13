@@ -5,6 +5,7 @@ import { orderedSlots } from '../design/order'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { resolveTextStyle } from '../render/resolve-style'
+import { ImageInput } from './ImageInput'
 import type { FontFamily, Slot } from '../types'
 
 // ── Micro label ──────────────────────────────────────────────────────────────
@@ -577,17 +578,22 @@ export function ComposerRail() {
               {/* IMAGE controls */}
               {isImage && (
                 <div className="space-y-2.5">
-                  {/* Replace / Re-crop */}
-                  <button
-                    onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
-                    className={[
-                      'w-full rounded border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700',
-                      'hover:border-neutral-400 active:scale-[0.97] transition-transform duration-150',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-                    ].join(' ')}
-                  >
-                    {selectedSlot.content ? 'Re-crop / Replace' : 'Choose image'}
-                  </button>
+                  {/* Upload / replace via the real uploader (file pick + URL → crop) */}
+                  <ImageInput slotId={selectedSlot.id} />
+
+                  {/* Re-crop only makes sense once an image is present */}
+                  {selectedSlot.content && (
+                    <button
+                      onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
+                      className={[
+                        'w-full rounded border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700',
+                        'hover:border-neutral-400 active:scale-[0.97] transition-transform duration-150',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                      ].join(' ')}
+                    >
+                      Re-crop current image
+                    </button>
+                  )}
 
                   {/* B&W */}
                   <InspectorRow label="Black & white" overridden={selectedSlot.bw !== undefined}>

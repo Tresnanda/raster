@@ -427,3 +427,48 @@ test('resetElement: clears overridden, color, bw for a slot', () => {
   expect(word.color).toBeUndefined()
   expect(word.bw).toBeUndefined()
 })
+
+// ── imageFill store actions ────────────────────────────────────────────────────
+
+test('setImageFill: sets slot.imageFill', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setImageFill('word', 'data:image/png;base64,abc')
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.imageFill).toBe('data:image/png;base64,abc')
+})
+
+test('setImageFill: is undoable (one history step)', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const beforeLen = useDesign.getState().past.length
+  useDesign.getState().setImageFill('word', 'data:image/png;base64,abc')
+  expect(useDesign.getState().past.length).toBe(beforeLen + 1)
+  useDesign.getState().undo()
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.imageFill).toBeUndefined()
+})
+
+test('clearImageFill: removes slot.imageFill', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setImageFill('word', 'data:image/png;base64,abc')
+  useDesign.getState().clearImageFill('word')
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.imageFill).toBeUndefined()
+})
+
+test('clearImageFill: is undoable (discrete step)', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setImageFill('word', 'data:image/png;base64,abc')
+  const beforeLen = useDesign.getState().past.length
+  useDesign.getState().clearImageFill('word')
+  expect(useDesign.getState().past.length).toBe(beforeLen + 1)
+  useDesign.getState().undo()
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(word.imageFill).toBe('data:image/png;base64,abc')
+})
+
+test('setImageFill does not affect other slots', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setImageFill('word', 'data:image/png;base64,abc')
+  const other = useDesign.getState().design.slots.filter(s => s.id !== 'word')
+  expect(other.every(s => s.imageFill === undefined)).toBe(true)
+})

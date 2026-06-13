@@ -1,5 +1,6 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2 } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
 import { canvasFor } from '../design/formats'
@@ -131,6 +132,106 @@ function InspectorRow({ label, children, overridden }: { label: string; children
   )
 }
 
+// ── ImageFillControl ──────────────────────────────────────────────────────────
+function ImageFillControl({
+  slotId,
+  imageFill,
+  onSet,
+  onClear,
+}: {
+  slotId: string
+  imageFill: string | undefined
+  onSet: (src: string) => void
+  onClear: () => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [urlValue, setUrlValue] = useState('')
+
+  const onFile = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => onSet(String(reader.result))
+    reader.readAsDataURL(file)
+  }
+
+  const onUrl = (url: string) => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    onSet(trimmed)
+    setUrlValue('')
+  }
+
+  const btnCls = [
+    'flex items-center gap-1.5 rounded border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-700',
+    'hover:border-neutral-400 hover:text-neutral-900 active:scale-[0.97]',
+    'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+  ].join(' ')
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+        Image Fill
+      </div>
+      {imageFill ? (
+        <div className="flex items-center gap-2" data-imagefill-set>
+          <div
+            className="h-7 w-10 shrink-0 rounded border border-neutral-200 bg-neutral-100 overflow-hidden"
+            aria-label="Image fill preview"
+          >
+            <img src={imageFill} alt="" className="h-full w-full object-cover" />
+          </div>
+          <span className="flex-1 min-w-0 truncate text-[11px] text-neutral-500">Image set</span>
+          <button
+            onClick={onClear}
+            aria-label="Remove image fill"
+            className={[
+              'rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40',
+            ].join(' ')}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-1.5" data-imagefill-unset>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label={`Image fill file input for ${slotId}`}
+            onChange={e => e.target.files?.[0] && onFile(e.target.files[0])}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={btnCls}
+            aria-label="Upload image fill"
+          >
+            <ImageIcon size={13} strokeWidth={1.5} />
+            Image fill
+          </button>
+          <div className="flex items-center gap-1.5 rounded border border-neutral-200 px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-neutral-900/10 transition-shadow duration-150">
+            <ImageIcon size={12} className="shrink-0 text-neutral-400" strokeWidth={1.5} />
+            <input
+              type="url"
+              placeholder="Paste image URL"
+              value={urlValue}
+              aria-label="Image fill URL"
+              className="min-w-0 flex-1 bg-transparent text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none"
+              onChange={e => setUrlValue(e.target.value)}
+              onBlur={e => onUrl(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') onUrl((e.target as HTMLInputElement).value)
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function ComposerRail() {
   const design = useDesign(s => s.design)
@@ -149,6 +250,8 @@ export function ComposerRail() {
   const setColor = useDesign(s => s.setColor)
   const setBw = useDesign(s => s.setBw)
   const resetElement = useDesign(s => s.resetElement)
+  const setImageFill = useDesign(s => s.setImageFill)
+  const clearImageFill = useDesign(s => s.clearImageFill)
   const requestCrop = useDesign(s => s.requestCrop)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
@@ -572,6 +675,14 @@ export function ComposerRail() {
                       )}
                     </div>
                   </InspectorRow>
+
+                  {/* Image Fill */}
+                  <ImageFillControl
+                    slotId={selectedSlot.id}
+                    imageFill={selectedSlot.imageFill}
+                    onSet={src => setImageFill(selectedSlot.id, src)}
+                    onClear={() => clearImageFill(selectedSlot.id)}
+                  />
                 </div>
               )}
 

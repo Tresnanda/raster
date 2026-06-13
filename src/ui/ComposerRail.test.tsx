@@ -216,3 +216,63 @@ test('position inputs are shown for selected element', () => {
   expect(screen.getByLabelText('Width')).toBeTruthy()
   expect(screen.getByLabelText('Height')).toBeTruthy()
 })
+
+// ── Image Fill inspector controls ─────────────────────────────────────────────
+
+test('selecting a text element shows the Image Fill control group', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  // Unset state: shows the upload button
+  expect(screen.getByLabelText('Upload image fill')).toBeTruthy()
+})
+
+test('clicking "Upload image fill" triggers the file input', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  const btn = screen.getByLabelText('Upload image fill')
+  // Should not throw
+  expect(() => fireEvent.click(btn)).not.toThrow()
+})
+
+test('pasting a URL into Image fill URL input calls setImageFill', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setImageFill = vi.spyOn(useDesign.getState(), 'setImageFill')
+  render(<ComposerRail />)
+  const urlInput = screen.getByLabelText('Image fill URL') as HTMLInputElement
+  fireEvent.change(urlInput, { target: { value: 'https://example.com/photo.jpg' } })
+  fireEvent.keyDown(urlInput, { key: 'Enter' })
+  expect(setImageFill).toHaveBeenCalledWith(textSlot.id, 'https://example.com/photo.jpg')
+})
+
+test('when imageFill is set, Remove button calls clearImageFill', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().setImageFill(textSlot.id, 'data:image/png;base64,abc')
+  useDesign.getState().selectElement(textSlot.id)
+  const clearImageFill = vi.spyOn(useDesign.getState(), 'clearImageFill')
+  render(<ComposerRail />)
+  const removeBtn = screen.getByLabelText('Remove image fill')
+  fireEvent.click(removeBtn)
+  expect(clearImageFill).toHaveBeenCalledWith(textSlot.id)
+})
+
+test('when imageFill is set, shows "Image set" text and no upload button', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().setImageFill(textSlot.id, 'data:image/png;base64,abc')
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByText('Image set')).toBeTruthy()
+  expect(screen.queryByLabelText('Upload image fill')).toBeNull()
+})

@@ -132,11 +132,13 @@ export function Renderer({ design, measure, svgRef }: {
           return (
             <g key={slot.id} data-slot={slot.id}>
               <SlotText
+                id={slot.id}
                 box={box}
                 text={resolvedText}
                 content={slot.content}
                 color={color}
                 measure={m}
+                imageFill={slot.imageFill}
               />
             </g>
           )

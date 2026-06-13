@@ -71,6 +71,8 @@ export interface Slot {
   color?: string
   /** Per-element B&W override for image slots. Overrides style.bwImage when set. */
   bw?: boolean
+  /** Image src (dataURL or URL) to clip into the text glyphs (image fill effect). */
+  imageFill?: string
 }
 
 export interface Palette { bg: string; text: string; accent: string }

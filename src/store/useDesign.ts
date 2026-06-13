@@ -121,6 +121,10 @@ interface State {
   cancelCrop: () => void
   setFill: (slotId: string, fill: string) => void
 
+  // Image fill for text slots
+  setImageFill: (slotId: string, src: string) => void
+  clearImageFill: (slotId: string) => void
+
   // Per-element overrides
   overrideText: (slotId: string, patch: Partial<TextStyle>) => void
   setColor: (slotId: string, hex: string) => void
@@ -562,6 +566,24 @@ export const useDesign = create<State>((set, get) => {
     setFill: (slotId, fill) => {
       const d = { ...get().design, slots: get().design.slots.map(s =>
         s.id === slotId ? { ...s, fill } : s) }
+      commit(d)
+    },
+
+    setImageFill: (slotId, src) => {
+      const d = { ...get().design, slots: get().design.slots.map(s =>
+        s.id === slotId ? { ...s, imageFill: src } : s) }
+      commit(d, { coalesceKey: `imagefill:${slotId}` })
+    },
+
+    clearImageFill: (slotId) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => {
+          if (s.id !== slotId) return s
+          const { imageFill: _f, ...rest } = s
+          return rest
+        }),
+      }
       commit(d)
     },
 

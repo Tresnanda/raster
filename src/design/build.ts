@@ -13,7 +13,7 @@ export function buildDesign(archetypeId: string, format: Format, seed: number): 
   const arch = getArchetype(archetypeId)
   const variant = arch.variants[seed % arch.variants.length]
   const slots: Slot[] = arch.slots.map(def => {
-    const isText = def.role !== 'image'
+    const isText = def.role !== 'image' && def.role !== 'block'
     return {
       id: def.id,
       role: def.role,

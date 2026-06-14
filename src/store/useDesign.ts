@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Box, Design, Format, Palette, Slot, StyleOptions, TextStyle, Typography } from '../types'
+import type { Box, Design, Format, Palette, Shadow, Slot, StyleOptions, TextStyle, Typography } from '../types'
 import { buildDesign } from '../design/build'
 import { reShuffle, mergeContent } from '../design/shuffle'
 import { buildFromLayout } from '../design/layouts'
@@ -137,6 +137,18 @@ interface State {
 
   // Alignment
   alignElement: (slotId: string, edge: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
+
+  // Generic patch helper
+  updateSlot: (id: string, patch: Partial<Slot>, coalesceKey?: string) => void
+
+  // Transform helpers
+  setRotation: (id: string, deg: number) => void
+  setFlip: (id: string, axis: 'H' | 'V', on: boolean) => void
+  setRadius: (id: string, px: number) => void
+  setStroke: (id: string, hexOrToken: string) => void
+  setStrokeWidth: (id: string, px: number) => void
+  setShadow: (id: string, shadow: Shadow | null) => void
+  setBlend: (id: string, mode: string) => void
 }
 
 import '../archetypes/index'
@@ -680,6 +692,42 @@ export const useDesign = create<State>((set, get) => {
         slots: design.slots.map(s => s.id === slotId ? { ...s, box: newBox } : s),
       }
       commit(d)
+    },
+
+    updateSlot: (id, patch, coalesceKey) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => s.id === id ? { ...s, ...patch } : s),
+      }
+      commit(d, coalesceKey ? { coalesceKey } : undefined)
+    },
+
+    setRotation: (id, deg) => {
+      get().updateSlot(id, { rotation: deg }, `rotation:${id}`)
+    },
+
+    setFlip: (id, axis, on) => {
+      get().updateSlot(id, axis === 'H' ? { flipH: on } : { flipV: on })
+    },
+
+    setRadius: (id, px) => {
+      get().updateSlot(id, { radius: px }, `radius:${id}`)
+    },
+
+    setStroke: (id, hexOrToken) => {
+      get().updateSlot(id, { stroke: hexOrToken })
+    },
+
+    setStrokeWidth: (id, px) => {
+      get().updateSlot(id, { strokeWidth: px }, `strokeWidth:${id}`)
+    },
+
+    setShadow: (id, shadow) => {
+      get().updateSlot(id, { shadow })
+    },
+
+    setBlend: (id, mode) => {
+      get().updateSlot(id, { blend: mode })
     },
   }
 })

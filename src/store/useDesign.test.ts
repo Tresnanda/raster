@@ -583,3 +583,127 @@ test('alignElement result values are rounded to integers', () => {
   // (1080 - 401) / 2 = 339.5 → rounded to 340
   expect(Number.isInteger(slot.box!.x)).toBe(true)
 })
+
+// ── updateSlot ─────────────────────────────────────────────────────────────────
+
+test('updateSlot patches a field and is undoable', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().updateSlot(id, { rotation: 90 })
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.rotation).toBe(90)
+  // undoable
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.rotation).toBeUndefined()
+})
+
+test('updateSlot with coalesceKey does not grow history on repeated calls', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().updateSlot(id, { rotation: 10 }, `rotation:${id}`)
+  useDesign.getState().updateSlot(id, { rotation: 20 }, `rotation:${id}`)
+  useDesign.getState().updateSlot(id, { rotation: 30 }, `rotation:${id}`)
+  // Coalescing: only one history entry added for the batch
+  expect(useDesign.getState().past.length).toBe(before + 1)
+})
+
+// ── setRotation ────────────────────────────────────────────────────────────────
+
+test('setRotation sets rotation field', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setRotation(id, 45)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.rotation).toBe(45)
+})
+
+test('setRotation coalesces: repeated calls do not grow history unboundedly', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setRotation(id, 10)
+  useDesign.getState().setRotation(id, 20)
+  useDesign.getState().setRotation(id, 30)
+  expect(useDesign.getState().past.length).toBe(before + 1)
+})
+
+// ── setFlip ────────────────────────────────────────────────────────────────────
+
+test('setFlip H sets flipH', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setFlip(id, 'H', true)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.flipH).toBe(true)
+})
+
+test('setFlip V sets flipV', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setFlip(id, 'V', true)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.flipV).toBe(true)
+})
+
+test('setFlip H false clears flipH', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setFlip(id, 'H', true)
+  useDesign.getState().setFlip(id, 'H', false)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.flipH).toBe(false)
+})
+
+// ── setRadius ─────────────────────────────────────────────────────────────────
+
+test('setRadius sets radius field', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setRadius(id, 20)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.radius).toBe(20)
+})
+
+test('setRadius coalesces', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setRadius(id, 5)
+  useDesign.getState().setRadius(id, 10)
+  useDesign.getState().setRadius(id, 15)
+  expect(useDesign.getState().past.length).toBe(before + 1)
+})
+
+// ── setStroke / setStrokeWidth ────────────────────────────────────────────────
+
+test('setStroke sets stroke field', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setStroke(id, '#ff0000')
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.stroke).toBe('#ff0000')
+})
+
+test('setStrokeWidth sets strokeWidth field and coalesces', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setStrokeWidth(id, 2)
+  useDesign.getState().setStrokeWidth(id, 4)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.strokeWidth).toBe(4)
+  expect(useDesign.getState().past.length).toBe(before + 1)
+})
+
+// ── setShadow ─────────────────────────────────────────────────────────────────
+
+test('setShadow sets shadow field', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setShadow(id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+  const shadow = useDesign.getState().design.slots.find(s => s.id === id)!.shadow
+  expect(shadow).toEqual({ dx: 0, dy: 8, blur: 16, color: '#000000' })
+})
+
+test('setShadow null clears shadow', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setShadow(id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+  useDesign.getState().setShadow(id, null)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.shadow).toBeNull()
+})
+
+// ── setBlend ──────────────────────────────────────────────────────────────────
+
+test('setBlend sets blend field', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setBlend(id, 'multiply')
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.blend).toBe('multiply')
+})
+
+test('setBlend normal sets blend to normal', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setBlend(id, 'multiply')
+  useDesign.getState().setBlend(id, 'normal')
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.blend).toBe('normal')
+})

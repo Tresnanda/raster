@@ -164,6 +164,18 @@ interface State {
   setProcessedImage: (slotId: string, dataUrl: string) => void
 
   // -------------------------------------------------------------------------
+  // Viewport state (zoom / pan) — not in undo history
+  // -------------------------------------------------------------------------
+
+  zoom: number
+  pan: { x: number; y: number }
+  setZoom: (z: number) => void
+  setPan: (p: { x: number; y: number }) => void
+  zoomBy: (factor: number) => void
+  zoomToFit: () => void
+  zoomTo100: () => void
+
+  // -------------------------------------------------------------------------
   // Riff / variation explorer
   // -------------------------------------------------------------------------
 
@@ -237,12 +249,37 @@ export const useDesign = create<State>((set, get) => {
     past: [],
     future: [],
     clipboard: null,
+    zoom: 1,
+    pan: { x: 0, y: 0 },
     riffOpen: false,
     riffStrength: 0.5,
     riffTree: { nodes: {}, rootId: null, currentId: null },
 
     setSnap: (snap) => {
       set({ snap })
+    },
+
+    setZoom: (z) => {
+      const clamped = Math.min(8, Math.max(0.1, z))
+      set({ zoom: clamped })
+    },
+
+    setPan: (p) => {
+      set({ pan: p })
+    },
+
+    zoomBy: (factor) => {
+      const { zoom } = get()
+      const clamped = Math.min(8, Math.max(0.1, zoom * factor))
+      set({ zoom: clamped })
+    },
+
+    zoomToFit: () => {
+      set({ zoom: 1, pan: { x: 0, y: 0 } })
+    },
+
+    zoomTo100: () => {
+      set({ zoom: 1 })
     },
 
     reset: (archetypeId, format) => {

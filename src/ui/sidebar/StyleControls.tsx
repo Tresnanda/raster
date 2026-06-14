@@ -2,7 +2,7 @@
 import { useRef } from 'react'
 import { useDesign } from '../../store/useDesign'
 import { PRESET_PALETTES } from '../../design/palettes'
-import { Checkbox } from '../components/Checkbox'
+import { Checkbox } from '../controls/Checkbox'
 
 export function StyleControls() {
   const palette = useDesign(s => s.design.palette)

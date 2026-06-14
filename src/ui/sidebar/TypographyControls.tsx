@@ -1,7 +1,7 @@
 // src/ui/sidebar/TypographyControls.tsx
 import { useDesign } from '../../store/useDesign'
-import { Slider } from '../components/slider'
-import { Select } from '../components/select'
+import { Slider } from '../controls/Slider'
+import { Select } from '../controls/Select'
 import type { FontFamily } from '../../types'
 
 const TYPEFACE_OPTIONS: { value: FontFamily; label: string }[] = [

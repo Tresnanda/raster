@@ -10,7 +10,7 @@ import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
 import { ExportControls } from './sidebar/ExportControls'
-import { Section } from './components/Section'
+import { Section } from './controls/Section'
 
 interface SidebarProps {
   svgRef: React.RefObject<SVGSVGElement | null>

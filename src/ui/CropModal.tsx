@@ -8,7 +8,7 @@ import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { getCroppedDataUrl } from '../lib/crop-image'
-import { Slider } from './components/slider'
+import { Slider } from './controls/Slider'
 
 /**
  * CropModal — mounted once in App.tsx, driven by store.cropRequest.

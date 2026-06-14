@@ -78,6 +78,9 @@ const HISTORY_CAP = 50
 interface State {
   design: Design
   selectedId: string | null
+  /** Multi-selection. `selectedId` mirrors the LAST entry (the primary, shown in
+   *  the single-element inspector). Empty array = nothing selected. */
+  selectedIds: string[]
 
   // History (not persisted)
   past: Design[]
@@ -146,6 +149,12 @@ interface State {
 
   // Alignment
   alignElement: (slotId: string, edge: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
+  toggleSelection: (id: string) => void
+  setSelection: (ids: string[]) => void
+  clearSelection: () => void
+  setBoxes: (updates: { id: string; box: Box }[]) => void
+  alignSelection: (edge: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
+  distributeSelection: (axis: 'h' | 'v') => void
 
   // Generic patch helper
   updateSlot: (id: string, patch: Partial<Slot>, coalesceKey?: string) => void
@@ -257,6 +266,7 @@ export const useDesign = create<State>((set, get) => {
   return {
     design: initial,
     selectedId: null,
+    selectedIds: [],
     cropRequest: null,
     snap: true,
     past: [],
@@ -302,7 +312,7 @@ export const useDesign = create<State>((set, get) => {
       // Reset also clears history and clipboard
       lastCoalesceKey = null
       persist(d)
-      set({ design: d, selectedId: null, past: [], future: [], clipboard: null })
+      set({ design: d, selectedId: null, selectedIds: [], past: [], future: [], clipboard: null })
     },
 
     // Load a full Design wholesale (e.g. from a shared URL). Replaces the working
@@ -310,7 +320,7 @@ export const useDesign = create<State>((set, get) => {
     loadDesign: (design) => {
       lastCoalesceKey = null
       persist(design)
-      set({ design, selectedId: null, past: [], future: [], clipboard: null })
+      set({ design, selectedId: null, selectedIds: [], past: [], future: [], clipboard: null })
     },
 
     setContent: (slotId, content) => {
@@ -409,7 +419,82 @@ export const useDesign = create<State>((set, get) => {
     // ---------------------------------------------------------------------------
 
     selectElement: (id) => {
-      set({ selectedId: id })
+      set({ selectedId: id, selectedIds: id ? [id] : [] })
+    },
+    toggleSelection: (id) => {
+      const cur = get().selectedIds
+      const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]
+      set({ selectedIds: next, selectedId: next.length ? next[next.length - 1] : null })
+    },
+    setSelection: (ids) => {
+      set({ selectedIds: ids, selectedId: ids.length ? ids[ids.length - 1] : null })
+    },
+    clearSelection: () => {
+      set({ selectedIds: [], selectedId: null })
+    },
+    // Batch box update — one undo step (used for group moves so dragging N elements
+    // doesn't create N history entries).
+    setBoxes: (updates) => {
+      const map = new Map(updates.map(u => [u.id, u.box]))
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s => map.has(s.id) ? { ...s, box: map.get(s.id)! } : s),
+      }
+      commit(d, { coalesceKey: 'setBoxes' })
+    },
+    // Align every selected element to the SELECTION's bounding box (Figma-style).
+    alignSelection: (edge) => {
+      const { design, selectedIds } = get()
+      if (selectedIds.length < 2) {
+        if (selectedIds[0]) get().alignElement(selectedIds[0], edge)
+        return
+      }
+      const canvas = canvasFor(design.format)
+      const boxes = selectedIds
+        .map(id => design.slots.find(s => s.id === id))
+        .filter((s): s is NonNullable<typeof s> => !!s)
+        .map(s => ({ id: s.id, box: slotBox(canvas, design.grid, s) }))
+      const minX = Math.min(...boxes.map(b => b.box.x))
+      const maxX = Math.max(...boxes.map(b => b.box.x + b.box.w))
+      const minY = Math.min(...boxes.map(b => b.box.y))
+      const maxY = Math.max(...boxes.map(b => b.box.y + b.box.h))
+      const cx = (minX + maxX) / 2
+      const cy = (minY + maxY) / 2
+      const updates = boxes.map(({ id, box }) => {
+        let { x, y } = box
+        if (edge === 'left') x = minX
+        else if (edge === 'right') x = maxX - box.w
+        else if (edge === 'centerH') x = cx - box.w / 2
+        else if (edge === 'top') y = minY
+        else if (edge === 'bottom') y = maxY - box.h
+        else if (edge === 'centerV') y = cy - box.h / 2
+        return { id, box: { x: Math.round(x), y: Math.round(y), w: Math.round(box.w), h: Math.round(box.h) } }
+      })
+      get().setBoxes(updates)
+    },
+    // Even spacing between selected elements along an axis.
+    distributeSelection: (axis) => {
+      const { design, selectedIds } = get()
+      if (selectedIds.length < 3) return
+      const canvas = canvasFor(design.format)
+      const items = selectedIds
+        .map(id => design.slots.find(s => s.id === id))
+        .filter((s): s is NonNullable<typeof s> => !!s)
+        .map(s => ({ id: s.id, box: slotBox(canvas, design.grid, s) }))
+      const horiz = axis === 'h'
+      items.sort((a, b) => horiz ? a.box.x - b.box.x : a.box.y - b.box.y)
+      const first = items[0].box
+      const last = items[items.length - 1].box
+      const start = horiz ? first.x : first.y
+      const end = horiz ? last.x : last.y
+      const span = end - start
+      const step = span / (items.length - 1)
+      const updates = items.map((it, i) => {
+        const pos = Math.round(start + step * i)
+        const box = horiz ? { ...it.box, x: pos } : { ...it.box, y: pos }
+        return { id: it.id, box }
+      })
+      get().setBoxes(updates)
     },
 
     addElement: (type) => {
@@ -476,9 +561,9 @@ export const useDesign = create<State>((set, get) => {
     deleteElement: (id) => {
       const design = get().design
       const d = { ...design, slots: design.slots.filter(s => s.id !== id) }
-      const sel = get().selectedId === id ? null : get().selectedId
+      const ids = get().selectedIds.filter(x => x !== id)
       commit(d)
-      set({ selectedId: sel })
+      set({ selectedIds: ids, selectedId: ids.length ? ids[ids.length - 1] : null })
     },
 
     duplicateElement: (id) => {

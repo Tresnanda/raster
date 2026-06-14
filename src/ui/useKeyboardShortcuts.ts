@@ -121,32 +121,41 @@ export function useKeyboardShortcuts() {
         return
       }
 
-      // ── Delete / Backspace ───────────────────────────────────────────────────
+      // ── Select all ───────────────────────────────────────────────────────────
+      if (mod && e.key === 'a') {
+        e.preventDefault()
+        getState().setSelection(getState().design.slots.map(s => s.id))
+        return
+      }
+
+      // ── Delete / Backspace (whole selection) ─────────────────────────────────
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const { selectedId } = getState()
-        if (selectedId) {
+        const { selectedIds } = getState()
+        if (selectedIds.length) {
           e.preventDefault()
-          deleteElement(selectedId)
+          // delete a copy — deleteElement mutates the selection as it goes
+          for (const id of [...selectedIds]) deleteElement(id)
         }
         return
       }
 
-      // ── Arrow nudge ──────────────────────────────────────────────────────────
+      // ── Arrow nudge (whole selection) ────────────────────────────────────────
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-        const { selectedId, design } = getState()
-        if (!selectedId) return
+        const { selectedIds, design } = getState()
+        if (!selectedIds.length) return
         e.preventDefault()
-        const slot = design.slots.find(s => s.id === selectedId)
-        if (!slot) return
         const canvas = canvasFor(design.format)
-        const b = slotBox(canvas, design.grid, slot)
         const step = e.shiftKey ? 10 : 1
-        let { x, y, w, h } = b
-        if (e.key === 'ArrowLeft')  x -= step
-        if (e.key === 'ArrowRight') x += step
-        if (e.key === 'ArrowUp')    y -= step
-        if (e.key === 'ArrowDown')  y += step
-        setBox(selectedId, { x, y, w, h })
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
+        const updates = selectedIds
+          .map(id => design.slots.find(s => s.id === id))
+          .filter((s): s is NonNullable<typeof s> => !!s)
+          .map(s => {
+            const b = slotBox(canvas, design.grid, s)
+            return { id: s.id, box: { x: b.x + dx, y: b.y + dy, w: b.w, h: b.h } }
+          })
+        getState().setBoxes(updates)
         return
       }
 

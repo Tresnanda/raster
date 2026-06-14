@@ -6,6 +6,7 @@ import {
   Undo2, Redo2, ImageIcon, X,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
+  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter,
   FlipHorizontal2, FlipVertical2,
   List, ListOrdered, CaseUpper, CaseLower, CaseSensitive,
   MousePointer2,
@@ -554,6 +555,9 @@ export function ComposerRail() {
   const requestCrop = useDesign(s => s.requestCrop)
   const setOpacity = useDesign(s => s.setOpacity)
   const alignElement = useDesign(s => s.alignElement)
+  const selectedIds = useDesign(s => s.selectedIds)
+  const alignSelection = useDesign(s => s.alignSelection)
+  const distributeSelection = useDesign(s => s.distributeSelection)
   const setRotation = useDesign(s => s.setRotation)
   const setFlip = useDesign(s => s.setFlip)
   const setRadius = useDesign(s => s.setRadius)
@@ -676,8 +680,57 @@ export function ComposerRail() {
         </div>
       )}
 
+      {/* ── MULTI-SELECT PANEL ────────────────────────────────────────────────── */}
+      {selectedIds.length > 1 && (
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="px-4 pt-3 pb-2 border-b border-border/40 font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            {selectedIds.length} selected
+          </div>
+          <div className="px-4 py-3 space-y-3">
+            <div>
+              <div className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">Align</div>
+              <div className="grid grid-cols-6 gap-1">
+                {([
+                  ['left', AlignStartVertical], ['centerH', AlignCenterVertical], ['right', AlignEndVertical],
+                  ['top', AlignStartHorizontal], ['centerV', AlignCenterHorizontal], ['bottom', AlignEndHorizontal],
+                ] as const).map(([edge, Icon]) => (
+                  <button
+                    key={edge}
+                    onClick={() => alignSelection(edge)}
+                    aria-label={`Align ${edge}`}
+                    className="flex items-center justify-center rounded-md border-2 border-foreground bg-card py-1.5 text-foreground hover:shadow-[2px_2px_0_0_var(--foreground)] active:scale-[0.97] transition-[transform,box-shadow] duration-100"
+                  >
+                    <Icon size={13} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            {selectedIds.length >= 3 && (
+              <div>
+                <div className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">Distribute</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button onClick={() => distributeSelection('h')} aria-label="Distribute horizontally" className="flex items-center justify-center gap-1.5 rounded-md border-2 border-foreground bg-card py-1.5 text-[11px] font-medium text-foreground hover:shadow-[2px_2px_0_0_var(--foreground)] active:scale-[0.97] transition-[transform,box-shadow] duration-100">
+                    <AlignHorizontalDistributeCenter size={13} /> Horizontal
+                  </button>
+                  <button onClick={() => distributeSelection('v')} aria-label="Distribute vertically" className="flex items-center justify-center gap-1.5 rounded-md border-2 border-foreground bg-card py-1.5 text-[11px] font-medium text-foreground hover:shadow-[2px_2px_0_0_var(--foreground)] active:scale-[0.97] transition-[transform,box-shadow] duration-100">
+                    <AlignVerticalDistributeCenter size={13} /> Vertical
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">
+              Align snaps to the selection's bounds. Shift-click to add/remove; drag a box on empty canvas to marquee-select.
+            </p>
+          </div>
+          <div className="px-4 pt-1 border-t border-border/40">
+            <div className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2 mt-2">Layers</div>
+          </div>
+          <div className="pb-2"><LayersList /></div>
+        </div>
+      )}
+
       {/* ── SELECTED ELEMENT INSPECTOR ────────────────────────────────────────── */}
-      {selectedSlot && (() => {
+      {selectedSlot && selectedIds.length <= 1 && (() => {
         const isText = selectedSlot.role !== 'image' && selectedSlot.role !== 'block' && selectedSlot.role !== 'line'
         const isImage = selectedSlot.role === 'image'
         const isShape = selectedSlot.role === 'block' || selectedSlot.role === 'line'

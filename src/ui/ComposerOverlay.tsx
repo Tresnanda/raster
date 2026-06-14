@@ -96,8 +96,12 @@ interface ComposerOverlayProps {
 export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverlayProps) {
   const design = useDesign(s => s.design)
   const selectedId = useDesign(s => s.selectedId)
+  const selectedIds = useDesign(s => s.selectedIds)
   const selectElement = useDesign(s => s.selectElement)
+  const toggleSelection = useDesign(s => s.toggleSelection)
+  const setSelection = useDesign(s => s.setSelection)
   const setBox = useDesign(s => s.setBox)
+  const setBoxes = useDesign(s => s.setBoxes)
   const setContent = useDesign(s => s.setContent)
   const requestCrop = useDesign(s => s.requestCrop)
   const deleteElement = useDesign(s => s.deleteElement)
@@ -113,8 +117,12 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   const [editingId, setEditingId] = useState<string | null>(null)
   // Per-image drag-over tracking
   const [imageDragOverId, setImageDragOverId] = useState<string | null>(null)
-  // Center-snap guide state
-  const [centerGuides, setCenterGuides] = useState<{ x: boolean; y: boolean }>({ x: false, y: false })
+  // Smart-guide lines (canvas-unit positions) shown while dragging, and a small
+  // dimensions HUD with the live x/y/w/h of the element under the pointer.
+  const [guideLines, setGuideLines] = useState<{ vx: number[]; hy: number[] }>({ vx: [], hy: [] })
+  const [hud, setHud] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  // Marquee rubber-band rect (canvas units) while drag-selecting on empty canvas.
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
 
   const slots = orderedSlots(design).filter(s => !s.hidden) // hidden layers aren't interactive
   const boundaries = gridBoundaries(canvas, design.grid)
@@ -155,59 +163,66 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
     e.stopPropagation()
     e.preventDefault()
 
-    const startBox = slotBox(canvas, design.grid, slot)
+    // Move the whole selection if the grabbed element is part of a multi-selection.
+    const sel = useDesign.getState().selectedIds
+    const movingIds = sel.length > 1 && sel.includes(slot.id) ? sel : [slot.id]
+    const startBoxes = new Map(
+      movingIds.map(id => [id, slotBox(canvas, design.grid, design.slots.find(s => s.id === id)!)]),
+    )
+    const primary = startBoxes.get(slot.id)!
     const startX = e.clientX
     const startY = e.clientY
-    const centerSnapThreshold = CENTER_SNAP_PX / safeScale
+    const T = CENTER_SNAP_PX / safeScale
+
+    // Smart-guide targets: canvas center + edges + every OTHER element's edges/centers.
+    const others = slots.filter(s => !movingIds.includes(s.id))
+    const otherBoxes = others.map(s => slotBox(canvas, design.grid, s))
+    const vTargets = [canvas.w / 2, 0, canvas.w, ...otherBoxes.flatMap(b => [b.x, b.x + b.w / 2, b.x + b.w])]
+    const hTargets = [canvas.h / 2, 0, canvas.h, ...otherBoxes.flatMap(b => [b.y, b.y + b.h / 2, b.y + b.h])]
 
     const move = (ev: PointerEvent) => {
-      const rawDx = (ev.clientX - startX) / safeScale
-      const rawDy = (ev.clientY - startY) / safeScale
+      let dx = (ev.clientX - startX) / safeScale
+      let dy = (ev.clientY - startY) / safeScale
+      if (ev.shiftKey) { if (Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0 }
 
-      let dx = rawDx
-      let dy = rawDy
+      let px = primary.x + dx
+      let py = primary.y + dy
 
-      // Axis lock when Shift
-      if (ev.shiftKey) {
-        if (Math.abs(rawDx) >= Math.abs(rawDy)) dy = 0
-        else dx = 0
-      }
-
-      let newX = startBox.x + dx
-      let newY = startBox.y + dy
-
+      // Grid snap (left/top edge) when enabled.
       if (snap) {
-        newX = snapToNearest(newX, boundaries.xs, SNAP_THRESHOLD)
-        newY = snapToNearest(newY, boundaries.ys, SNAP_THRESHOLD)
+        px = snapToNearest(px, boundaries.xs, SNAP_THRESHOLD)
+        py = snapToNearest(py, boundaries.ys, SNAP_THRESHOLD)
       }
 
-      // Center-snap: check dragged element center vs canvas center
-      const elCenterX = newX + startBox.w / 2
-      const elCenterY = newY + startBox.h / 2
-      const canvasCenterX = canvas.w / 2
-      const canvasCenterY = canvas.h / 2
-
-      let snapX = false
-      let snapY = false
-
-      if (Math.abs(elCenterX - canvasCenterX) < centerSnapThreshold) {
-        newX = canvasCenterX - startBox.w / 2
-        snapX = true
+      // Smart guides: snap the primary's left/center/right edge to any target.
+      const vGuides: number[] = []
+      const hGuides: number[] = []
+      for (const edge of [px, px + primary.w / 2, px + primary.w]) {
+        let best = Infinity, bestT = 0
+        for (const t of vTargets) { const d = Math.abs(edge - t); if (d < best) { best = d; bestT = t } }
+        if (best < T) { px += bestT - edge; vGuides.push(bestT); break }
+      }
+      for (const edge of [py, py + primary.h / 2, py + primary.h]) {
+        let best = Infinity, bestT = 0
+        for (const t of hTargets) { const d = Math.abs(edge - t); if (d < best) { best = d; bestT = t } }
+        if (best < T) { py += bestT - edge; hGuides.push(bestT); break }
       }
 
-      if (Math.abs(elCenterY - canvasCenterY) < centerSnapThreshold) {
-        newY = canvasCenterY - startBox.h / 2
-        snapY = true
-      }
-
-      setCenterGuides({ x: snapX, y: snapY })
-      setBox(slot.id, { ...startBox, x: newX, y: newY })
+      const adx = px - primary.x
+      const ady = py - primary.y
+      setBoxes(movingIds.map(id => {
+        const sb = startBoxes.get(id)!
+        return { id, box: { ...sb, x: Math.round(sb.x + adx), y: Math.round(sb.y + ady) } }
+      }))
+      setGuideLines({ vx: vGuides, hy: hGuides })
+      setHud({ x: Math.round(px), y: Math.round(py), w: Math.round(primary.w), h: Math.round(primary.h) })
     }
 
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-      setCenterGuides({ x: false, y: false })
+      setGuideLines({ vx: [], hy: [] })
+      setHud(null)
     }
 
     window.addEventListener('pointermove', move)
@@ -255,11 +270,13 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
       }
 
       setBox(slot.id, { x, y, w, h })
+      setHud({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) })
     }
 
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      setHud(null)
     }
 
     window.addEventListener('pointermove', move)
@@ -304,49 +321,93 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
         transformOrigin: 'top left',
         pointerEvents: 'none',
       }}
-      // Clicking the overlay background deselects
-      onClick={() => {
-        if (editingId) return
-        selectElement(null)
-      }}
     >
-      {/* Center-snap guide lines — only visible during active snapped drag */}
-      {centerGuides.x && (
-        <div
-          data-center-guide-x
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: canvas.w / 2,
-            top: 0,
-            width: 1 / safeScale,
-            height: canvas.h,
-            background: '#3b82f6',
-            opacity: 0.6,
-            pointerEvents: 'none',
-          }}
-        />
+      {/* Background — captures clicks (deselect) + marquee rubber-band selection. */}
+      <div
+        data-overlay-bg
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'all' }}
+        onClick={() => { if (!editingId) selectElement(null) }}
+        onPointerDown={e => {
+          if (editingId) return
+          if (e.button !== 0) return
+          e.preventDefault()
+          const rect = overlayRef.current!.getBoundingClientRect()
+          const toCanvas = (cx: number, cy: number) => ({
+            x: (cx - rect.left) / safeScale,
+            y: (cy - rect.top) / safeScale,
+          })
+          const start = toCanvas(e.clientX, e.clientY)
+          let moved = false
+          const move = (ev: PointerEvent) => {
+            const p = toCanvas(ev.clientX, ev.clientY)
+            moved = true
+            setMarquee({
+              x: Math.min(start.x, p.x), y: Math.min(start.y, p.y),
+              w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y),
+            })
+          }
+          const up = (ev: PointerEvent) => {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', up)
+            const p = toCanvas(ev.clientX, ev.clientY)
+            const r = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) }
+            if (moved && (r.w > 4 || r.h > 4)) {
+              const hits = slots.filter(s => {
+                const bx = slotBox(canvas, design.grid, s)
+                return bx.x < r.x + r.w && bx.x + bx.w > r.x && bx.y < r.y + r.h && bx.y + bx.h > r.y
+              }).map(s => s.id)
+              setSelection(hits)
+            } else {
+              selectElement(null)
+            }
+            setMarquee(null)
+          }
+          window.addEventListener('pointermove', move)
+          window.addEventListener('pointerup', up)
+        }}
+      />
+
+      {/* Smart-guide lines while dragging (element + canvas alignment). */}
+      {guideLines.vx.map((x, i) => (
+        <div key={`v${i}`} data-guide-x aria-hidden style={{ position: 'absolute', left: x, top: 0, width: 1 / safeScale, height: canvas.h, background: '#ec4899', opacity: 0.9, pointerEvents: 'none' }} />
+      ))}
+      {guideLines.hy.map((y, i) => (
+        <div key={`h${i}`} data-guide-y aria-hidden style={{ position: 'absolute', left: 0, top: y, width: canvas.w, height: 1 / safeScale, background: '#ec4899', opacity: 0.9, pointerEvents: 'none' }} />
+      ))}
+
+      {/* Marquee rubber-band */}
+      {marquee && (
+        <div data-marquee aria-hidden style={{ position: 'absolute', left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h, border: `${1 / safeScale}px solid #3b82f6`, background: 'rgba(59,130,246,0.08)', pointerEvents: 'none' }} />
       )}
-      {centerGuides.y && (
+
+      {/* Dimensions HUD — live x/y · w×h while dragging/resizing. */}
+      {hud && (
         <div
-          data-center-guide-y
-          aria-hidden="true"
+          data-dims-hud
+          aria-hidden
           style={{
             position: 'absolute',
-            left: 0,
-            top: canvas.h / 2,
-            width: canvas.w,
-            height: 1 / safeScale,
-            background: '#3b82f6',
-            opacity: 0.6,
+            left: hud.x,
+            top: hud.y,
+            transform: `translate(0, calc(-100% - ${6 / safeScale}px)) scale(${1 / safeScale})`,
+            transformOrigin: 'top left',
+            background: '#18181b',
+            color: '#fafafa',
+            fontFamily: "'Space Mono', ui-monospace, monospace",
+            fontSize: 11,
+            lineHeight: 1.4,
+            padding: '2px 6px',
+            whiteSpace: 'nowrap',
             pointerEvents: 'none',
           }}
-        />
+        >
+          {hud.x}, {hud.y} · {hud.w}×{hud.h}
+        </div>
       )}
 
       {slots.map(slot => {
         const b = slotBox(canvas, design.grid, slot)
-        const isSelected = selectedId === slot.id
+        const isSelected = selectedIds.includes(slot.id)
         const isEditing = editingId === slot.id
         const isImage = isImageSlot(slot)
         const isText = isTextSlot(slot)
@@ -371,7 +432,10 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
             }}
             onClick={e => {
               e.stopPropagation()
-              if (!isEditing) selectElement(slot.id)
+              if (isEditing) return
+              // Shift/Cmd-click toggles; plain click selects just this element.
+              if (e.shiftKey || e.metaKey || e.ctrlKey) toggleSelection(slot.id)
+              else selectElement(slot.id)
             }}
             onDoubleClick={e => {
               e.stopPropagation()
@@ -382,7 +446,15 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
             }}
             onPointerDown={e => {
               if (isEditing) return
-              selectElement(slot.id)
+              e.stopPropagation() // don't let the background start a marquee
+              const additive = e.shiftKey || e.metaKey || e.ctrlKey
+              if (additive) {
+                // shift+drag: leave selection to the click handler (toggle)
+                return
+              }
+              // If this element isn't already in a multi-selection, select just it.
+              const sel = useDesign.getState().selectedIds
+              if (!(sel.length > 1 && sel.includes(slot.id))) selectElement(slot.id)
               // Locked layers select but never move.
               if (!slot.locked) startMove(slot, e)
             }}

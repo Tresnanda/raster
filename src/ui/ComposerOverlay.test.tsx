@@ -61,7 +61,7 @@ test('clicking the overlay background deselects (selectedId becomes null)', asyn
   useDesign.getState().selectElement(firstSlot.id)
 
   const { container } = render(<ComposerOverlay scale={1} />)
-  const overlay = container.querySelector('[data-composer-overlay]')!
+  const overlay = container.querySelector('[data-overlay-bg]')!
 
   await act(async () => {
     fireEvent.click(overlay)
@@ -315,7 +315,7 @@ test('deselecting clears handles and toolbar', async () => {
   expect(container.querySelector('[data-composer-toolbar]')).toBeTruthy()
 
   // Deselect via background click
-  const overlay = container.querySelector('[data-composer-overlay]')!
+  const overlay = container.querySelector('[data-overlay-bg]')!
   await act(async () => {
     fireEvent.click(overlay)
   })

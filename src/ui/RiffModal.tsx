@@ -247,7 +247,14 @@ export function RiffModal() {
                 value={riffStrength}
                 onChange={(e) => setRiffStrength(parseFloat(e.target.value))}
                 aria-label="Mutation strength"
-                className="flex-1 h-1.5 appearance-none rounded-full bg-neutral-200 accent-neutral-900 cursor-pointer"
+                className={[
+                  'flex-1 cursor-pointer appearance-none h-1 rounded-full bg-neutral-200',
+                  '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5',
+                  '[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white',
+                  '[&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300',
+                  '[&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer',
+                  '[&::-webkit-slider-runnable-track]:rounded-full',
+                ].join(' ')}
               />
               <span className="text-[11px] text-neutral-400 whitespace-nowrap">Wild</span>
             </div>

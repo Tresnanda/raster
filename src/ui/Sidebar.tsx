@@ -1,4 +1,4 @@
-// src/ui/Sidebar.tsx
+// src/ui/Sidebar.tsx — Global design pane with collapsible Sections
 import type React from 'react'
 import { useRef } from 'react'
 import gsap from 'gsap'
@@ -10,17 +10,10 @@ import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
 import { ExportControls } from './sidebar/ExportControls'
+import { Section } from './components/Section'
 
 interface SidebarProps {
   svgRef: React.RefObject<SVGSVGElement | null>
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-2 mt-6">
-      {children}
-    </div>
-  )
 }
 
 export function Sidebar({ svgRef }: SidebarProps) {
@@ -41,27 +34,68 @@ export function Sidebar({ svgRef }: SidebarProps) {
   }, { scope: sidebarRootRef })
 
   return (
-    <aside className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-neutral-200 bg-white overflow-y-auto">
-      <div ref={sidebarRootRef} className="p-5">
-        <Header />
+    <aside
+      aria-label="Design"
+      className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-neutral-100 bg-white overflow-y-auto"
+    >
+      <div ref={sidebarRootRef} className="px-4 py-4 space-y-0.5">
+        {/* Brand lockup — not a collapsible section */}
+        <div className="sb-section pb-4 border-b border-neutral-100 mb-3">
+          <Header />
+        </div>
 
-        <SectionLabel>Layout</SectionLabel>
-        <LayoutGrid />
+        {/* Layouts — open by default */}
+        <div className="sb-section">
+          <Section id="sidebar-layouts" title="Layouts" defaultOpen>
+            <LayoutGrid />
+          </Section>
+        </div>
 
-        <SectionLabel>Canvas</SectionLabel>
-        <CanvasChips />
+        <div className="border-t border-neutral-100" />
 
-        <SectionLabel>Content</SectionLabel>
-        <ContentFields />
+        {/* Canvas format */}
+        <div className="sb-section">
+          <Section id="sidebar-canvas" title="Canvas" defaultOpen>
+            <CanvasChips />
+          </Section>
+        </div>
 
-        <SectionLabel>Typography</SectionLabel>
-        <TypographyControls />
+        <div className="border-t border-neutral-100" />
 
-        <SectionLabel>Style</SectionLabel>
-        <StyleControls />
+        {/* Typography — collapsed by default (global defaults) */}
+        <div className="sb-section">
+          <Section id="sidebar-type" title="Type" defaultOpen={false}>
+            <TypographyControls />
+          </Section>
+        </div>
 
-        <SectionLabel>Export</SectionLabel>
-        <ExportControls svgRef={svgRef} />
+        <div className="border-t border-neutral-100" />
+
+        {/* Style — open by default */}
+        <div className="sb-section">
+          <Section id="sidebar-style" title="Style" defaultOpen>
+            <StyleControls />
+          </Section>
+        </div>
+
+        <div className="border-t border-neutral-100" />
+
+        {/* Content slots — open by default; on-canvas editing is primary but
+            the section is readily available without requiring a click */}
+        <div className="sb-section">
+          <Section id="sidebar-content" title="Content" defaultOpen>
+            <ContentFields />
+          </Section>
+        </div>
+
+        <div className="border-t border-neutral-100" />
+
+        {/* Export — collapsed */}
+        <div className="sb-section">
+          <Section id="sidebar-export" title="Export" defaultOpen={false}>
+            <ExportControls svgRef={svgRef} />
+          </Section>
+        </div>
       </div>
     </aside>
   )

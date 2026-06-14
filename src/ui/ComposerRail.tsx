@@ -1,5 +1,14 @@
-// src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2, List, ListOrdered, CaseUpper, CaseLower, CaseSensitive } from 'lucide-react'
+// src/ui/ComposerRail.tsx — Element inspector pane, fully restructured
+import {
+  Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2,
+  AlignLeft, AlignCenter, AlignRight,
+  Undo2, Redo2, ImageIcon, X,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
+  AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
+  FlipHorizontal2, FlipVertical2,
+  List, ListOrdered, CaseUpper, CaseLower, CaseSensitive,
+  MousePointer2,
+} from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
@@ -11,22 +20,19 @@ import { Checkbox } from './components/Checkbox'
 import { NumberInput } from './components/NumberInput'
 import { Slider } from './components/slider'
 import { Switch } from './components/Switch'
+import { Select } from './components/select'
+import { Section } from './components/Section'
 import type { FontFamily, ImageEffectKind, Slot } from '../types'
 import type { ImageEffect } from '../types'
 import { EFFECT_DEFAULTS } from '../lib/image-effects'
 
 // ── Micro label ──────────────────────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-4 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-0.5">
       {children}
     </div>
   )
-}
-
-// ── Hairline divider ─────────────────────────────────────────────────────────
-function Divider() {
-  return <div className="border-t border-neutral-200 mx-4" />
 }
 
 // ── Slot type icon ───────────────────────────────────────────────────────────
@@ -42,7 +48,6 @@ function slotLabel(slot: Slot): string {
   if (slot.role === 'image') return 'Image'
   if (slot.role === 'block') return 'Shape'
   if (slot.role === 'line') return 'Line'
-  // text role: show content snippet
   const content = slot.content?.trim()
   if (content) return content.length > 20 ? content.slice(0, 20) + '…' : content
   return slot.role
@@ -106,9 +111,7 @@ function ImageFillControl({
 
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-        Image Fill
-      </div>
+      <FieldLabel>Image Fill</FieldLabel>
       {imageFill ? (
         <div className="flex items-center gap-2" data-imagefill-set>
           <div
@@ -215,7 +218,6 @@ function ImageEffectsPanel({
 
   return (
     <div className="space-y-2.5" data-effects-panel>
-      {/* Kind chips -- 4-column grid */}
       <div className="grid grid-cols-4 gap-1">
         {EFFECT_CHIPS.map(({ kind, label }) => (
           <button
@@ -229,16 +231,10 @@ function ImageEffectsPanel({
         ))}
       </div>
 
-      {/* Param controls for the active kind */}
       {activeKind === 'halftone' && (
         <div className="space-y-2">
           <div className="space-y-1">
-            <label
-              htmlFor={`ef-cell-${slotId}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-            >
-              Cell size
-            </label>
+            <FieldLabel>Cell size</FieldLabel>
             <div className="flex items-center gap-2">
               <Slider
                 aria-label="Cell"
@@ -255,12 +251,7 @@ function ImageEffectsPanel({
             </div>
           </div>
           <div className="space-y-1">
-            <label
-              htmlFor={`ef-angle-${slotId}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-            >
-              Angle
-            </label>
+            <FieldLabel>Angle</FieldLabel>
             <div className="flex items-center gap-2">
               <Slider
                 aria-label="Angle"
@@ -278,12 +269,7 @@ function ImageEffectsPanel({
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div className="flex flex-col gap-0.5">
-              <label
-                htmlFor={`ef-dark-${slotId}`}
-                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-              >
-                Dark
-              </label>
+              <FieldLabel>Dark</FieldLabel>
               <input
                 id={`ef-dark-${slotId}`}
                 type="color"
@@ -294,12 +280,7 @@ function ImageEffectsPanel({
               />
             </div>
             <div className="flex flex-col gap-0.5">
-              <label
-                htmlFor={`ef-light-${slotId}`}
-                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-              >
-                Light
-              </label>
+              <FieldLabel>Light</FieldLabel>
               <input
                 id={`ef-light-${slotId}`}
                 type="color"
@@ -316,12 +297,7 @@ function ImageEffectsPanel({
       {activeKind === 'duotone' && (
         <div className="grid grid-cols-2 gap-1.5">
           <div className="flex flex-col gap-0.5">
-            <label
-              htmlFor={`ef-dark-${slotId}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-            >
-              Dark
-            </label>
+            <FieldLabel>Dark</FieldLabel>
             <input
               id={`ef-dark-${slotId}`}
               type="color"
@@ -332,12 +308,7 @@ function ImageEffectsPanel({
             />
           </div>
           <div className="flex flex-col gap-0.5">
-            <label
-              htmlFor={`ef-light-${slotId}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-            >
-              Light
-            </label>
+            <FieldLabel>Light</FieldLabel>
             <input
               id={`ef-light-${slotId}`}
               type="color"
@@ -353,12 +324,7 @@ function ImageEffectsPanel({
       {activeKind === 'dither' && (
         <div className="space-y-2">
           <div className="space-y-1">
-            <label
-              htmlFor={`ef-scale-${slotId}`}
-              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-            >
-              Scale
-            </label>
+            <FieldLabel>Scale</FieldLabel>
             <div className="flex items-center gap-2">
               <Slider
                 aria-label="Scale"
@@ -376,12 +342,7 @@ function ImageEffectsPanel({
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div className="flex flex-col gap-0.5">
-              <label
-                htmlFor={`ef-dark-${slotId}`}
-                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-              >
-                Dark
-              </label>
+              <FieldLabel>Dark</FieldLabel>
               <input
                 id={`ef-dark-${slotId}`}
                 type="color"
@@ -392,12 +353,7 @@ function ImageEffectsPanel({
               />
             </div>
             <div className="flex flex-col gap-0.5">
-              <label
-                htmlFor={`ef-light-${slotId}`}
-                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-              >
-                Light
-              </label>
+              <FieldLabel>Light</FieldLabel>
               <input
                 id={`ef-light-${slotId}`}
                 type="color"
@@ -413,12 +369,7 @@ function ImageEffectsPanel({
 
       {activeKind === 'posterize' && (
         <div className="space-y-1">
-          <label
-            htmlFor={`ef-levels-${slotId}`}
-            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-          >
-            Levels
-          </label>
+          <FieldLabel>Levels</FieldLabel>
           <div className="flex items-center gap-2">
             <Slider
               aria-label="Levels"
@@ -438,12 +389,7 @@ function ImageEffectsPanel({
 
       {activeKind === 'threshold' && (
         <div className="space-y-1">
-          <label
-            htmlFor={`ef-cutoff-${slotId}`}
-            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-          >
-            Cutoff
-          </label>
+          <FieldLabel>Cutoff</FieldLabel>
           <div className="flex items-center gap-2">
             <Slider
               aria-label="Cutoff"
@@ -463,6 +409,34 @@ function ImageEffectsPanel({
     </div>
   )
 }
+
+// ── FONT FAMILY options ───────────────────────────────────────────────────────
+const TYPEFACE_OPTIONS = [
+  { value: 'display',   label: 'Archivo Display' },
+  { value: 'sans',      label: 'Inter' },
+  { value: 'condensed', label: 'Archivo Narrow' },
+  { value: 'mono',      label: 'Space Mono' },
+]
+
+const WEIGHT_OPTIONS = [100, 200, 300, 400, 500, 600, 700, 800, 900].map(w => ({
+  value: String(w),
+  label: String(w),
+}))
+
+const BLEND_OPTIONS = [
+  'normal', 'multiply', 'screen', 'overlay', 'darken',
+  'lighten', 'difference', 'exclusion', 'soft-light', 'hard-light',
+].map(m => ({ value: m, label: m }))
+
+// ── Add button ────────────────────────────────────────────────────────────────
+const addBtnCls = [
+  'flex flex-col items-center gap-1 rounded-md border border-neutral-200 py-2 px-1 text-neutral-600',
+  'text-[11px] font-medium',
+  'hover:border-neutral-400 hover:-translate-y-px hover:text-neutral-900',
+  'active:scale-[0.97]',
+  'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+].join(' ')
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function ComposerRail() {
@@ -506,31 +480,30 @@ export function ComposerRail() {
   const canRedo = useDesign(s => s.future.length > 0)
 
   const canvas = canvasFor(design.format)
-  const layers = [...orderedSlots(design)].reverse() // topmost first
+  const layers = [...orderedSlots(design)].reverse()
   const selectedSlot = selectedId ? design.slots.find(s => s.id === selectedId) : null
 
   const resolvedBox = selectedSlot
     ? slotBox(canvas, design.grid, selectedSlot)
     : null
 
-  const addBtnCls = [
-    'flex flex-col items-center gap-1 rounded-md border border-neutral-200 py-2 px-1 text-neutral-600',
-    'text-[11px] font-medium',
-    'hover:border-neutral-400 hover:-translate-y-px hover:text-neutral-900',
-    'active:scale-[0.97]',
-    'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+  const iconBtnCls = [
+    'rounded p-1 text-neutral-500',
+    'hover:bg-neutral-100 hover:text-neutral-900',
+    'active:scale-[0.97] transition-transform duration-150',
+    '[transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
   ].join(' ')
 
   return (
     <aside
-      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-neutral-200 bg-white overflow-y-auto flex flex-col"
-      aria-label="Composer"
+      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-neutral-100 bg-white overflow-y-auto flex flex-col"
+      aria-label="Element"
     >
-      {/* COMPOSE header + Undo/Redo */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      {/* Header: ELEMENT label + Undo/Redo */}
+      <div className="px-4 pt-4 pb-2.5 flex items-center justify-between border-b border-neutral-100">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-900">
-          Compose
+          Element
         </div>
         <div className="flex items-center gap-0.5">
           <button
@@ -566,185 +539,162 @@ export function ComposerRail() {
         </div>
       </div>
 
-      <Divider />
-
-      {/* Add elements */}
-      <SectionLabel>Add</SectionLabel>
-      <div className="grid grid-cols-2 gap-1.5 px-4 pb-3">
-        <button
-          onClick={() => addElement('text')}
-          className={addBtnCls}
-          aria-label="Add text element"
-          data-add-element="text"
-        >
-          <Type size={16} strokeWidth={1.5} />
-          + Text
+      {/* Compact Add row — always visible */}
+      <div className="grid grid-cols-4 gap-1 px-4 py-2.5 border-b border-neutral-100">
+        <button onClick={() => addElement('text')} className={addBtnCls} aria-label="Add text element" data-add-element="text">
+          <Type size={14} strokeWidth={1.5} />
+          <span className="text-[10px]">Text</span>
         </button>
-        <button
-          onClick={() => addElement('image')}
-          className={addBtnCls}
-          aria-label="Add image element"
-          data-add-element="image"
-        >
-          <Image size={16} strokeWidth={1.5} />
-          + Image
+        <button onClick={() => addElement('image')} className={addBtnCls} aria-label="Add image element" data-add-element="image">
+          <Image size={14} strokeWidth={1.5} />
+          <span className="text-[10px]">Image</span>
         </button>
-        <button
-          onClick={() => addElement('block')}
-          className={addBtnCls}
-          aria-label="Add shape element"
-          data-add-element="block"
-        >
-          <Square size={16} strokeWidth={1.5} />
-          + Shape
+        <button onClick={() => addElement('block')} className={addBtnCls} aria-label="Add shape element" data-add-element="block">
+          <Square size={14} strokeWidth={1.5} />
+          <span className="text-[10px]">Shape</span>
         </button>
-        <button
-          onClick={() => addElement('line')}
-          className={addBtnCls}
-          aria-label="Add line element"
-          data-add-element="line"
-        >
-          <Minus size={16} strokeWidth={1.5} />
-          + Line
+        <button onClick={() => addElement('line')} className={addBtnCls} aria-label="Add line element" data-add-element="line">
+          <Minus size={14} strokeWidth={1.5} />
+          <span className="text-[10px]">Line</span>
         </button>
       </div>
 
-      <Divider />
+      {/* ── EMPTY STATE ───────────────────────────────────────────────────────── */}
+      {!selectedSlot && (
+        <div className="flex-1 flex flex-col">
+          {/* Empty state hero */}
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
+              <MousePointer2 size={18} className="text-neutral-400" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium text-neutral-700">No element selected</p>
+              <p className="mt-0.5 text-[11px] text-neutral-400 leading-relaxed">
+                Select an element on the canvas to edit it.
+              </p>
+            </div>
+          </div>
 
-      {/* Layers list */}
-      <SectionLabel>Layers</SectionLabel>
-      <div className="flex flex-col pb-2" data-layers-list>
-        {layers.length === 0 && (
-          <div className="px-4 py-3 text-xs text-neutral-400">No layers yet.</div>
-        )}
-        {layers.map(slot => (
-          <div
-            key={slot.id}
-            data-layer-row={slot.id}
-            className={[
-              'group relative flex items-center gap-2 px-4 py-2 cursor-pointer',
-              'transition-colors duration-100',
-              selectedId === slot.id
-                ? 'bg-neutral-100 ring-1 ring-inset ring-neutral-900/10'
-                : 'hover:bg-neutral-50',
-            ].join(' ')}
-            onClick={() => selectElement(slot.id)}
-          >
-            <SlotTypeIcon slot={slot} />
-            <span className="flex-1 min-w-0 truncate text-xs text-neutral-700 tabular-nums">
-              {slotLabel(slot)}
-            </span>
+          <div className="border-t border-neutral-100" />
 
-            {/* Hover actions */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+          {/* Layers in empty state */}
+          <div className="px-4 pt-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-2">
+              Layers
+            </div>
+          </div>
+          <div className="flex flex-col pb-2" data-layers-list>
+            {layers.length === 0 && (
+              <div className="px-4 py-3 text-xs text-neutral-400">No layers yet.</div>
+            )}
+            {layers.map(slot => (
+              <div
+                key={slot.id}
+                data-layer-row={slot.id}
+                className={[
+                  'group relative flex items-center gap-2 px-4 py-2 cursor-pointer',
+                  'transition-colors duration-100',
+                  'hover:bg-neutral-50',
+                ].join(' ')}
+                onClick={() => selectElement(slot.id)}
+              >
+                <SlotTypeIcon slot={slot} />
+                <span className="flex-1 min-w-0 truncate text-xs text-neutral-700 tabular-nums">
+                  {slotLabel(slot)}
+                </span>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                  <button
+                    onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
+                    className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                    aria-label="Duplicate"
+                  >
+                    <Copy size={12} />
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
+                    className="rounded p-0.5 hover:bg-red-50 text-neutral-500 hover:text-red-600"
+                    aria-label="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── SELECTED ELEMENT INSPECTOR ────────────────────────────────────────── */}
+      {selectedSlot && (() => {
+        const isText = selectedSlot.role !== 'image' && selectedSlot.role !== 'block' && selectedSlot.role !== 'line'
+        const isImage = selectedSlot.role === 'image'
+        const isShape = selectedSlot.role === 'block' || selectedSlot.role === 'line'
+        const hasOverrides = !!(selectedSlot.overridden?.length || selectedSlot.color !== undefined || selectedSlot.bw !== undefined)
+        const ov = selectedSlot.overridden ?? []
+        const resolvedText = isText && selectedSlot.text
+          ? resolveTextStyle(selectedSlot, design.typography)
+          : null
+
+        const typeLabel = isImage ? 'Image' : isShape ? (selectedSlot.role === 'line' ? 'Line' : 'Shape') : 'Text'
+
+        return (
+          <div className="flex flex-col flex-1">
+            {/* Element header: type + deselect + actions */}
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-neutral-100">
+              <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-700">
+                {typeLabel}
+              </span>
               <button
-                onClick={e => { e.stopPropagation(); bringForward(slot.id) }}
-                className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                onClick={() => duplicateElement(selectedSlot.id)}
+                className={iconBtnCls}
+                aria-label="Duplicate element"
+                title="Duplicate"
+              >
+                <Copy size={13} />
+              </button>
+              <button
+                onClick={() => bringForward(selectedSlot.id)}
+                className={iconBtnCls}
                 aria-label="Bring forward"
                 title="Bring forward"
               >
-                <ChevronUp size={12} />
+                <ChevronUp size={13} />
               </button>
               <button
-                onClick={e => { e.stopPropagation(); sendBackward(slot.id) }}
-                className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                onClick={() => sendBackward(selectedSlot.id)}
+                className={iconBtnCls}
                 aria-label="Send backward"
                 title="Send backward"
               >
-                <ChevronDown size={12} />
+                <ChevronDown size={13} />
               </button>
               <button
-                onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
-                className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
-                aria-label="Duplicate"
-                title="Duplicate"
-              >
-                <Copy size={12} />
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
-                className="rounded p-0.5 hover:bg-red-50 text-neutral-500 hover:text-red-600"
-                aria-label="Delete"
+                onClick={() => deleteElement(selectedSlot.id)}
+                className={[iconBtnCls, 'hover:bg-red-50 hover:text-red-600'].join(' ')}
+                aria-label="Delete element"
                 title="Delete"
               >
-                <Trash2 size={12} />
+                <Trash2 size={13} />
+              </button>
+              {/* Deselect — prominent X */}
+              <button
+                onClick={() => selectElement(null)}
+                aria-label="Deselect"
+                title="Deselect (Esc)"
+                className={[
+                  'rounded p-1 text-neutral-400',
+                  'hover:bg-neutral-100 hover:text-neutral-700',
+                  'active:scale-[0.97] transition-transform duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                ].join(' ')}
+              >
+                <X size={14} />
               </button>
             </div>
-          </div>
-        ))}
-      </div>
 
-      <Divider />
-
-      {/* Selected element inspector */}
-      <SectionLabel>Properties</SectionLabel>
-      <div className="px-4 pb-4">
-        {!selectedSlot && (
-          <p className="text-xs text-neutral-400 leading-relaxed">
-            Select an element on the canvas to edit it.
-          </p>
-        )}
-
-        {selectedSlot && (() => {
-          const isText = selectedSlot.role !== 'image' && selectedSlot.role !== 'block' && selectedSlot.role !== 'line'
-          const isImage = selectedSlot.role === 'image'
-          const isShape = selectedSlot.role === 'block' || selectedSlot.role === 'line'
-          const hasOverrides = !!(selectedSlot.overridden?.length || selectedSlot.color !== undefined || selectedSlot.bw !== undefined)
-          const ov = selectedSlot.overridden ?? []
-          const resolvedText = isText && selectedSlot.text
-            ? resolveTextStyle(selectedSlot, design.typography)
-            : null
-
-          const typeLabel = isImage ? 'Image' : isShape ? (selectedSlot.role === 'line' ? 'Line' : 'Shape') : 'Text'
-
-          const iconBtnCls = [
-            'rounded p-1 text-neutral-500',
-            'hover:bg-neutral-100 hover:text-neutral-900',
-            'active:scale-[0.97] transition-transform duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-          ].join(' ')
-
-          return (
-            <div className="space-y-3">
-              {/* Header: type label + action buttons */}
-              <div className="flex items-center gap-1">
-                <span className="flex-1 text-xs font-semibold text-neutral-700">{typeLabel}</span>
-                <button
-                  onClick={() => duplicateElement(selectedSlot.id)}
-                  className={iconBtnCls}
-                  aria-label="Duplicate element"
-                  title="Duplicate"
-                >
-                  <Copy size={13} />
-                </button>
-                <button
-                  onClick={() => bringForward(selectedSlot.id)}
-                  className={iconBtnCls}
-                  aria-label="Bring forward"
-                  title="Bring forward"
-                >
-                  <ChevronUp size={13} />
-                </button>
-                <button
-                  onClick={() => sendBackward(selectedSlot.id)}
-                  className={iconBtnCls}
-                  aria-label="Send backward"
-                  title="Send backward"
-                >
-                  <ChevronDown size={13} />
-                </button>
-                <button
-                  onClick={() => deleteElement(selectedSlot.id)}
-                  className={[iconBtnCls, 'hover:bg-red-50 hover:text-red-600'].join(' ')}
-                  aria-label="Delete element"
-                  title="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-
-              {/* Reset to global — only when overrides present */}
-              {hasOverrides && (
+            {/* Reset to global — only when overrides present */}
+            {hasOverrides && (
+              <div className="px-4 pt-2">
                 <button
                   onClick={() => resetElement(selectedSlot.id)}
                   className={[
@@ -755,293 +705,543 @@ export function ComposerRail() {
                 >
                   Reset to global
                 </button>
+              </div>
+            )}
+
+            <div className="flex flex-col flex-1 overflow-y-auto">
+
+              {/* ── CONTENT (text only) ───────────────────────────────────────── */}
+              {isText && selectedSlot.text && (
+                <div className="px-4 pt-3 pb-1">
+                  <Section id="rail-content" title="Content" defaultOpen>
+                    <InspectorRow label="Content">
+                      <textarea
+                        aria-label="Content"
+                        rows={2}
+                        value={selectedSlot.content}
+                        onChange={e => setContent(selectedSlot.id, e.target.value)}
+                        className={[
+                          'w-full rounded border border-neutral-200 px-2 py-1 text-xs text-neutral-800 resize-none',
+                          'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                        ].join(' ')}
+                      />
+                    </InspectorRow>
+                  </Section>
+                </div>
               )}
 
-              {/* TEXT controls */}
-              {isText && selectedSlot.text && (
-                <div className="space-y-2.5">
-                  {/* Content */}
-                  <InspectorRow label="Content">
-                    <textarea
-                      aria-label="Content"
-                      rows={2}
-                      value={selectedSlot.content}
-                      onChange={e => setContent(selectedSlot.id, e.target.value)}
-                      className={[
-                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs text-neutral-800 resize-none',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
-                    />
-                  </InspectorRow>
+              {/* ── POSITION (all elements) ───────────────────────────────────── */}
+              {resolvedBox && (
+                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                  <Section id="rail-position" title="Position" defaultOpen>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <NumberInput
+                          id={`insp-x-${selectedSlot.id}`}
+                          label="X position"
+                          value={Math.round(resolvedBox.x)}
+                          onChange={v => setBox(selectedSlot.id, { ...resolvedBox, x: v })}
+                        />
+                        <NumberInput
+                          id={`insp-y-${selectedSlot.id}`}
+                          label="Y position"
+                          value={Math.round(resolvedBox.y)}
+                          onChange={v => setBox(selectedSlot.id, { ...resolvedBox, y: v })}
+                        />
+                        <NumberInput
+                          id={`insp-w-${selectedSlot.id}`}
+                          label="Width"
+                          value={Math.round(resolvedBox.w)}
+                          min={1}
+                          onChange={v => setBox(selectedSlot.id, { ...resolvedBox, w: v })}
+                        />
+                        <NumberInput
+                          id={`insp-h-${selectedSlot.id}`}
+                          label="Height"
+                          value={Math.round(resolvedBox.h)}
+                          min={1}
+                          onChange={v => setBox(selectedSlot.id, { ...resolvedBox, h: v })}
+                        />
+                      </div>
 
-                  {/* Typeface */}
-                  <InspectorRow label="Typeface" overridden={ov.includes('family')}>
-                    <div className="relative">
-                      <select
-                        id={`insp-typeface-${selectedSlot.id}`}
-                        aria-label="Typeface"
-                        value={resolvedText!.family}
-                        onChange={e => overrideText(selectedSlot.id, { family: e.target.value as FontFamily })}
-                        className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 pr-8 text-xs text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
-                      >
-                        <option value="display">Archivo Display</option>
-                        <option value="sans">Inter</option>
-                        <option value="condensed">Archivo Narrow</option>
-                        <option value="mono">Space Mono</option>
-                      </select>
-                      <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                      {/* Opacity */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <FieldLabel>Opacity</FieldLabel>
+                          <span className="text-[10px] tabular-nums text-neutral-500 font-medium">
+                            {Math.round((selectedSlot.opacity ?? 1) * 100)}%
+                          </span>
+                        </div>
+                        <Slider
+                          aria-label="Opacity"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={Math.round((selectedSlot.opacity ?? 1) * 100)}
+                          onChange={v => setOpacity(selectedSlot.id, v / 100)}
+                        />
+                      </div>
+
+                      {/* Align */}
+                      <div>
+                        <FieldLabel>Align</FieldLabel>
+                        <div className="flex gap-1">
+                          {[
+                            { edge: 'left' as const,    label: 'Canvas align left',              Icon: AlignStartVertical },
+                            { edge: 'centerH' as const, label: 'Canvas align center horizontal', Icon: AlignCenterVertical },
+                            { edge: 'right' as const,   label: 'Canvas align right',             Icon: AlignEndVertical },
+                            { edge: 'top' as const,     label: 'Canvas align top',               Icon: AlignStartHorizontal },
+                            { edge: 'centerV' as const, label: 'Canvas align center vertical',   Icon: AlignCenterHorizontal },
+                            { edge: 'bottom' as const,  label: 'Canvas align bottom',            Icon: AlignEndHorizontal },
+                          ].map(({ edge, label, Icon }) => (
+                            <button
+                              key={edge}
+                              aria-label={label}
+                              onClick={() => alignElement(selectedSlot.id, edge)}
+                              className={[
+                                'flex-1 flex items-center justify-center rounded border border-neutral-200 py-1.5',
+                                'text-neutral-500 hover:border-neutral-400 hover:text-neutral-900',
+                                'active:scale-[0.97] transition-transform duration-150',
+                                '[transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                              ].join(' ')}
+                            >
+                              <Icon size={13} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </InspectorRow>
+                  </Section>
+                </div>
+              )}
 
-                  {/* Size */}
-                  <InspectorRow label="Size" overridden={ov.includes('size')}>
-                    <input
-                      id={`insp-size-${selectedSlot.id}`}
-                      aria-label="Size"
-                      type="number"
-                      min={10}
-                      max={600}
-                      value={resolvedText!.size}
-                      onChange={e => overrideText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                  </InspectorRow>
+              {/* ── TRANSFORM (all elements, collapsed) ──────────────────────── */}
+              {selectedSlot && (
+                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                  <Section id="rail-transform" title="Transform" defaultOpen>
+                    <div className="space-y-2.5">
+                      {/* Rotation */}
+                      <div className="space-y-1">
+                        <FieldLabel>Rotation</FieldLabel>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id={`insp-rotation-${selectedSlot.id}`}
+                            aria-label="Rotation"
+                            type="number"
+                            min={-180}
+                            max={180}
+                            step={1}
+                            value={selectedSlot.rotation ?? 0}
+                            onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
+                            className="w-16 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                          <span className="text-[11px] text-neutral-400">°</span>
+                          <Slider
+                            aria-label="Rotation slider"
+                            min={-180}
+                            max={180}
+                            step={1}
+                            value={selectedSlot.rotation ?? 0}
+                            onChange={v => setRotation(selectedSlot.id, v)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
 
-                  {/* Weight */}
-                  <InspectorRow label="Weight">
-                    <div className="relative">
-                      <select
-                        id={`insp-weight-${selectedSlot.id}`}
-                        aria-label="Weight"
-                        value={selectedSlot.text.weight}
-                        onChange={e => setText(selectedSlot.id, { weight: Number(e.target.value) })}
-                        className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 pr-8 text-xs text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
-                      >
-                        {[100, 200, 300, 400, 500, 600, 700, 800, 900].map(w => (
-                          <option key={w} value={w}>{w}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    </div>
-                  </InspectorRow>
-
-                  {/* Tracking */}
-                  <InspectorRow label="Tracking" overridden={ov.includes('tracking')}>
-                    <input
-                      id={`insp-tracking-${selectedSlot.id}`}
-                      aria-label="Tracking"
-                      type="number"
-                      step={0.005}
-                      value={resolvedText!.tracking}
-                      onChange={e => overrideText(selectedSlot.id, { tracking: Number(e.target.value) })}
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                  </InspectorRow>
-
-                  {/* Leading */}
-                  <InspectorRow label="Leading" overridden={ov.includes('leading')}>
-                    <input
-                      id={`insp-leading-${selectedSlot.id}`}
-                      aria-label="Leading"
-                      type="number"
-                      step={0.01}
-                      value={resolvedText!.leading}
-                      onChange={e => overrideText(selectedSlot.id, { leading: Number(e.target.value) })}
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                  </InspectorRow>
-
-                  {/* Align */}
-                  <InspectorRow label="Align">
-                    <div className="flex gap-1">
-                      {(['left', 'center', 'right'] as const).map(a => (
+                      {/* Flip */}
+                      <div className="flex gap-1">
                         <button
-                          key={a}
-                          onClick={() => setText(selectedSlot.id, { align: a })}
-                          aria-label={`Align ${a}`}
+                          aria-label="Flip horizontal"
+                          onClick={() => setFlip(selectedSlot.id, 'H', !selectedSlot.flipH)}
+                          title="Flip horizontal"
                           className={[
-                            'flex-1 flex items-center justify-center rounded border py-1.5',
-                            'transition-colors duration-100',
-                            selectedSlot.text?.align === a
+                            'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
+                            'active:scale-[0.97] transition-transform duration-150',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                            selectedSlot.flipH
                               ? 'border-neutral-900 bg-neutral-900 text-white'
                               : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
                           ].join(' ')}
                         >
-                          {a === 'left' && <AlignLeft size={13} />}
-                          {a === 'center' && <AlignCenter size={13} />}
-                          {a === 'right' && <AlignRight size={13} />}
+                          <FlipHorizontal2 size={13} />
+                          H
                         </button>
-                      ))}
-                    </div>
-                  </InspectorRow>
-
-                  {/* Fit */}
-                  <InspectorRow label="Fit" overridden={ov.includes('fit')}>
-                    <div className="flex gap-1">
-                      {(['auto', 'fixed'] as const).map(f => (
                         <button
-                          key={f}
-                          onClick={() => setText(selectedSlot.id, { fit: f })}
+                          aria-label="Flip vertical"
+                          onClick={() => setFlip(selectedSlot.id, 'V', !selectedSlot.flipV)}
+                          title="Flip vertical"
                           className={[
-                            'flex-1 rounded border py-1.5 text-xs font-medium capitalize',
-                            'transition-colors duration-100',
-                            selectedSlot.text?.fit === f
+                            'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
+                            'active:scale-[0.97] transition-transform duration-150',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                            selectedSlot.flipV
                               ? 'border-neutral-900 bg-neutral-900 text-white'
-                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                              : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
                           ].join(' ')}
                         >
-                          {f}
+                          <FlipVertical2 size={13} />
+                          V
                         </button>
-                      ))}
-                    </div>
-                  </InspectorRow>
+                      </div>
 
-                  {/* Colour */}
-                  <InspectorRow label="Colour" overridden={selectedSlot.color !== undefined}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        aria-label="Element colour"
-                        value={selectedSlot.color ?? design.palette.text}
-                        onChange={e => setColor(selectedSlot.id, e.target.value)}
-                        className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
-                      />
-                      {!selectedSlot.color && (
-                        <span className="text-[10px] text-neutral-400">using global</span>
+                      {/* Blend — Radix Select (no native popup) */}
+                      <div className="flex flex-col gap-0.5">
+                        <FieldLabel>Blend</FieldLabel>
+                        <Select
+                          id={`insp-blend-${selectedSlot.id}`}
+                          aria-label="Blend mode"
+                          value={selectedSlot.blend ?? 'normal'}
+                          onValueChange={v => setBlend(selectedSlot.id, v)}
+                          options={BLEND_OPTIONS}
+                        />
+                      </div>
+
+                      {/* Shadow */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <FieldLabel>Shadow</FieldLabel>
+                          <Switch
+                            aria-label="Toggle shadow"
+                            checked={!!selectedSlot.shadow}
+                            onCheckedChange={checked => {
+                              if (checked) {
+                                setShadow(selectedSlot.id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+                              } else {
+                                setShadow(selectedSlot.id, null)
+                              }
+                            }}
+                          />
+                        </div>
+                        {selectedSlot.shadow && (
+                          <div className="grid grid-cols-3 gap-1">
+                            <NumberInput
+                              id={`insp-shadow-dx-${selectedSlot.id}`}
+                              label="X"
+                              value={selectedSlot.shadow.dx}
+                              onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dx: v })}
+                            />
+                            <NumberInput
+                              id={`insp-shadow-dy-${selectedSlot.id}`}
+                              label="Y"
+                              value={selectedSlot.shadow.dy}
+                              onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dy: v })}
+                            />
+                            <NumberInput
+                              id={`insp-shadow-blur-${selectedSlot.id}`}
+                              label="Blur"
+                              value={selectedSlot.shadow.blur}
+                              min={0}
+                              onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, blur: v })}
+                            />
+                            <div className="col-span-3 flex flex-col gap-0.5">
+                              <FieldLabel>Color</FieldLabel>
+                              <input
+                                id={`insp-shadow-color-${selectedSlot.id}`}
+                                type="color"
+                                aria-label="Shadow colour"
+                                value={selectedSlot.shadow.color}
+                                onChange={e => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, color: e.target.value })}
+                                className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Corner radius + stroke — block and image only */}
+                      {(isShape || isImage) && (
+                        <div className="space-y-2">
+                          <NumberInput
+                            id={`insp-radius-${selectedSlot.id}`}
+                            label="Corner radius"
+                            value={selectedSlot.radius ?? 0}
+                            min={0}
+                            onChange={v => setRadius(selectedSlot.id, v)}
+                          />
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div className="flex flex-col gap-0.5">
+                              <FieldLabel>Stroke</FieldLabel>
+                              <input
+                                id={`insp-stroke-${selectedSlot.id}`}
+                                type="color"
+                                aria-label="Stroke colour"
+                                value={
+                                  selectedSlot.stroke && !['accent', 'text'].includes(selectedSlot.stroke)
+                                    ? selectedSlot.stroke
+                                    : design.palette.accent
+                                }
+                                onChange={e => setStroke(selectedSlot.id, e.target.value)}
+                                className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+                              />
+                            </div>
+                            <NumberInput
+                              id={`insp-strokewidth-${selectedSlot.id}`}
+                              label="Stroke width"
+                              value={selectedSlot.strokeWidth ?? 0}
+                              min={0}
+                              onChange={v => setStrokeWidth(selectedSlot.id, v)}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </InspectorRow>
-
-                  {/* Image Fill */}
-                  <ImageFillControl
-                    slotId={selectedSlot.id}
-                    imageFill={selectedSlot.imageFill}
-                    onSet={src => setImageFill(selectedSlot.id, src)}
-                    onClear={() => clearImageFill(selectedSlot.id)}
-                  />
-
-                  {/* Case / transform */}
-                  <InspectorRow label="Case">
-                    <div className="flex gap-1" data-case-controls>
-                      {([
-                        { value: 'none',  label: 'Aa', icon: <CaseSensitive size={13} />, title: 'None' },
-                        { value: 'upper', label: 'AA', icon: <CaseUpper size={13} />,    title: 'UPPER' },
-                        { value: 'lower', label: 'aa', icon: <CaseLower size={13} />,    title: 'lower' },
-                        { value: 'title', label: 'Tt', icon: <Type size={13} />,         title: 'Title' },
-                      ] as const).map(({ value, icon, title }) => (
-                        <button
-                          key={value}
-                          onClick={() => setTextTransform(selectedSlot.id, value)}
-                          aria-label={`Case ${title}`}
-                          title={title}
-                          data-case={value}
-                          className={[
-                            'flex-1 flex items-center justify-center rounded border py-1.5',
-                            'transition-colors duration-100',
-                            (selectedSlot.textTransform ?? 'none') === value
-                              ? 'border-neutral-900 bg-neutral-900 text-white'
-                              : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
-                          ].join(' ')}
-                        >
-                          {icon}
-                        </button>
-                      ))}
-                    </div>
-                  </InspectorRow>
-
-                  {/* List style */}
-                  <InspectorRow label="List">
-                    <div className="flex gap-1" data-list-controls>
-                      {([
-                        { value: 'none',   label: 'None',     icon: null },
-                        { value: 'bullet', label: 'Bullet',   icon: <List size={13} /> },
-                        { value: 'number', label: 'Numbered', icon: <ListOrdered size={13} /> },
-                      ] as const).map(({ value, label, icon }) => (
-                        <button
-                          key={value}
-                          onClick={() => setListStyle(selectedSlot.id, value)}
-                          aria-label={label}
-                          title={label}
-                          data-liststyle={value}
-                          className={[
-                            'flex-1 flex items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium',
-                            'transition-colors duration-100',
-                            (selectedSlot.listStyle ?? 'none') === value
-                              ? 'border-neutral-900 bg-neutral-900 text-white'
-                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
-                          ].join(' ')}
-                        >
-                          {icon ?? label}
-                        </button>
-                      ))}
-                    </div>
-                  </InspectorRow>
-
-                  {/* Hanging indent */}
-                  <InspectorRow label="Indent">
-                    <input
-                      id={`insp-indent-${selectedSlot.id}`}
-                      aria-label="Hanging indent"
-                      type="number"
-                      min={0}
-                      max={200}
-                      step={1}
-                      value={selectedSlot.indent ?? 0}
-                      onChange={e => setIndent(selectedSlot.id, Number(e.target.value))}
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                  </InspectorRow>
+                  </Section>
                 </div>
               )}
 
-              {/* IMAGE controls */}
+              {/* ── TYPE (text only, collapsed) ───────────────────────────────── */}
+              {isText && selectedSlot.text && resolvedText && (
+                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                  <Section id="rail-type" title="Type" defaultOpen>
+                    <div className="space-y-2.5">
+                      {/* Typeface — Radix Select */}
+                      <InspectorRow label="Typeface" overridden={ov.includes('family')}>
+                        <Select
+                          id={`insp-typeface-${selectedSlot.id}`}
+                          aria-label="Typeface"
+                          value={resolvedText.family}
+                          onValueChange={v => overrideText(selectedSlot.id, { family: v as FontFamily })}
+                          options={TYPEFACE_OPTIONS}
+                        />
+                      </InspectorRow>
+
+                      {/* Size */}
+                      <InspectorRow label="Size" overridden={ov.includes('size')}>
+                        <input
+                          id={`insp-size-${selectedSlot.id}`}
+                          aria-label="Size"
+                          type="number"
+                          min={10}
+                          max={600}
+                          value={resolvedText.size}
+                          onChange={e => overrideText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
+                          className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </InspectorRow>
+
+                      {/* Weight — Radix Select */}
+                      <InspectorRow label="Weight">
+                        <Select
+                          id={`insp-weight-${selectedSlot.id}`}
+                          aria-label="Weight"
+                          value={String(selectedSlot.text.weight ?? 400)}
+                          onValueChange={v => setText(selectedSlot.id, { weight: Number(v) })}
+                          options={WEIGHT_OPTIONS}
+                        />
+                      </InspectorRow>
+
+                      {/* Tracking */}
+                      <InspectorRow label="Tracking" overridden={ov.includes('tracking')}>
+                        <input
+                          id={`insp-tracking-${selectedSlot.id}`}
+                          aria-label="Tracking"
+                          type="number"
+                          step={0.005}
+                          value={resolvedText.tracking}
+                          onChange={e => overrideText(selectedSlot.id, { tracking: Number(e.target.value) })}
+                          className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </InspectorRow>
+
+                      {/* Leading */}
+                      <InspectorRow label="Leading" overridden={ov.includes('leading')}>
+                        <input
+                          id={`insp-leading-${selectedSlot.id}`}
+                          aria-label="Leading"
+                          type="number"
+                          step={0.01}
+                          value={resolvedText.leading}
+                          onChange={e => overrideText(selectedSlot.id, { leading: Number(e.target.value) })}
+                          className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </InspectorRow>
+
+                      {/* Align */}
+                      <InspectorRow label="Align">
+                        <div className="flex gap-1">
+                          {(['left', 'center', 'right'] as const).map(a => (
+                            <button
+                              key={a}
+                              onClick={() => setText(selectedSlot.id, { align: a })}
+                              aria-label={`Align ${a}`}
+                              className={[
+                                'flex-1 flex items-center justify-center rounded border py-1.5',
+                                'transition-colors duration-100',
+                                selectedSlot.text?.align === a
+                                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                                  : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                              ].join(' ')}
+                            >
+                              {a === 'left' && <AlignLeft size={13} />}
+                              {a === 'center' && <AlignCenter size={13} />}
+                              {a === 'right' && <AlignRight size={13} />}
+                            </button>
+                          ))}
+                        </div>
+                      </InspectorRow>
+
+                      {/* Fit */}
+                      <InspectorRow label="Fit" overridden={ov.includes('fit')}>
+                        <div className="flex gap-1">
+                          {(['auto', 'fixed'] as const).map(f => (
+                            <button
+                              key={f}
+                              onClick={() => setText(selectedSlot.id, { fit: f })}
+                              className={[
+                                'flex-1 rounded border py-1.5 text-xs font-medium capitalize',
+                                'transition-colors duration-100',
+                                selectedSlot.text?.fit === f
+                                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                                  : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                              ].join(' ')}
+                            >
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                      </InspectorRow>
+
+                      {/* Colour */}
+                      <InspectorRow label="Colour" overridden={selectedSlot.color !== undefined}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            aria-label="Element colour"
+                            value={selectedSlot.color ?? design.palette.text}
+                            onChange={e => setColor(selectedSlot.id, e.target.value)}
+                            className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
+                          />
+                          {!selectedSlot.color && (
+                            <span className="text-[10px] text-neutral-400">using global</span>
+                          )}
+                        </div>
+                      </InspectorRow>
+
+                      {/* Image Fill */}
+                      <ImageFillControl
+                        slotId={selectedSlot.id}
+                        imageFill={selectedSlot.imageFill}
+                        onSet={src => setImageFill(selectedSlot.id, src)}
+                        onClear={() => clearImageFill(selectedSlot.id)}
+                      />
+
+                      {/* Case / transform */}
+                      <InspectorRow label="Case">
+                        <div className="flex gap-1" data-case-controls>
+                          {([
+                            { value: 'none',  icon: <CaseSensitive size={13} />, title: 'None' },
+                            { value: 'upper', icon: <CaseUpper size={13} />,    title: 'UPPER' },
+                            { value: 'lower', icon: <CaseLower size={13} />,    title: 'lower' },
+                            { value: 'title', icon: <Type size={13} />,         title: 'Title' },
+                          ] as const).map(({ value, icon, title }) => (
+                            <button
+                              key={value}
+                              onClick={() => setTextTransform(selectedSlot.id, value)}
+                              aria-label={`Case ${title}`}
+                              title={title}
+                              data-case={value}
+                              className={[
+                                'flex-1 flex items-center justify-center rounded border py-1.5',
+                                'transition-colors duration-100',
+                                (selectedSlot.textTransform ?? 'none') === value
+                                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                                  : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                              ].join(' ')}
+                            >
+                              {icon}
+                            </button>
+                          ))}
+                        </div>
+                      </InspectorRow>
+
+                      {/* List style */}
+                      <InspectorRow label="List">
+                        <div className="flex gap-1" data-list-controls>
+                          {([
+                            { value: 'none',   label: 'None',     icon: null },
+                            { value: 'bullet', label: 'Bullet',   icon: <List size={13} /> },
+                            { value: 'number', label: 'Numbered', icon: <ListOrdered size={13} /> },
+                          ] as const).map(({ value, label, icon }) => (
+                            <button
+                              key={value}
+                              onClick={() => setListStyle(selectedSlot.id, value)}
+                              aria-label={label}
+                              title={label}
+                              data-liststyle={value}
+                              className={[
+                                'flex-1 flex items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium',
+                                'transition-colors duration-100',
+                                (selectedSlot.listStyle ?? 'none') === value
+                                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                                  : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                              ].join(' ')}
+                            >
+                              {icon ?? label}
+                            </button>
+                          ))}
+                        </div>
+                      </InspectorRow>
+
+                      {/* Hanging indent */}
+                      <InspectorRow label="Indent">
+                        <input
+                          id={`insp-indent-${selectedSlot.id}`}
+                          aria-label="Hanging indent"
+                          type="number"
+                          min={0}
+                          max={200}
+                          step={1}
+                          value={selectedSlot.indent ?? 0}
+                          onChange={e => setIndent(selectedSlot.id, Number(e.target.value))}
+                          className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </InspectorRow>
+                    </div>
+                  </Section>
+                </div>
+              )}
+
+              {/* ── EFFECTS (image only, open) ────────────────────────────────── */}
               {isImage && (
-                <div className="space-y-2.5">
-                  {/* Upload / replace via the real uploader (file pick + URL → crop) */}
-                  <ImageInput slotId={selectedSlot.id} />
-
-                  {/* Re-crop only makes sense once an image is present */}
-                  {selectedSlot.content && (
-                    <button
-                      onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
-                      className={[
-                        'w-full rounded border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700',
-                        'hover:border-neutral-400 active:scale-[0.97] transition-transform duration-150',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-                      ].join(' ')}
-                    >
-                      Re-crop current image
-                    </button>
-                  )}
-
-                  {/* B&W */}
-                  <InspectorRow label="Black & white" overridden={selectedSlot.bw !== undefined}>
-                    <Checkbox
-                      id={`insp-bw-${selectedSlot.id}`}
-                      label="Black & white"
-                      checked={selectedSlot.bw ?? design.style.bwImage}
-                      onChange={v => setBw(selectedSlot.id, v)}
-                    />
-                  </InspectorRow>
-
-                  {/* EFFECTS */}
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                      Effects
+                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                  <Section id="rail-effects" title="Effects" defaultOpen>
+                    <div className="space-y-2.5">
+                      <ImageInput slotId={selectedSlot.id} />
+                      {selectedSlot.content && (
+                        <button
+                          onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
+                          className={[
+                            'w-full rounded border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700',
+                            'hover:border-neutral-400 active:scale-[0.97] transition-transform duration-150',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                          ].join(' ')}
+                        >
+                          Re-crop current image
+                        </button>
+                      )}
+                      <InspectorRow label="Black & white" overridden={selectedSlot.bw !== undefined}>
+                        <Checkbox
+                          id={`insp-bw-${selectedSlot.id}`}
+                          label="Black & white"
+                          checked={selectedSlot.bw ?? design.style.bwImage}
+                          onChange={v => setBw(selectedSlot.id, v)}
+                        />
+                      </InspectorRow>
+                      <ImageEffectsPanel
+                        slotId={selectedSlot.id}
+                        effect={selectedSlot.imageEffect}
+                        onSetEffect={setImageEffect}
+                      />
                     </div>
-                    <ImageEffectsPanel
-                      slotId={selectedSlot.id}
-                      effect={selectedSlot.imageEffect}
-                      onSetEffect={setImageEffect}
-                    />
-                  </div>
+                  </Section>
                 </div>
               )}
 
-              {/* SHAPE / LINE controls */}
+              {/* ── FILL (shape / line only, open) ───────────────────────────── */}
               {isShape && (
-                <div className="space-y-2.5">
-                  <InspectorRow label="Fill">
+                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                  <Section id="rail-fill" title="Fill" defaultOpen>
                     <div className="flex gap-1 flex-wrap">
                       {(['accent', 'text'] as const).map(f => (
                         <button
@@ -1058,7 +1258,6 @@ export function ComposerRail() {
                           {f}
                         </button>
                       ))}
-                      {/* Custom colour */}
                       <input
                         type="color"
                         aria-label="Custom fill colour"
@@ -1072,315 +1271,89 @@ export function ComposerRail() {
                         className="h-8 w-8 cursor-pointer rounded border border-neutral-200 p-0.5"
                       />
                     </div>
-                  </InspectorRow>
+                  </Section>
                 </div>
               )}
 
-              {/* Position & Size */}
-              {resolvedBox && (
-                <div className="space-y-1.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                    Position & Size
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <NumberInput
-                      id={`insp-x-${selectedSlot.id}`}
-                      label="X position"
-                      value={Math.round(resolvedBox.x)}
-                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, x: v })}
-                    />
-                    <NumberInput
-                      id={`insp-y-${selectedSlot.id}`}
-                      label="Y position"
-                      value={Math.round(resolvedBox.y)}
-                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, y: v })}
-                    />
-                    <NumberInput
-                      id={`insp-w-${selectedSlot.id}`}
-                      label="Width"
-                      value={Math.round(resolvedBox.w)}
-                      min={1}
-                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, w: v })}
-                    />
-                    <NumberInput
-                      id={`insp-h-${selectedSlot.id}`}
-                      label="Height"
-                      value={Math.round(resolvedBox.h)}
-                      min={1}
-                      onChange={v => setBox(selectedSlot.id, { ...resolvedBox, h: v })}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* OPACITY */}
-              {resolvedBox && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                      Opacity
-                    </span>
-                    <span className="text-[10px] tabular-nums text-neutral-500 font-medium">
-                      {Math.round((selectedSlot.opacity ?? 1) * 100)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    aria-label="Opacity"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={Math.round((selectedSlot.opacity ?? 1) * 100)}
-                    onChange={e => setOpacity(selectedSlot.id, Number(e.target.value) / 100)}
-                    className="w-full cursor-pointer appearance-none h-1 rounded-full bg-neutral-200 accent-neutral-900 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:rounded-full"
-                  />
-                </div>
-              )}
-
-              {/* ALIGN */}
-              {resolvedBox && (
-                <div className="space-y-1.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                    Align
-                  </div>
-                  <div className="flex gap-1">
-                    {[
-                      { edge: 'left' as const,    label: 'Canvas align left',              Icon: AlignStartVertical },
-                      { edge: 'centerH' as const, label: 'Canvas align center horizontal', Icon: AlignCenterVertical },
-                      { edge: 'right' as const,   label: 'Canvas align right',             Icon: AlignEndVertical },
-                      { edge: 'top' as const,     label: 'Canvas align top',               Icon: AlignStartHorizontal },
-                      { edge: 'centerV' as const, label: 'Canvas align center vertical',   Icon: AlignCenterHorizontal },
-                      { edge: 'bottom' as const,  label: 'Canvas align bottom',            Icon: AlignEndHorizontal },
-                    ].map(({ edge, label, Icon }) => (
-                      <button
-                        key={edge}
-                        aria-label={label}
-                        onClick={() => alignElement(selectedSlot.id, edge)}
+              {/* ── LAYERS (always, collapsed) ────────────────────────────────── */}
+              <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <Section id="rail-layers" title="Layers" defaultOpen={false}>
+                  <div className="flex flex-col" data-layers-list>
+                    {layers.length === 0 && (
+                      <div className="py-3 text-xs text-neutral-400">No layers yet.</div>
+                    )}
+                    {layers.map(slot => (
+                      <div
+                        key={slot.id}
+                        data-layer-row={slot.id}
                         className={[
-                          'flex-1 flex items-center justify-center rounded border border-neutral-200 py-1.5',
-                          'text-neutral-500 hover:border-neutral-400 hover:text-neutral-900',
-                          'active:scale-[0.97] transition-transform duration-150',
-                          '[transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                          'group relative flex items-center gap-2 -mx-1 px-1 py-1.5 rounded cursor-pointer',
+                          'transition-colors duration-100',
+                          selectedId === slot.id
+                            ? 'bg-neutral-100 ring-1 ring-inset ring-neutral-900/10'
+                            : 'hover:bg-neutral-50',
                         ].join(' ')}
+                        onClick={() => selectElement(slot.id)}
                       >
-                        <Icon size={13} />
-                      </button>
+                        <SlotTypeIcon slot={slot} />
+                        <span className="flex-1 min-w-0 truncate text-xs text-neutral-700 tabular-nums">
+                          {slotLabel(slot)}
+                        </span>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                          <button
+                            onClick={e => { e.stopPropagation(); bringForward(slot.id) }}
+                            className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                            aria-label="Bring forward"
+                          >
+                            <ChevronUp size={12} />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); sendBackward(slot.id) }}
+                            className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                            aria-label="Send backward"
+                          >
+                            <ChevronDown size={12} />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
+                            className="rounded p-0.5 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900"
+                            aria-label="Duplicate"
+                          >
+                            <Copy size={12} />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
+                            className="rounded p-0.5 hover:bg-red-50 text-neutral-500 hover:text-red-600"
+                            aria-label="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* TRANSFORM */}
-              <div className="space-y-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                  Transform
-                </div>
-
-                {/* Rotation */}
-                <div className="space-y-1">
-                  <label
-                    htmlFor={`insp-rotation-${selectedSlot.id}`}
-                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-                  >
-                    Rotation
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id={`insp-rotation-${selectedSlot.id}`}
-                      aria-label="Rotation"
-                      type="number"
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedSlot.rotation ?? 0}
-                      onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
-                      className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                    <span className="text-[11px] text-neutral-400">°</span>
-                    <input
-                      type="range"
-                      aria-label="Rotation slider"
-                      min={-180}
-                      max={180}
-                      step={1}
-                      value={selectedSlot.rotation ?? 0}
-                      onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
-                      className="flex-1 cursor-pointer appearance-none h-1 rounded-full bg-neutral-200 accent-neutral-900 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:rounded-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Flip */}
-                <div className="flex gap-1">
-                  <button
-                    aria-label="Flip horizontal"
-                    onClick={() => setFlip(selectedSlot.id, 'H', !selectedSlot.flipH)}
-                    title="Flip horizontal"
-                    className={[
-                      'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
-                      'active:scale-[0.97] transition-transform duration-150',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-                      selectedSlot.flipH
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
-                    ].join(' ')}
-                  >
-                    <FlipHorizontal2 size={13} />
-                    H
-                  </button>
-                  <button
-                    aria-label="Flip vertical"
-                    onClick={() => setFlip(selectedSlot.id, 'V', !selectedSlot.flipV)}
-                    title="Flip vertical"
-                    className={[
-                      'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
-                      'active:scale-[0.97] transition-transform duration-150',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-                      selectedSlot.flipV
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
-                    ].join(' ')}
-                  >
-                    <FlipVertical2 size={13} />
-                    V
-                  </button>
-                </div>
-
-                {/* Blend */}
-                <div className="flex flex-col gap-0.5">
-                  <label
-                    htmlFor={`insp-blend-${selectedSlot.id}`}
-                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-                  >
-                    Blend
-                  </label>
-                  <div className="relative">
-                    <select
-                      id={`insp-blend-${selectedSlot.id}`}
-                      aria-label="Blend mode"
-                      value={selectedSlot.blend ?? 'normal'}
-                      onChange={e => setBlend(selectedSlot.id, e.target.value)}
-                      className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
-                    >
-                      {['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'difference', 'exclusion', 'soft-light', 'hard-light'].map(mode => (
-                        <option key={mode} value={mode}>{mode}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  </div>
-                </div>
-
-                {/* Shadow */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                      Shadow
-                    </span>
-                    <Switch
-                      aria-label="Toggle shadow"
-                      checked={!!selectedSlot.shadow}
-                      onCheckedChange={checked => {
-                        if (checked) {
-                          setShadow(selectedSlot.id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
-                        } else {
-                          setShadow(selectedSlot.id, null)
-                        }
-                      }}
-                    />
-                  </div>
-                  {selectedSlot.shadow && (
-                    <div className="grid grid-cols-3 gap-1">
-                      <NumberInput
-                        id={`insp-shadow-dx-${selectedSlot.id}`}
-                        label="X"
-                        value={selectedSlot.shadow.dx}
-                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dx: v })}
-                      />
-                      <NumberInput
-                        id={`insp-shadow-dy-${selectedSlot.id}`}
-                        label="Y"
-                        value={selectedSlot.shadow.dy}
-                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dy: v })}
-                      />
-                      <NumberInput
-                        id={`insp-shadow-blur-${selectedSlot.id}`}
-                        label="Blur"
-                        value={selectedSlot.shadow.blur}
-                        min={0}
-                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, blur: v })}
-                      />
-                      <div className="col-span-3 flex flex-col gap-0.5">
-                        <label
-                          htmlFor={`insp-shadow-color-${selectedSlot.id}`}
-                          className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-                        >
-                          Color
-                        </label>
-                        <input
-                          id={`insp-shadow-color-${selectedSlot.id}`}
-                          type="color"
-                          aria-label="Shadow colour"
-                          value={selectedSlot.shadow.color}
-                          onChange={e => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, color: e.target.value })}
-                          className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Corner radius + stroke — block and image only */}
-                {(isShape || isImage) && (
-                  <div className="space-y-2">
-                    <NumberInput
-                      id={`insp-radius-${selectedSlot.id}`}
-                      label="Corner radius"
-                      value={selectedSlot.radius ?? 0}
-                      min={0}
-                      onChange={v => setRadius(selectedSlot.id, v)}
-                    />
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="flex flex-col gap-0.5">
-                        <label
-                          htmlFor={`insp-stroke-${selectedSlot.id}`}
-                          className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-                        >
-                          Stroke
-                        </label>
-                        <input
-                          id={`insp-stroke-${selectedSlot.id}`}
-                          type="color"
-                          aria-label="Stroke colour"
-                          value={
-                            selectedSlot.stroke && !['accent', 'text'].includes(selectedSlot.stroke)
-                              ? selectedSlot.stroke
-                              : design.palette.accent
-                          }
-                          onChange={e => setStroke(selectedSlot.id, e.target.value)}
-                          className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
-                        />
-                      </div>
-                      <NumberInput
-                        id={`insp-strokewidth-${selectedSlot.id}`}
-                        label="Stroke width"
-                        value={selectedSlot.strokeWidth ?? 0}
-                        min={0}
-                        onChange={v => setStrokeWidth(selectedSlot.id, v)}
-                      />
-                    </div>
-                  </div>
-                )}
+                </Section>
               </div>
-            </div>
-          )
-        })()}
-      </div>
 
-      <div className="mt-auto">
-        <Divider />
-        {/* Snap to grid toggle */}
-        <div className="px-4 py-3">
+            </div>
+
+            {/* Snap to grid — pinned bottom */}
+            <div className="mt-auto border-t border-neutral-100 px-4 py-3">
+              <Checkbox
+                id="rail-snap"
+                label="Snap to grid"
+                checked={snap}
+                onChange={setSnap}
+                data-checkbox="rail-snap"
+              />
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Snap to grid for empty state */}
+      {!selectedSlot && (
+        <div className="mt-auto border-t border-neutral-100 px-4 py-3">
           <Checkbox
             id="rail-snap"
             label="Snap to grid"
@@ -1389,7 +1362,7 @@ export function ComposerRail() {
             data-checkbox="rail-snap"
           />
         </div>
-      </div>
+      )}
     </aside>
   )
 }

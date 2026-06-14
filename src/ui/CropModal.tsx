@@ -22,7 +22,7 @@ import { Slider } from './components/slider'
 export function CropModal() {
   const design = useDesign(s => s.design)
   const cropRequest = useDesign(s => s.cropRequest)
-  const setContent = useDesign(s => s.setContent)
+  const placeImage = useDesign(s => s.placeImage)
   const cancelCrop = useDesign(s => s.cancelCrop)
 
   // react-easy-crop state
@@ -96,12 +96,12 @@ export function CropModal() {
     setApplying(true)
     try {
       const croppedUrl = await getCroppedDataUrl(cropRequest.src, pixels)
-      setContent(cropRequest.slotId, croppedUrl)
+      placeImage(cropRequest.slotId, croppedUrl)
     } catch {
       // CORS-blocked external URL (image load or tainted-canvas failure):
       // fall back to placing the original image uncropped rather than
       // silently dropping it.
-      setContent(cropRequest.slotId, cropRequest.src)
+      placeImage(cropRequest.slotId, cropRequest.src)
     } finally {
       setApplying(false)
       cancelCrop()

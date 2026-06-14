@@ -117,7 +117,7 @@ test('Escape key clears cropRequest', async () => {
 
 test('clicking Apply calls getCroppedDataUrl + setContent and clears cropRequest', async () => {
   const slotId = useDesign.getState().design.slots[0].id
-  const setContent = vi.spyOn(useDesign.getState(), 'setContent')
+  const placeImage = vi.spyOn(useDesign.getState(), 'placeImage')
 
   await act(async () => {
     useDesign.getState().requestCrop(slotId, TEST_SRC)
@@ -134,7 +134,7 @@ test('clicking Apply calls getCroppedDataUrl + setContent and clears cropRequest
       TEST_SRC,
       expect.objectContaining({ x: 0, y: 0, width: 100, height: 100 }),
     )
-    expect(setContent).toHaveBeenCalledWith(slotId, 'data:image/png;base64,CROPPED')
+    expect(placeImage).toHaveBeenCalledWith(slotId, 'data:image/png;base64,CROPPED')
     expect(useDesign.getState().cropRequest).toBeNull()
   })
 })

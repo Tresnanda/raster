@@ -47,6 +47,9 @@ importers:
       lucide-react:
         specifier: 1.18.0
         version: 1.18.0(react@19.2.7)
+      lz-string:
+        specifier: 1.5.0
+        version: 1.5.0
       radix-ui:
         specifier: 1.5.0
         version: 1.5.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

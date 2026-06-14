@@ -87,6 +87,7 @@ interface State {
   clipboard: Slot | null
 
   reset: (archetypeId: string, format: Format) => void
+  loadDesign: (design: Design) => void
   setContent: (slotId: string, content: string) => void
   setFormat: (format: Format) => void
   setPalette: (p: Palette) => void
@@ -293,6 +294,14 @@ export const useDesign = create<State>((set, get) => {
       lastCoalesceKey = null
       persist(d)
       set({ design: d, selectedId: null, past: [], future: [], clipboard: null })
+    },
+
+    // Load a full Design wholesale (e.g. from a shared URL). Replaces the working
+    // design and clears history/selection so it starts a fresh editing session.
+    loadDesign: (design) => {
+      lastCoalesceKey = null
+      persist(design)
+      set({ design, selectedId: null, past: [], future: [], clipboard: null })
     },
 
     setContent: (slotId, content) => {

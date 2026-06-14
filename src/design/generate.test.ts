@@ -94,33 +94,29 @@ function countTextOverlaps(d: Design): number {
   return overlaps
 }
 
-/** Check legibility: every text slot is either outside all image regions,
- *  or has a backing block (role: 'block') covering its cell at z < textSlot.z. */
+/** Legibility / "text respects the image" invariant:
+ *  - A FULL-BLEED image (cell covers the whole 12×16 grid) is the intentional
+ *    type-over-photo style — text MAY sit on it.
+ *  - Any OTHER image (framed / half / band) must have NO text on top of it:
+ *    supporting text and the dominant are placed in the clean zones around it.
+ *  (Scrim backing blocks were removed — real photos carry their own contrast.) */
 function checkLegibility(d: Design): { pass: boolean; detail: string } {
   const imageCells = getImageCells(d)
   if (imageCells.length === 0) return { pass: true, detail: '' }
 
+  const isFullBleed = (c: { c: number; cs: number; r: number; rs: number }) =>
+    c.c === 0 && c.cs === 12 && c.r === 0 && c.rs === 16
+  // If there's a full-bleed image, text-on-image is allowed for this design.
+  if (imageCells.some(isFullBleed)) return { pass: true, detail: '' }
+
+  const framedImages = imageCells.filter(ic => !isFullBleed(ic))
   for (const slot of d.slots) {
     if (!TEXT_ROLES.has(slot.role)) continue
-    // Check if this text slot overlaps any image cell
-    const overlapsImg = imageCells.some(ic => cellsIntersect(slot.cell, ic))
-    if (!overlapsImg) continue
-
-    // It overlaps an image — must have a backing scrim block that fully covers it
-    const hasScrim = d.slots.some(
-      s =>
-        s.role === 'block' &&
-        s.z !== undefined && slot.z !== undefined &&
-        s.z < slot.z &&
-        s.cell.c <= slot.cell.c &&
-        s.cell.r <= slot.cell.r &&
-        s.cell.c + s.cell.cs >= slot.cell.c + slot.cell.cs &&
-        s.cell.r + s.cell.rs >= slot.cell.r + slot.cell.rs
-    )
-    if (!hasScrim) {
+    const overlapsImg = framedImages.some(ic => cellsIntersect(slot.cell, ic))
+    if (overlapsImg) {
       return {
         pass: false,
-        detail: `Text slot ${slot.role} at ${JSON.stringify(slot.cell)} overlaps image but has no scrim`,
+        detail: `Text slot ${slot.role} at ${JSON.stringify(slot.cell)} overlaps a non-full-bleed image`,
       }
     }
   }
@@ -144,7 +140,7 @@ test('200 runs: zero text-on-text overlaps', () => {
   }
 })
 
-test('200 runs: legibility invariant — text over image has scrim', () => {
+test('200 runs: legibility — non-full-bleed images never have text on them', () => {
   for (let i = 0; i < 200; i++) {
     const d = generate('3:4')
     const { pass, detail } = checkLegibility(d)

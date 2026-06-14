@@ -304,7 +304,16 @@ interface Skeleton {
   accentType: AccentType
 }
 
-const IMAGE_TREATMENTS: ImageTreatment[] = ['none', 'full-bleed', 'framed-block', 'half-split-left', 'half-split-right', 'h-band', 'v-band']
+// Weighted pool (repeats = higher chance). Biased toward the cleanest, most
+// editorial treatments. 'v-band' (thin vertical strip) is dropped — it read as
+// an accidental sliver. full-bleed is kept rare (it's the type-over-photo style).
+const IMAGE_TREATMENTS: ImageTreatment[] = [
+  'none', 'none',
+  'framed-block', 'framed-block', 'framed-block',
+  'half-split-left', 'half-split-right',
+  'h-band',
+  'full-bleed',
+]
 const DOMINANT_TYPES: DominantType[] = ['mega-word', 'headline-stack', 'giant-numeral', 'oversized-glyph']
 // Anchors exclude pure center — Swiss grid prefers edge tension
 const DOMINANT_ANCHORS: DominantAnchor[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left-band', 'right-band', 'top-band', 'bottom-band', 'mid-left', 'mid-right']
@@ -319,7 +328,7 @@ function chooseSkeleton(): Skeleton {
       ? randInt(280, 400)
       : randInt(120, 220) // headline-stack
 
-  const clusterCount = randInt(0, 4)
+  const clusterCount = randInt(1, 3) // 1–3 supporting blocks — never cluttered
   // Pick unique cluster kinds
   const shuffled = [...CLUSTER_KINDS].sort(() => Math.random() - 0.5)
   const clusterKinds = shuffled.slice(0, clusterCount) as ClusterKind[]
@@ -339,56 +348,62 @@ function chooseSkeleton(): Skeleton {
 // Image placement — maps ImageTreatment to a concrete GridCell
 // ---------------------------------------------------------------------------
 
-/** Map an ImageTreatment to a concrete GridCell (clamped, valid). */
-function resolveImageCell(treatment: ImageTreatment): GridCell | null {
+const FULL_BLEED_CELL: GridCell = { c: 0, cs: COLS, r: 0, rs: ROWS }
+
+/** Candidate cells for a treatment, in preference order. The image placer tries
+ *  these and uses the FIRST one that is free (doesn't overlap the already-placed
+ *  dominant), so the image lands in clean space — never on the text. */
+function imageCandidates(treatment: ImageTreatment): GridCell[] {
   switch (treatment) {
-    case 'none': return null
-    case 'full-bleed':
-      return clampCell({ c: 0, cs: COLS, r: 0, rs: ROWS })
+    case 'none': return []
+    case 'full-bleed': return [FULL_BLEED_CELL]
     case 'framed-block': {
-      const cs = randInt(5, 10)
-      const rs = randInt(7, 12)
-      const c = randInt(0, COLS - cs)
-      const r = randInt(1, ROWS - rs - 1)
-      return clampCell({ c, cs, r, rs })
+      // A medium block placed in each quadrant/side, so at least one avoids the dominant.
+      return [
+        { c: 0, cs: 6, r: 5, rs: 9 }, { c: COLS - 6, cs: 6, r: 5, rs: 9 },
+        { c: 0, cs: 6, r: 1, rs: 8 }, { c: COLS - 6, cs: 6, r: 1, rs: 8 },
+        { c: 3, cs: 6, r: 4, rs: 9 }, { c: 0, cs: 7, r: 6, rs: 9 },
+      ].map(clampCell)
     }
-    case 'half-split-left': {
-      const cs = randInt(5, 7)
-      return clampCell({ c: 0, cs, r: 0, rs: ROWS })
-    }
-    case 'half-split-right': {
-      const cs = randInt(5, 7)
-      return clampCell({ c: COLS - cs, cs, r: 0, rs: ROWS })
-    }
+    case 'half-split-left':
+      return [{ c: 0, cs: 6, r: 0, rs: ROWS }, { c: COLS - 6, cs: 6, r: 0, rs: ROWS }].map(clampCell)
+    case 'half-split-right':
+      return [{ c: COLS - 6, cs: 6, r: 0, rs: ROWS }, { c: 0, cs: 6, r: 0, rs: ROWS }].map(clampCell)
     case 'h-band': {
-      const rs = randInt(4, 8)
-      const r = randInt(2, ROWS - rs - 2)
-      return clampCell({ c: 0, cs: COLS, r, rs })
+      const rs = randInt(5, 8)
+      // bottom band, then top band — whichever is clear of the dominant.
+      return [
+        { c: 0, cs: COLS, r: ROWS - rs, rs }, { c: 0, cs: COLS, r: 0, rs },
+        { c: 0, cs: COLS, r: Math.floor((ROWS - rs) / 2), rs },
+      ].map(clampCell)
     }
-    case 'v-band': {
-      const cs = randInt(2, 4)
-      const c = randInt(2, COLS - cs - 2)
-      return clampCell({ c, cs, r: 0, rs: ROWS })
-    }
+    case 'v-band': return [] // dropped — read as an accidental sliver
   }
 }
 
-/** Place image slot, mark image region. Returns null for 'none'. */
+/** Place the image AFTER the dominant: try treatment candidates and use the first
+ *  that's free of the dominant (claim it so text wraps around). If none fit (the
+ *  dominant is large), fall back to FULL-BLEED — the deliberate type-over-photo
+ *  style, where the dominant sits on the photo intentionally. */
 function placeImage(
   treatment: ImageTreatment,
   occ: OccupancyGrid,
   imgRegions: ImageRegionSet,
   id: () => string,
 ): Slot | null {
-  const cell = resolveImageCell(treatment)
-  if (!cell) return null
-  // Images go at z:1 — always behind text
-  const slot: Slot = { id: id(), role: 'image', z: 1, cell, content: '' }
-  // Don't claim occupancy for images — text can intentionally overlap (with scrim)
-  // But DO mark image regions so scrim logic knows where images are
-  void occ
-  imgRegions.mark(cell)
-  return slot
+  if (treatment === 'none') return null
+  const make = (cell: GridCell, claim: boolean): Slot => {
+    imgRegions.mark(cell)
+    if (claim) occ.claim(cell)
+    return { id: id(), role: 'image', z: 1, cell, content: '' }
+  }
+  if (treatment === 'full-bleed') return make(FULL_BLEED_CELL, false)
+
+  for (const cell of imageCandidates(treatment)) {
+    if (occ.isFree(cell)) return make(cell, true)
+  }
+  // No clean spot beside the dominant — become a full-bleed photo behind it.
+  return make(FULL_BLEED_CELL, false)
 }
 
 // ---------------------------------------------------------------------------
@@ -427,20 +442,7 @@ function anchorAlign(anchor: DominantAnchor): 'left' | 'right' {
   return 'left'
 }
 
-/** Create a scrim block slot behind a text cell. z is textZ - 1. */
-function makeScrim(textCell: GridCell, textZ: number, bgColor: string, id: () => string): Slot {
-  return {
-    id: id(),
-    role: 'block',
-    z: textZ - 1,
-    cell: { ...textCell },
-    content: '',
-    fill: bgColor,
-    opacity: 0.88,
-  }
-}
-
-/** Place the dominant text element. Returns [dominantSlot, ...scrimSlots]. */
+/** Place the dominant text element. */
 function placeDominant(
   skeleton: Skeleton,
   occ: OccupancyGrid,
@@ -448,9 +450,21 @@ function placeDominant(
   bgColor: string,
   id: () => string,
 ): Slot[] {
-  const cell = resolveDominantCell(skeleton.dominantAnchor, skeleton.dominantType)
   const z = 5 // dominant is always in front of everything else
-  const align = anchorAlign(skeleton.dominantAnchor)
+  // Prefer the chosen anchor, but if it would land on the image (or other claimed
+  // cells) fall through to the next anchor whose cell is FREE — so the dominant
+  // headline sits in a clear zone beside/above the image, not on top of it. (For
+  // full-bleed the grid is unclaimed, so the chosen anchor wins — type over photo.)
+  const anchorOrder = [
+    skeleton.dominantAnchor,
+    ...DOMINANT_ANCHORS.filter(a => a !== skeleton.dominantAnchor).sort(() => Math.random() - 0.5),
+  ]
+  let cell = resolveDominantCell(skeleton.dominantAnchor, skeleton.dominantType)
+  let align = anchorAlign(skeleton.dominantAnchor)
+  for (const a of anchorOrder) {
+    const cand = resolveDominantCell(a, skeleton.dominantType)
+    if (occ.isFree(cand)) { cell = cand; align = anchorAlign(a); break }
+  }
 
   let slot: Slot
   switch (skeleton.dominantType) {
@@ -494,15 +508,9 @@ function placeDominant(
 
   // Claim occupancy with the dominant element
   occ.claim(cell)
+  void imgRegions; void bgColor // no scrims — real photos carry their own contrast
 
-  const result: Slot[] = [slot!]
-
-  // Legibility: if dominant overlaps image region, add a scrim behind it
-  if (imgRegions.overlapsImage(cell)) {
-    result.unshift(makeScrim(cell, z, bgColor, id))
-  }
-
-  return result
+  return [slot!]
 }
 
 // ---------------------------------------------------------------------------
@@ -512,28 +520,28 @@ function placeDominant(
 /** Pool of candidate cells for cluster placement — corners and edge bands.
  *  These are evaluated in random order and the first free one wins. */
 function clusterCandidates(): GridCell[] {
+  // Cells are wide enough (cs >= 5) that captions/dates don't clip, and right-side
+  // candidates are anchored to the right margin (c = COLS - cs) so right-aligned
+  // text never runs off the edge.
   const candidates: GridCell[] = [
-    // Corners — small blocks
-    clampCell({ c: 0,        cs: 4, r: 0,        rs: 2 }),
-    clampCell({ c: COLS - 4, cs: 4, r: 0,        rs: 2 }),
-    clampCell({ c: 0,        cs: 4, r: ROWS - 2,  rs: 2 }),
-    clampCell({ c: COLS - 4, cs: 4, r: ROWS - 2,  rs: 2 }),
-    // Single-row corners
-    clampCell({ c: 0,        cs: 4, r: 0,        rs: 1 }),
-    clampCell({ c: COLS - 4, cs: 4, r: 0,        rs: 1 }),
-    clampCell({ c: 0,        cs: 4, r: ROWS - 1,  rs: 1 }),
-    clampCell({ c: COLS - 4, cs: 4, r: ROWS - 1,  rs: 1 }),
-    // Mid-edge clusters
-    clampCell({ c: 0,        cs: 3, r: randInt(5, 9), rs: 3 }),
-    clampCell({ c: COLS - 3, cs: 3, r: randInt(5, 9), rs: 3 }),
-    clampCell({ c: 0,        cs: 5, r: randInt(3, 6), rs: 2 }),
-    clampCell({ c: COLS - 5, cs: 5, r: randInt(3, 6), rs: 2 }),
-    // Near-top strips
-    clampCell({ c: 0,        cs: 6, r: 1, rs: 2 }),
-    clampCell({ c: COLS - 6, cs: 6, r: 1, rs: 2 }),
-    // Near-bottom strips
-    clampCell({ c: 0,        cs: 6, r: ROWS - 3, rs: 2 }),
-    clampCell({ c: COLS - 6, cs: 6, r: ROWS - 3, rs: 2 }),
+    // Corners — single row, generous width
+    clampCell({ c: 0,        cs: 5, r: 0,        rs: 1 }),
+    clampCell({ c: COLS - 5, cs: 5, r: 0,        rs: 1 }),
+    clampCell({ c: 0,        cs: 5, r: ROWS - 1,  rs: 1 }),
+    clampCell({ c: COLS - 5, cs: 5, r: ROWS - 1,  rs: 1 }),
+    // Two-row corners (for stacked meta)
+    clampCell({ c: 0,        cs: 5, r: 0,        rs: 2 }),
+    clampCell({ c: COLS - 5, cs: 5, r: 0,        rs: 2 }),
+    clampCell({ c: 0,        cs: 5, r: ROWS - 2,  rs: 2 }),
+    clampCell({ c: COLS - 5, cs: 5, r: ROWS - 2,  rs: 2 }),
+    // Mid-edge rails (for index lists)
+    clampCell({ c: 0,        cs: 5, r: randInt(4, 8), rs: 3 }),
+    clampCell({ c: COLS - 5, cs: 5, r: randInt(4, 8), rs: 3 }),
+    // Full-width top / bottom bands
+    clampCell({ c: 0,        cs: 6, r: 0, rs: 1 }),
+    clampCell({ c: COLS - 6, cs: 6, r: 0, rs: 1 }),
+    clampCell({ c: 0,        cs: 6, r: ROWS - 1, rs: 1 }),
+    clampCell({ c: COLS - 6, cs: 6, r: ROWS - 1, rs: 1 }),
   ]
   // Shuffle order so clusters don't always land in the same priority corner
   return candidates.sort(() => Math.random() - 0.5)
@@ -604,6 +612,7 @@ function placeSupportingClusters(
 ): Slot[] {
   const result: Slot[] = []
   const zBase = 4 // clusters are below dominant (z:5) but above image (z:1)
+  void imgRegions; void bgColor // clusters never overlap the image now, so no scrims
 
   for (const kind of skeleton.clusterKinds) {
     const candidates = clusterCandidates()
@@ -614,12 +623,7 @@ function placeSupportingClusters(
       const clamped = clampCell(effectiveCell)
       if (occ.isFree(clamped)) {
         occ.claim(clamped)
-        const slot = clusterSlot(kind, clamped, zBase, id)
-        // Scrim if overlaps image
-        if (imgRegions.overlapsImage(clamped)) {
-          result.push(makeScrim(clamped, zBase, bgColor, id))
-        }
-        result.push(slot)
+        result.push(clusterSlot(kind, clamped, zBase, id))
         placed = true
         break
       }
@@ -722,15 +726,26 @@ function compose(
 
   const allSlots: Slot[] = []
 
-  // 1. Image (z:1, doesn't claim occupancy but marks image regions)
-  const imageSlot = placeImage(skeleton.imageTreatment, occ, imgRegions, id)
-  if (imageSlot) allSlots.push(imageSlot)
-
-  // 2. Dominant text (z:5, claims occupancy; scrim inserted at z:4 if over image)
+  // 1. Dominant text FIRST (z:5, claims its cell) — it always gets its preferred
+  //    anchor, and the image then fits into the clean space around it.
   const dominantSlots = placeDominant(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...dominantSlots)
 
-  // 3. Supporting clusters (z:4, claim occupancy; scrims inserted if over image)
+  // 2. Image (z:1) — placed in free space beside the dominant, or full-bleed behind.
+  const imageSlot = placeImage(skeleton.imageTreatment, occ, imgRegions, id)
+  if (imageSlot) allSlots.push(imageSlot)
+
+  // If the image ended up full-bleed (chosen OR fallback), keep the photo clean:
+  // cap supporting clusters to ONE so metadata doesn't clutter the photo.
+  const imageIsFullBleed =
+    !!imageSlot &&
+    imageSlot.cell.c === 0 && imageSlot.cell.cs === COLS &&
+    imageSlot.cell.r === 0 && imageSlot.cell.rs === ROWS
+  if (imageIsFullBleed && skeleton.clusterKinds.length > 1) {
+    skeleton.clusterKinds = skeleton.clusterKinds.slice(0, 1)
+  }
+
+  // 3. Supporting clusters (z:4) — placed only in free cells (around the image).
   const clusterSlots = placeSupportingClusters(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...clusterSlots)
 

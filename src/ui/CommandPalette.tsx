@@ -12,6 +12,7 @@ import { buildShareUrl } from '../design/share'
 import { playPosterMotion } from '../design/motion'
 import { exportVideo, isVideoExportSupported } from '../export/video'
 import { exportKit } from '../export/kit'
+import { copyTextToClipboard } from '../lib/clipboard'
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from '../components/ui/command'
@@ -98,7 +99,7 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
           <CommandItem onSelect={run(withSvg(el => exportRaster(el, s().design, `raster-${s().design.layout}`, 'image/jpeg')))}><Download /> Export JPG</CommandItem>
           <CommandItem onSelect={run(withSvg(el => exportSvg(el, `raster-${s().design.layout}`)))}><Download /> Export SVG</CommandItem>
           <CommandItem onSelect={run(() => { void exportKit(s().design) })}><Download /> Export kit (all formats)</CommandItem>
-          <CommandItem onSelect={run(() => { navigator.clipboard?.writeText(buildShareUrl(s().design)) })}><Link2 /> Copy share link</CommandItem>
+          <CommandItem onSelect={run(() => { void copyTextToClipboard(buildShareUrl(s().design)) })}><Link2 /> Copy share link</CommandItem>
           {isVideoExportSupported() && (
             <CommandItem onSelect={run(() => { void exportVideo(svgRef.current, s().design, s().motionSequence.effect, { sequence: s().motionSequence }) })}><Play /> Export animated video</CommandItem>
           )}

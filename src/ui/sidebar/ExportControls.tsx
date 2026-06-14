@@ -1,12 +1,13 @@
 // src/ui/sidebar/ExportControls.tsx
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link2, Check, Package, Loader2 } from 'lucide-react'
 import { SlotText } from 'slot-text/react'
 import { useDesign } from '../../store/useDesign'
 import { exportRaster, exportSvg } from '../../export/useExport'
 import { exportKit } from '../../export/kit'
 import { buildShareUrl } from '../../design/share'
+import { copyTextToClipboard } from '../../lib/clipboard'
 import { Button } from '../../components/ui/button'
 
 interface ExportControlsProps {
@@ -16,8 +17,16 @@ interface ExportControlsProps {
 export function ExportControls({ svgRef }: ExportControlsProps) {
   const design = useDesign(s => s.design)
   const name = `raster-${design.layout}`
-  const [copied, setCopied] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [manualShareUrl, setManualShareUrl] = useState('')
   const [kitBusy, setKitBusy] = useState(false)
+  const manualShareRef = useRef<HTMLInputElement>(null)
+  const copied = copyState === 'copied'
+  const copyLabel = copied ? 'Link copied' : copyState === 'failed' ? 'Copy failed' : 'Copy share link'
+
+  useEffect(() => {
+    if (copyState === 'failed') manualShareRef.current?.select()
+  }, [copyState])
 
   const runKit = async () => {
     if (kitBusy) return
@@ -30,13 +39,11 @@ export function ExportControls({ svgRef }: ExportControlsProps) {
   }
 
   const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(buildShareUrl(design))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      /* clipboard blocked — ignore */
-    }
+    const shareUrl = buildShareUrl(design)
+    const ok = await copyTextToClipboard(shareUrl)
+    setManualShareUrl(ok ? '' : shareUrl)
+    setCopyState(ok ? 'copied' : 'failed')
+    if (ok) setTimeout(() => setCopyState('idle'), 1800)
   }
 
   return (
@@ -77,8 +84,19 @@ export function ExportControls({ svgRef }: ExportControlsProps) {
       >
         {copied ? <Check size={13} strokeWidth={2.5} /> : <Link2 size={13} strokeWidth={2} />}
         {/* slot-text (textmotion) rolls the label between states */}
-        <SlotText text={copied ? 'Link copied' : 'Copy share link'} />
+        <SlotText text={copyLabel} />
       </Button>
+
+      {copyState === 'failed' && (
+        <input
+          ref={manualShareRef}
+          aria-label="Share link"
+          readOnly
+          value={manualShareUrl}
+          onFocus={event => event.currentTarget.select()}
+          className="w-full rounded-md border-2 border-foreground bg-background px-2 py-1 font-mono text-[10px] text-foreground outline-none focus:border-accent"
+        />
+      )}
 
       <Button
         variant="outline"

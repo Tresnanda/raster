@@ -6,13 +6,23 @@ import { DEFAULT_TYPOGRAPHY } from './typeclass'
 // ---------------------------------------------------------------------------
 // Editorial content pools (expanded for variety)
 // ---------------------------------------------------------------------------
-const HEADLINES = [
-  'RUN', 'MAIN STAGE', 'NOW', 'FORM', 'FIELD', 'BLOC', 'OPEN',
-  'SIGNAL', 'DRIFT', 'ZERO', 'EDGE', 'PULSE', 'GRID', 'LOOP',
-  'FRAME', 'AXIS', 'VOID', 'MARK', 'LINE', 'BASE', 'FLUX',
-  'MASS', 'CORE', 'NODE', 'ZONE', 'DEPTH', 'PITCH', 'SPAN',
-  'ECHO', 'FOLD',
+// Strong words + multi-word phrases. Phrases stack across 2–3 lines (like
+// "HALF AND HALF") which reads as a proper Swiss display headline. We bias the
+// generator to prefer these multi-word phrases for the dominant element.
+const HEADLINE_PHRASES = [
+  'HALF AND HALF', 'PUSH THE LIMITS', 'WORLD WIDE', 'MAIN STAGE',
+  'CHASING HORIZONS', 'AFTER HOURS', 'FULL CIRCLE', 'OFF THE GRID',
+  'THE LONG RUN', 'CLOSE RANGE', 'OPEN CALL', 'IN MOTION', 'NIGHT SHIFT',
+  'HARD EDGE', 'DEEP FIELD', 'NEW FORM', 'RUN MELB', 'FIELD NOTES',
+  'SLOW LIGHT', 'WIDE OPEN', 'FUTURE TENSE', 'PLAIN SIGHT',
 ]
+const HEADLINE_WORDS = [
+  'SIGNAL', 'DRIFT', 'PULSE', 'FRAME', 'OPEN', 'FIELD', 'FORM',
+  'MOMENTUM', 'HORIZON', 'CADENCE', 'TERRAIN', 'OVERTURE', 'PARALLEL',
+  'AFTERLIGHT', 'GROUNDWORK', 'CROSSING', 'THRESHOLD', 'DISTANCE',
+]
+// Pool used by the dominant — phrases weighted ~2× so they're favored.
+const HEADLINES = [...HEADLINE_PHRASES, ...HEADLINE_PHRASES, ...HEADLINE_WORDS]
 const KICKERS = [
   'A Berlin Story', 'Field Season', 'Late Light Edition', 'Studio Notes',
   'After Hours', 'On Location', 'Special Report', 'The Long View',
@@ -314,7 +324,13 @@ const IMAGE_TREATMENTS: ImageTreatment[] = [
   'h-band',
   'full-bleed',
 ]
-const DOMINANT_TYPES: DominantType[] = ['mega-word', 'headline-stack', 'giant-numeral', 'oversized-glyph']
+// Weighted: word/phrase headlines dominate; the single-letter 'oversized-glyph'
+// is dropped (it produced lone letters). Numerals stay but are the minority.
+const DOMINANT_TYPES: DominantType[] = [
+  'mega-word', 'mega-word', 'mega-word',
+  'headline-stack', 'headline-stack', 'headline-stack',
+  'giant-numeral',
+]
 // Anchors exclude pure center — Swiss grid prefers edge tension
 const DOMINANT_ANCHORS: DominantAnchor[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left-band', 'right-band', 'top-band', 'bottom-band', 'mid-left', 'mid-right']
 const CLUSTER_KINDS: ClusterKind[] = ['meta', 'caption', 'index', 'date', 'kicker', 'footer-mark']
@@ -496,10 +512,12 @@ function placeDominant(
       }
       break
     case 'oversized-glyph':
+      // Retired from the dominant pool (it produced lone letters). Kept for the
+      // exhaustive switch — now emits a full short word, never a single char.
       slot = {
         id: id(), role: 'glyph', z,
         cell,
-        content: pick(HEADLINES).slice(0, 1), // single letter
+        content: pick(HEADLINE_WORDS),
         text: titleText(skeleton.dominantSize, align),
         typeClass: 'title',
       }

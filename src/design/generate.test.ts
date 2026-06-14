@@ -327,3 +327,13 @@ test('cellsIntersect: non-overlapping cells return false', () => {
   const b: GridCell = { c: 6, cs: 3, r: 6, rs: 3 }
   expect(cellsIntersect(a, b)).toBe(false)
 })
+
+test('200 runs: the dominant headline is never a single character', () => {
+  for (let i = 0; i < 200; i++) {
+    const d = generate('3:4')
+    const titles = d.slots.filter(s => s.typeClass === 'title' && s.text)
+    for (const t of titles) {
+      expect(t.content.trim().length, `run ${i}: dominant "${t.content}" too short`).toBeGreaterThan(1)
+    }
+  }
+})

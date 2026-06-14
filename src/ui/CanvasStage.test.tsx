@@ -148,3 +148,23 @@ test('clicking a guide handle removes the guide', () => {
   expect(useDesign.getState().guides).toEqual([{ axis: 'y', pos: 220 }])
   unmount()
 })
+
+test('guide remove marker is compact and visually quiet', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().clearGuides()
+  act(() => {
+    useDesign.getState().addGuide({ axis: 'x', pos: 120 })
+  })
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { getByLabelText, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  const handle = getByLabelText('Remove vertical guide at 120') as HTMLElement
+  const marker = handle.querySelector('[data-guide-handle-marker]') as HTMLElement
+
+  expect(marker).toBeTruthy()
+  expect(Number.parseFloat(marker.style.width)).toBeLessThanOrEqual(10)
+  expect(marker.style.boxShadow).toBe('none')
+  expect(marker.style.border).toContain('rgba')
+  expect(handle.style.background).toBe('transparent')
+  expect(handle.style.borderWidth).toBe('0px')
+  unmount()
+})

@@ -356,9 +356,8 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
 
   const guideLayerScale = scale / (zoom > 0 ? zoom : 1)
   const guideHandleSize = 18 / safeScale
-  const guideHandleGap = 5 / safeScale
-  const guideHandleBorder = 1.5 / safeScale
-  const guideHandleShadow = 1.5 / safeScale
+  const guideHandleVisualSize = 10 / safeScale
+  const guideRulerOffset = 16 / safeScale
   const guideLineWidth = 1 / safeScale
   const guideLayerGuides = draftGuide ? [...guides, draftGuide] : guides
   const addCenteredGuide = (axis: 'x' | 'y') => {
@@ -502,24 +501,39 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
                   }}
                   style={{
                     position: 'absolute',
-                    left: vertical ? guide.pos - guideHandleSize / 2 : -guideHandleSize - guideHandleGap,
-                    top: vertical ? -guideHandleSize - guideHandleGap : guide.pos - guideHandleSize / 2,
+                    left: vertical ? guide.pos - guideHandleSize / 2 : -guideRulerOffset,
+                    top: vertical ? -guideRulerOffset : guide.pos - guideHandleSize / 2,
                     width: guideHandleSize,
                     height: guideHandleSize,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: 0,
-                    background: '#ffffff',
-                    border: `${guideHandleBorder}px solid #18181b`,
+                    background: 'transparent',
+                    border: 0,
                     borderRadius: 0,
-                    boxShadow: `${guideHandleShadow}px ${guideHandleShadow}px 0 0 #18181b`,
                     color: '#18181b',
                     cursor: 'pointer',
                     pointerEvents: 'all',
                   }}
                 >
-                  <XIcon aria-hidden size={12 / safeScale} strokeWidth={3} />
+                  <span
+                    data-guide-handle-marker
+                    aria-hidden
+                    style={{
+                      width: guideHandleVisualSize,
+                      height: guideHandleVisualSize,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(255, 255, 255, 0.62)',
+                      border: `${1 / safeScale}px solid rgba(24, 24, 27, 0.46)`,
+                      boxShadow: 'none',
+                      color: 'rgba(24, 24, 27, 0.72)',
+                    }}
+                  >
+                    <XIcon size={7 / safeScale} strokeWidth={2.5} />
+                  </span>
                 </button>
               )
             })}

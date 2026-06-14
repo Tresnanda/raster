@@ -60,24 +60,21 @@ export function LayoutGrid() {
 
   return (
     <div className="sb-section space-y-3">
-      {/* Layout grid — 5 cols, cells aspect-[3/4], rounded-md outer container */}
-      <div className="grid grid-cols-5 gap-0 rounded-md border-2 border-foreground min-w-0 overflow-hidden">
-        {LAYOUTS.map(({ n }, idx) => (
+      {/* Layout grid — clean individual carded cells (gap-separated, each fully
+          bordered) so the ragged last row never breaks the border lattice. */}
+      <div className="grid grid-cols-5 gap-1.5 min-w-0">
+        {LAYOUTS.map(({ n }) => (
           <button
             key={n}
             onClick={() => setLayout(n)}
             className={cn(
-              'aspect-[3/4] flex items-center justify-center min-w-0',
+              'aspect-[3/4] flex items-center justify-center min-w-0 rounded-md border-2 border-foreground',
               'font-mono text-xs tabular-nums',
-              'transition-colors duration-100',
+              'transition-[transform,box-shadow,background-color,color] duration-100 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground focus-visible:z-10',
-              // Right border for all but last in row
-              idx % 5 !== 4 ? 'border-r-2 border-foreground' : '',
-              // Bottom border for first row (indices 0-4)
-              idx < 5 ? 'border-b-2 border-foreground' : '',
               layout === n
-                ? 'bg-foreground text-background font-bold'
-                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'bg-foreground text-background font-bold shadow-[2px_2px_0_0_var(--foreground)]'
+                : 'bg-card text-muted-foreground hover:-translate-y-px hover:text-foreground hover:shadow-[2px_2px_0_0_var(--foreground)]',
             )}
           >
             {n}

@@ -72,9 +72,9 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        {/* Content slots */}
+        {/* Content slots — collapsed; on-canvas editing is primary */}
         <div className="sb-section border-t border-border/40">
-          <Section id="sidebar-content" title="Content" defaultOpen>
+          <Section id="sidebar-content" title="Content" defaultOpen={false}>
             <ContentFields />
           </Section>
         </div>

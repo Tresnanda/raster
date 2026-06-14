@@ -174,6 +174,8 @@ function ImageFillControl({
 }
 
 // ── ImageEffectsPanel ──────────────────────────────────────────────────────────
+// Note: grayscale ('B&W') is intentionally omitted here — the "Black & white"
+// toggle above covers it, so the effect chips stay the distinct print treatments.
 const EFFECT_CHIPS: { kind: ImageEffectKind; label: string }[] = [
   { kind: 'none',       label: 'None' },
   { kind: 'halftone',   label: 'Halftone' },
@@ -182,7 +184,6 @@ const EFFECT_CHIPS: { kind: ImageEffectKind; label: string }[] = [
   { kind: 'posterize', label: 'Posterize' },
   { kind: 'threshold', label: 'Threshold' },
   { kind: 'invert',    label: 'Invert' },
-  { kind: 'grayscale', label: 'B&W' },
 ]
 
 function ImageEffectsPanel({
@@ -497,7 +498,7 @@ export function ComposerRail() {
 
   return (
     <aside
-      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-border/50 bg-background overflow-y-auto flex flex-col"
+      className="w-[268px] shrink-0 min-h-0 overscroll-contain border-l border-border/50 bg-background overflow-y-auto flex flex-col"
       aria-label="Element"
     >
       {/* Properties masthead */}

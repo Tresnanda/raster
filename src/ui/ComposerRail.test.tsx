@@ -668,17 +668,17 @@ test('clicking Halftone chip calls setImageEffect with kind halftone', () => {
   )
 })
 
-test('clicking Grayscale chip calls setImageEffect with kind grayscale', () => {
+test('grayscale is handled by the Black & white toggle, not a redundant chip', () => {
   useDesign.getState().addElement('image')
   const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
   useDesign.getState().selectElement(imgSlot.id)
-  const setImageEffect = vi.spyOn(useDesign.getState(), 'setImageEffect')
+  const setBw = vi.spyOn(useDesign.getState(), 'setBw')
   render(<ComposerRail />)
-  fireEvent.click(screen.getByRole('button', { name: /b&w|grayscale/i }))
-  expect(setImageEffect).toHaveBeenCalledWith(
-    imgSlot.id,
-    expect.objectContaining({ kind: 'grayscale' })
-  )
+  // No redundant grayscale/B&W effect chip exists anymore.
+  expect(screen.queryByRole('button', { name: /^b&w$/i })).toBeNull()
+  // The Black & white checkbox covers grayscale instead.
+  fireEvent.click(screen.getByLabelText('Black & white'))
+  expect(setBw).toHaveBeenCalled()
 })
 
 test('when halftone is active, cell slider is visible', () => {

@@ -15,8 +15,10 @@ export default function App() {
   useKeyboardShortcuts()
   return (
     <TooltipProvider>
-      <div className="flex h-screen flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1">
+      {/* fixed inset-0 pins the app to the viewport exactly — immune to content
+          height, scroll-chaining, or Radix scroll-lock leaving the page tall. */}
+      <div className="fixed inset-0 flex flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <Sidebar svgRef={svgRef} />
           <main className="min-h-0 min-w-0 flex-1">
             <CanvasStage svgRef={svgRef} />

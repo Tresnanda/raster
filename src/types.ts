@@ -56,6 +56,15 @@ export interface Shadow {
   color: string
 }
 
+export type ImageEffectKind =
+  | 'none' | 'halftone' | 'duotone' | 'dither'
+  | 'posterize' | 'threshold' | 'invert' | 'grayscale'
+
+export interface ImageEffect {
+  kind: ImageEffectKind
+  params: Record<string, number | string>
+}
+
 export interface Slot {
   id: string
   role: SlotRole
@@ -98,6 +107,14 @@ export interface Slot {
   shadow?: Shadow | null
   /** CSS mix-blend-mode keyword. 'normal' or unset = no blend. */
   blend?: string
+  /**
+   * Pristine source image (cropped/uploaded dataURL or external URL).
+   * The processing SOURCE -- never overwritten after initial placement.
+   * Effects always re-process from this, so they are idempotent.
+   */
+  imageSrcOriginal?: string
+  /** Current image effect descriptor. Source of truth for re-processing. */
+  imageEffect?: ImageEffect
 }
 
 export interface Palette { bg: string; text: string; accent: string }

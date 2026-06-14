@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import type { Design } from './types'
+import type { Design, Slot } from './types'
 
 test('Design shape is constructible', () => {
   const d: Design = {
@@ -15,4 +15,16 @@ test('Design shape is constructible', () => {
     layout: 1,
   }
   expect(d.slots).toEqual([])
+})
+
+test('Slot accepts optional transform fields', () => {
+  const s: Slot = {
+    id: 'x', role: 'block', cell: { c: 0, cs: 1, r: 0, rs: 1 }, content: '',
+    rotation: 45, flipH: true, flipV: false, radius: 20,
+    stroke: '#ff0000', strokeWidth: 2,
+    shadow: { dx: 0, dy: 8, blur: 16, color: '#000000' },
+    blend: 'multiply',
+  }
+  expect(s.rotation).toBe(45)
+  expect(s.shadow?.blur).toBe(16)
 })

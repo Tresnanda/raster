@@ -49,6 +49,13 @@ export type SlotRole =
   | 'headline' | 'subhead' | 'caption' | 'date' | 'index' | 'glyph'
   | 'mark' | 'image' | 'block' | 'line'
 
+export interface Shadow {
+  dx: number
+  dy: number
+  blur: number
+  color: string
+}
+
 export interface Slot {
   id: string
   role: SlotRole
@@ -75,6 +82,22 @@ export interface Slot {
   imageFill?: string
   /** Per-element opacity (0..1). Default is 1 when unset. */
   opacity?: number
+  /** Rotation in degrees (-180..180). Positive = clockwise. */
+  rotation?: number
+  /** Mirror horizontally. */
+  flipH?: boolean
+  /** Mirror vertically. */
+  flipV?: boolean
+  /** Corner radius in px for block/image elements. */
+  radius?: number
+  /** Stroke colour: hex string, 'accent', or 'text'. */
+  stroke?: string
+  /** Stroke width in px. */
+  strokeWidth?: number
+  /** Drop shadow. null means explicitly cleared. */
+  shadow?: Shadow | null
+  /** CSS mix-blend-mode keyword. 'normal' or unset = no blend. */
+  blend?: string
 }
 
 export interface Palette { bg: string; text: string; accent: string }

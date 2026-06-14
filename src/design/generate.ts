@@ -217,6 +217,82 @@ function captionText(size: number = 18, align: 'left' | 'center' | 'right' = 'le
 }
 
 // ---------------------------------------------------------------------------
+// Occupancy grid — tracks which cells are already claimed
+// ---------------------------------------------------------------------------
+
+class OccupancyGrid {
+  private grid: boolean[][]
+  readonly cols: number
+  readonly rows: number
+
+  constructor(cols: number, rows: number) {
+    this.cols = cols
+    this.rows = rows
+    this.grid = Array.from({ length: rows }, () => Array(cols).fill(false))
+  }
+
+  claim(cell: GridCell): void {
+    const rEnd = Math.min(cell.r + cell.rs, this.rows)
+    const cEnd = Math.min(cell.c + cell.cs, this.cols)
+    for (let r = Math.max(0, cell.r); r < rEnd; r++) {
+      for (let c = Math.max(0, cell.c); c < cEnd; c++) {
+        this.grid[r][c] = true
+      }
+    }
+  }
+
+  isFree(cell: GridCell): boolean {
+    const rEnd = Math.min(cell.r + cell.rs, this.rows)
+    const cEnd = Math.min(cell.c + cell.cs, this.cols)
+    for (let r = Math.max(0, cell.r); r < rEnd; r++) {
+      for (let c = Math.max(0, cell.c); c < cEnd; c++) {
+        if (this.grid[r][c]) return false
+      }
+    }
+    return true
+  }
+
+  occupiedCount(): number {
+    return this.grid.reduce((sum, row) => sum + row.filter(Boolean).length, 0)
+  }
+}
+
+// Tracks which cells contain image pixels — used for scrim decisions
+class ImageRegionSet {
+  private grid: boolean[][]
+  readonly cols: number
+  readonly rows: number
+
+  constructor(cols: number, rows: number) {
+    this.cols = cols
+    this.rows = rows
+    this.grid = Array.from({ length: rows }, () => Array(cols).fill(false))
+  }
+
+  mark(cell: GridCell): void {
+    const rEnd = Math.min(cell.r + cell.rs, this.rows)
+    const cEnd = Math.min(cell.c + cell.cs, this.cols)
+    for (let r = Math.max(0, cell.r); r < rEnd; r++) {
+      for (let c = Math.max(0, cell.c); c < cEnd; c++) {
+        this.grid[r][c] = true
+      }
+    }
+  }
+
+  /** Returns true if ANY cell in `cell` overlaps an image region. */
+  overlapsImage(cell: GridCell): boolean {
+    const rEnd = Math.min(cell.r + cell.rs, this.rows)
+    const cEnd = Math.min(cell.c + cell.cs, this.cols)
+    for (let r = Math.max(0, cell.r); r < rEnd; r++) {
+      for (let c = Math.max(0, cell.c); c < cEnd; c++) {
+        if (this.grid[r][c]) return true
+      }
+    }
+    return false
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

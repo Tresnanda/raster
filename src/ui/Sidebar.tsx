@@ -1,4 +1,4 @@
-// src/ui/Sidebar.tsx — Ink Brutalism global design pane
+// src/ui/Sidebar.tsx — Neo-brutalist design pane
 import type React from 'react'
 import { useRef } from 'react'
 import gsap from 'gsap'
@@ -45,49 +45,49 @@ export function Sidebar({ svgRef }: SidebarProps) {
         </div>
 
         {/* Layouts */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-layouts" title="Layouts" defaultOpen>
             <LayoutGrid />
           </Section>
         </div>
 
         {/* Canvas format */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-canvas" title="Canvas" defaultOpen>
             <CanvasChips />
           </Section>
         </div>
 
         {/* Typography — collapsed by default */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-type" title="Type" defaultOpen={false}>
             <TypographyControls />
           </Section>
         </div>
 
         {/* Style — open by default */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-style" title="Style" defaultOpen>
             <StyleControls />
           </Section>
         </div>
 
         {/* Content slots */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-content" title="Content" defaultOpen>
             <ContentFields />
           </Section>
         </div>
 
         {/* Export — collapsed */}
-        <div className="sb-section border-t-2 border-foreground">
+        <div className="sb-section border-t border-border/40">
           <Section id="sidebar-export" title="Export" defaultOpen={false}>
             <ExportControls svgRef={svgRef} />
           </Section>
         </div>
 
-        {/* Bottom border */}
-        <div className="border-t-2 border-foreground" />
+        {/* Bottom rule */}
+        <div className="border-t border-border/40" />
       </div>
     </aside>
   )

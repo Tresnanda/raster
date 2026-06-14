@@ -1,4 +1,4 @@
-// src/ui/sidebar/LayoutGrid.tsx — Ink Brutalism
+// src/ui/sidebar/LayoutGrid.tsx — Neo-brutalist
 import { useRef } from 'react'
 import { Shuffle, Dices, Sparkles, Wand2 } from 'lucide-react'
 import gsap from 'gsap'
@@ -60,23 +60,23 @@ export function LayoutGrid() {
 
   return (
     <div className="sb-section space-y-3">
-      {/* Layout grid — 5 cols, cells aspect-[3/4] */}
-      <div className="grid grid-cols-5 gap-0 border-2 border-foreground min-w-0 overflow-hidden">
+      {/* Layout grid — 5 cols, cells aspect-[3/4], rounded-md outer container */}
+      <div className="grid grid-cols-5 gap-0 rounded-md border-2 border-foreground min-w-0 overflow-hidden">
         {LAYOUTS.map(({ n }, idx) => (
           <button
             key={n}
             onClick={() => setLayout(n)}
             className={cn(
               'aspect-[3/4] flex items-center justify-center min-w-0',
-              'font-mono text-xs font-bold tabular-nums',
+              'font-mono text-xs tabular-nums',
               'transition-colors duration-100',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground focus-visible:z-10',
-              // Right border for all but last in row — grid of 5, handle with nth logic
+              // Right border for all but last in row
               idx % 5 !== 4 ? 'border-r-2 border-foreground' : '',
               // Bottom border for first row (indices 0-4)
               idx < 5 ? 'border-b-2 border-foreground' : '',
               layout === n
-                ? 'bg-foreground text-background'
+                ? 'bg-foreground text-background font-bold'
                 : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
@@ -85,15 +85,14 @@ export function LayoutGrid() {
         ))}
       </div>
 
-      {/* Generation buttons — 2x2 brutal grid */}
-      <div className="grid grid-cols-2 gap-0 border-2 border-foreground overflow-hidden">
-        {/* Shuffle — outline brutal */}
+      {/* Generation buttons — 2x2 grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Shuffle */}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={handleShuffle}
           title="Rearrange this layout"
-          className="rounded-none border-0 border-r-2 border-b-2 border-foreground bg-background text-foreground shadow-none hover:bg-muted"
         >
           <span ref={shuffleIconRef} style={{ display: 'contents' }}>
             <Shuffle size={12} />
@@ -101,25 +100,23 @@ export function LayoutGrid() {
           Shuffle
         </Button>
 
-        {/* Pick for me — outline brutal */}
+        {/* Pick for me */}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={pickForMeAction}
           title="Jump to a random preset layout"
-          className="rounded-none border-0 border-b-2 border-foreground bg-background text-foreground shadow-none hover:bg-muted"
         >
           <Dices size={12} />
           Pick
         </Button>
 
-        {/* Surprise — solid ink block */}
+        {/* Surprise — solid ink */}
         <Button
           variant="default"
           size="sm"
           onClick={handleSurprise}
           title="Generate a brand-new unique design"
-          className="rounded-none border-0 border-r-2 border-foreground shadow-none hover:opacity-80 active:translate-x-0 active:translate-y-0"
         >
           <span ref={surpriseIconRef} style={{ display: 'contents' }}>
             <Sparkles size={12} />
@@ -127,13 +124,13 @@ export function LayoutGrid() {
           Surprise
         </Button>
 
-        {/* Riff — hazard red accent */}
+        {/* Riff — accent red */}
         <Button
           size="sm"
           onClick={handleRiff}
           title="Open variation explorer — mutate and evolve the current design"
           data-testid="riff-button"
-          className="rounded-none border-0 shadow-none bg-accent text-accent-foreground hover:opacity-80 active:translate-x-0 active:translate-y-0"
+          className="bg-accent text-accent-foreground border-accent shadow-brutal hover:shadow-brutal-lg hover:-translate-y-px active:shadow-none"
         >
           <span ref={riffIconRef} style={{ display: 'contents' }}>
             <Wand2 size={12} />
@@ -143,7 +140,7 @@ export function LayoutGrid() {
       </div>
 
       {/* Microcopy */}
-      <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground leading-relaxed">
+      <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">
         Shuffle reworks · Pick jumps preset · Surprise invents · Riff mutates.
       </p>
     </div>

@@ -293,6 +293,57 @@ class ImageRegionSet {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton decision space — the "infinite" dimension
+// ---------------------------------------------------------------------------
+
+type ImageTreatment = 'none' | 'full-bleed' | 'framed-block' | 'half-split-left' | 'half-split-right' | 'h-band' | 'v-band'
+type DominantType = 'mega-word' | 'headline-stack' | 'giant-numeral' | 'oversized-glyph'
+type DominantAnchor = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'left-band' | 'right-band' | 'top-band' | 'bottom-band' | 'mid-left' | 'mid-right'
+type AccentType = 'none' | 'h-rule' | 'v-rule' | 'accent-block'
+type ClusterKind = 'meta' | 'caption' | 'index' | 'date' | 'kicker' | 'footer-mark'
+
+interface Skeleton {
+  imageTreatment: ImageTreatment
+  dominantType: DominantType
+  dominantAnchor: DominantAnchor
+  dominantSize: number
+  clusterCount: number
+  clusterKinds: ClusterKind[]
+  accentType: AccentType
+}
+
+const IMAGE_TREATMENTS: ImageTreatment[] = ['none', 'full-bleed', 'framed-block', 'half-split-left', 'half-split-right', 'h-band', 'v-band']
+const DOMINANT_TYPES: DominantType[] = ['mega-word', 'headline-stack', 'giant-numeral', 'oversized-glyph']
+// Anchors exclude pure center — Swiss grid prefers edge tension
+const DOMINANT_ANCHORS: DominantAnchor[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left-band', 'right-band', 'top-band', 'bottom-band', 'mid-left', 'mid-right']
+const CLUSTER_KINDS: ClusterKind[] = ['meta', 'caption', 'index', 'date', 'kicker', 'footer-mark']
+
+function chooseSkeleton(): Skeleton {
+  const dominantType = pick(DOMINANT_TYPES)
+  // Size range varies by type
+  const dominantSize = dominantType === 'mega-word' || dominantType === 'oversized-glyph'
+    ? randInt(240, 380)
+    : dominantType === 'giant-numeral'
+      ? randInt(280, 400)
+      : randInt(120, 220) // headline-stack
+
+  const clusterCount = randInt(0, 4)
+  // Pick unique cluster kinds
+  const shuffled = [...CLUSTER_KINDS].sort(() => Math.random() - 0.5)
+  const clusterKinds = shuffled.slice(0, clusterCount) as ClusterKind[]
+
+  return {
+    imageTreatment: pick(IMAGE_TREATMENTS),
+    dominantType,
+    dominantAnchor: pick(DOMINANT_ANCHORS),
+    dominantSize,
+    clusterCount,
+    clusterKinds,
+    accentType: pick(['none', 'none', 'h-rule', 'v-rule', 'accent-block'] as AccentType[]), // bias toward none
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

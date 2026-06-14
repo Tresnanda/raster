@@ -886,3 +886,59 @@ test('zoomTo100 sets zoom to 1', () => {
   useDesign.getState().zoomTo100()
   expect(useDesign.getState().zoom).toBe(1)
 })
+
+// ── Type pack helpers ──────────────────────────────────────────────────────────
+
+test('setTextTransform sets textTransform field and is undoable', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setTextTransform(id, 'upper')
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.textTransform).toBe('upper')
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.textTransform).toBeUndefined()
+})
+
+test('setTextTransform coalesces repeated calls', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setTextTransform(id, 'upper')
+  useDesign.getState().setTextTransform(id, 'lower')
+  useDesign.getState().setTextTransform(id, 'title')
+  expect(useDesign.getState().past.length).toBe(before + 1)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.textTransform).toBe('title')
+})
+
+test('setIndent sets indent field and is undoable', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setIndent(id, 24)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.indent).toBe(24)
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.indent).toBeUndefined()
+})
+
+test('setIndent coalesces repeated calls', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setIndent(id, 10)
+  useDesign.getState().setIndent(id, 20)
+  useDesign.getState().setIndent(id, 30)
+  expect(useDesign.getState().past.length).toBe(before + 1)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.indent).toBe(30)
+})
+
+test('setListStyle sets listStyle field and is undoable', () => {
+  const id = useDesign.getState().design.slots[0].id
+  useDesign.getState().setListStyle(id, 'bullet')
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.listStyle).toBe('bullet')
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.listStyle).toBeUndefined()
+})
+
+test('setListStyle coalesces repeated calls', () => {
+  const id = useDesign.getState().design.slots[0].id
+  const before = useDesign.getState().past.length
+  useDesign.getState().setListStyle(id, 'bullet')
+  useDesign.getState().setListStyle(id, 'number')
+  useDesign.getState().setListStyle(id, 'none')
+  expect(useDesign.getState().past.length).toBe(before + 1)
+  expect(useDesign.getState().design.slots.find(s => s.id === id)!.listStyle).toBe('none')
+})

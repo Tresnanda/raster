@@ -230,3 +230,265 @@ test('title-class text in the same wide box does NOT cap wrap width', () => {
   const tspans = container.querySelectorAll('tspan')
   expect(tspans.length).toBe(1)
 })
+
+// ── applyTextTransform ────────────────────────────────────────────────────────
+
+import { applyTextTransform } from './slot-text'
+
+test('applyTextTransform: none / undefined returns original string', () => {
+  expect(applyTextTransform('Hello World', 'none')).toBe('Hello World')
+  expect(applyTextTransform('Hello World', undefined)).toBe('Hello World')
+})
+
+test('applyTextTransform: upper returns uppercased string', () => {
+  expect(applyTextTransform('Hello World', 'upper')).toBe('HELLO WORLD')
+})
+
+test('applyTextTransform: lower returns lowercased string', () => {
+  expect(applyTextTransform('Hello World', 'lower')).toBe('hello world')
+})
+
+test('applyTextTransform: title capitalizes each word', () => {
+  expect(applyTextTransform('hello world', 'title')).toBe('Hello World')
+  expect(applyTextTransform('the quick brown fox', 'title')).toBe('The Quick Brown Fox')
+})
+
+// ── textTransform in SlotText ─────────────────────────────────────────────────
+
+test('textTransform:upper renders uppercased tspan content', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="t1"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content="hello world"
+        color="#000"
+        measure={measure}
+        textTransform="upper"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts.join(' ')).toMatch(/HELLO WORLD/)
+})
+
+test('textTransform:lower renders lowercased tspan content', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="t2"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content="HELLO WORLD"
+        color="#000"
+        measure={measure}
+        textTransform="lower"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts.join(' ')).toMatch(/hello world/)
+})
+
+test('textTransform:title renders title-cased tspan content', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="t3"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content="hello world"
+        color="#000"
+        measure={measure}
+        textTransform="title"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts.join(' ')).toMatch(/Hello World/)
+})
+
+test('textTransform also applies in imageFill (clipPath text matches)', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="t4"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content="hello world"
+        color="#000"
+        measure={measure}
+        textTransform="upper"
+        imageFill="data:image/png;base64,abc"
+      />
+    </svg>,
+  )
+  const clipText = container.querySelector('clipPath text')
+  expect(clipText).toBeTruthy()
+  const tspans = clipText!.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts.join(' ')).toMatch(/HELLO WORLD/)
+})
+
+// ── listStyle ─────────────────────────────────────────────────────────────────
+
+test('listStyle:bullet prefixes each hard line with bullet symbol', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="ls1"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content={'Item A\nItem B\nItem C'}
+        color="#000"
+        measure={measure}
+        listStyle="bullet"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts[0]).toMatch(/^•/)
+  expect(texts[1]).toMatch(/^•/)
+  expect(texts[2]).toMatch(/^•/)
+})
+
+test('listStyle:number prefixes hard lines with 1. 2. 3.', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="ls2"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content={'First\nSecond\nThird'}
+        color="#000"
+        measure={measure}
+        listStyle="number"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts[0]).toMatch(/^1\./)
+  expect(texts[1]).toMatch(/^2\./)
+  expect(texts[2]).toMatch(/^3\./)
+})
+
+test('listStyle:none does not add any prefix', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="ls3"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={textStyle('fixed', 20)}
+        content={'Item A\nItem B'}
+        color="#000"
+        measure={measure}
+        listStyle="none"
+      />
+    </svg>,
+  )
+  const tspans = container.querySelectorAll('tspan')
+  const texts = Array.from(tspans).map(t => t.textContent ?? '')
+  expect(texts[0]).toBe('Item A')
+  expect(texts[1]).toBe('Item B')
+})
+
+// ── indent (hanging indent) ───────────────────────────────────────────────────
+
+test('indent: continuation lines have larger x than first line (left-aligned)', () => {
+  // Force wrapping: small box width, large text
+  // box.w=60, measure: chars * size * 0.5, size=20
+  // "AAA BBB CCC" → wraps into 3 lines at size 20
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="ind1"
+        box={{ x: 0, y: 0, w: 60, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 20, tracking: 0, leading: 1, align: 'left', fit: 'fixed' }}
+        content="AAA BBB CCC"
+        color="#000"
+        measure={measure}
+        indent={20}
+      />
+    </svg>,
+  )
+  const tspans = Array.from(container.querySelectorAll('tspan'))
+  expect(tspans.length).toBeGreaterThan(1)
+  const firstX = Number(tspans[0].getAttribute('x'))
+  // All continuation lines (index > 0) should have x > firstX
+  for (let i = 1; i < tspans.length; i++) {
+    expect(Number(tspans[i].getAttribute('x'))).toBeGreaterThan(firstX)
+  }
+})
+
+test('indent: first line is not offset', () => {
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="ind2"
+        box={{ x: 0, y: 0, w: 60, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 20, tracking: 0, leading: 1, align: 'left', fit: 'fixed' }}
+        content="AAA BBB CCC"
+        color="#000"
+        measure={measure}
+        indent={20}
+      />
+    </svg>,
+  )
+  // Without indent, first line x = box.x = 0 (left-aligned, no hang)
+  const noIndent = render(
+    <svg>
+      <SlotText
+        id="ind3"
+        box={{ x: 0, y: 0, w: 60, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 20, tracking: 0, leading: 1, align: 'left', fit: 'fixed' }}
+        content="AAA BBB CCC"
+        color="#000"
+        measure={measure}
+      />
+    </svg>,
+  )
+  const firstX = Number(container.querySelectorAll('tspan')[0].getAttribute('x'))
+  const firstXNoIndent = Number(noIndent.container.querySelectorAll('tspan')[0].getAttribute('x'))
+  expect(firstX).toBe(firstXNoIndent)
+})
+
+test('indent: no offset applied for center-aligned text', () => {
+  // Center-aligned — indent should be ignored
+  const withIndent = render(
+    <svg>
+      <SlotText
+        id="ind4"
+        box={{ x: 0, y: 0, w: 60, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 20, tracking: 0, leading: 1, align: 'center', fit: 'fixed' }}
+        content="AAA BBB CCC"
+        color="#000"
+        measure={measure}
+        indent={20}
+      />
+    </svg>,
+  )
+  const withoutIndent = render(
+    <svg>
+      <SlotText
+        id="ind5"
+        box={{ x: 0, y: 0, w: 60, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 20, tracking: 0, leading: 1, align: 'center', fit: 'fixed' }}
+        content="AAA BBB CCC"
+        color="#000"
+        measure={measure}
+      />
+    </svg>,
+  )
+  const tspansWith = Array.from(withIndent.container.querySelectorAll('tspan'))
+  const tspansWithout = Array.from(withoutIndent.container.querySelectorAll('tspan'))
+  // All x values should be identical (indent not applied for center)
+  tspansWith.forEach((tspan, i) => {
+    expect(tspan.getAttribute('x')).toBe(tspansWithout[i].getAttribute('x'))
+  })
+})

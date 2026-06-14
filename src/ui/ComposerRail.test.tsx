@@ -686,3 +686,102 @@ test('selecting a non-image slot does NOT show the EFFECTS section', () => {
   const effectsHeadings = screen.queryAllByText(/^effects$/i)
   expect(effectsHeadings.length).toBe(0)
 })
+
+// ── Type pack controls ─────────────────────────────────────────────────────────
+
+function selectFirstTextSlot() {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line',
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  return textSlot
+}
+
+test('selecting a text element shows Case controls', () => {
+  selectFirstTextSlot()
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Case None')).toBeTruthy()
+  expect(screen.getByLabelText('Case UPPER')).toBeTruthy()
+  expect(screen.getByLabelText('Case lower')).toBeTruthy()
+  expect(screen.getByLabelText('Case Title')).toBeTruthy()
+})
+
+test('selecting a text element shows List controls', () => {
+  selectFirstTextSlot()
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('None')).toBeTruthy()
+  expect(screen.getByLabelText('Bullet')).toBeTruthy()
+  expect(screen.getByLabelText('Numbered')).toBeTruthy()
+})
+
+test('selecting a text element shows Indent input', () => {
+  selectFirstTextSlot()
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Hanging indent')).toBeTruthy()
+})
+
+test('clicking UPPER case button calls setTextTransform with upper', () => {
+  const slot = selectFirstTextSlot()
+  const setTextTransform = vi.spyOn(useDesign.getState(), 'setTextTransform')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Case UPPER'))
+  expect(setTextTransform).toHaveBeenCalledWith(slot.id, 'upper')
+})
+
+test('clicking lower case button calls setTextTransform with lower', () => {
+  const slot = selectFirstTextSlot()
+  const setTextTransform = vi.spyOn(useDesign.getState(), 'setTextTransform')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Case lower'))
+  expect(setTextTransform).toHaveBeenCalledWith(slot.id, 'lower')
+})
+
+test('clicking Title case button calls setTextTransform with title', () => {
+  const slot = selectFirstTextSlot()
+  const setTextTransform = vi.spyOn(useDesign.getState(), 'setTextTransform')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Case Title'))
+  expect(setTextTransform).toHaveBeenCalledWith(slot.id, 'title')
+})
+
+test('clicking None case button calls setTextTransform with none', () => {
+  const slot = selectFirstTextSlot()
+  const setTextTransform = vi.spyOn(useDesign.getState(), 'setTextTransform')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Case None'))
+  expect(setTextTransform).toHaveBeenCalledWith(slot.id, 'none')
+})
+
+test('clicking Bullet list button calls setListStyle with bullet', () => {
+  const slot = selectFirstTextSlot()
+  const setListStyle = vi.spyOn(useDesign.getState(), 'setListStyle')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Bullet'))
+  expect(setListStyle).toHaveBeenCalledWith(slot.id, 'bullet')
+})
+
+test('clicking Numbered list button calls setListStyle with number', () => {
+  const slot = selectFirstTextSlot()
+  const setListStyle = vi.spyOn(useDesign.getState(), 'setListStyle')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Numbered'))
+  expect(setListStyle).toHaveBeenCalledWith(slot.id, 'number')
+})
+
+test('changing indent input calls setIndent', () => {
+  const slot = selectFirstTextSlot()
+  const setIndent = vi.spyOn(useDesign.getState(), 'setIndent')
+  render(<ComposerRail />)
+  fireEvent.change(screen.getByLabelText('Hanging indent'), { target: { value: '24' } })
+  expect(setIndent).toHaveBeenCalledWith(slot.id, 24)
+})
+
+test('Case/List/Indent controls are not shown for image elements', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.queryByLabelText('Case UPPER')).toBeNull()
+  expect(screen.queryByLabelText('Bullet')).toBeNull()
+  expect(screen.queryByLabelText('Hanging indent')).toBeNull()
+})

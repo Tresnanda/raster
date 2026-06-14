@@ -85,3 +85,59 @@ test('height check uses lineAdvance when baseline is set', () => {
   expect(oneLine.size).toBe(18)
   expect(oneLine.lineAdvance).toBe(25)
 })
+
+// ── lineIsHardStart ────────────────────────────────────────────────────────────
+
+test('lineIsHardStart: single-line text has [true]', () => {
+  const r = fitText('Hello', { w: 10000, h: 10000 }, { maxSize: 20, minSize: 8, leading: 1 }, fake)
+  expect(r.lineIsHardStart).toEqual([true])
+})
+
+test('lineIsHardStart: soft-wrapped continuation lines are false', () => {
+  // Each word = 3 chars * size * 0.5. At size=20, each word = 30px.
+  // box.w=60 fits exactly 2 words (60px). "AAA BBB" = 60px => wraps "AAA BBB" onto line 1,
+  // "CCC" starts line 2. But "AAA BBB" combined = 7*20*0.5 = 70 > 60, so wraps after "AAA".
+  // Actually "AAA" = 30 <= 60, then "AAA BBB" = 7*20*0.5=70 > 60, so wraps.
+  const r = fitText('AAA BBB CCC', { w: 60, h: 10000 }, { maxSize: 20, minSize: 20, leading: 1 }, fake)
+  // Should be 3 lines: AAA / BBB / CCC — all from same hard segment, only first is hard start
+  expect(r.lines.length).toBeGreaterThanOrEqual(2)
+  expect(r.lineIsHardStart[0]).toBe(true)
+  // Continuation lines are false
+  for (let i = 1; i < r.lineIsHardStart.length; i++) {
+    expect(r.lineIsHardStart[i]).toBe(false)
+  }
+})
+
+test('lineIsHardStart: each \\n starts a new hard segment', () => {
+  // Wide box — no soft wrapping. Each segment is its own line.
+  const r = fitText('Line one\nLine two\nLine three', { w: 10000, h: 10000 }, { maxSize: 20, minSize: 8, leading: 1 }, fake)
+  expect(r.lines).toEqual(['Line one', 'Line two', 'Line three'])
+  expect(r.lineIsHardStart).toEqual([true, true, true])
+})
+
+test('lineIsHardStart: mixed hard and soft breaks', () => {
+  // Two hard segments, first one wraps.
+  // seg1: "AAA BBB CCC" wraps within 60px at size 20 into multiple lines
+  // seg2: "DDD" fits on one line, hard start
+  const r = fitText('AAA BBB CCC\nDDD', { w: 60, h: 10000 }, { maxSize: 20, minSize: 20, leading: 1 }, fake)
+  expect(r.lines[r.lines.length - 1]).toBe('DDD')
+  // The last line is 'DDD' and should be a hard start
+  expect(r.lineIsHardStart[r.lineIsHardStart.length - 1]).toBe(true)
+  // The very first line is a hard start
+  expect(r.lineIsHardStart[0]).toBe(true)
+  // Lines between first and last that are NOT 'DDD' are continuations of seg1
+  for (let i = 1; i < r.lines.length - 1; i++) {
+    expect(r.lineIsHardStart[i]).toBe(false)
+  }
+})
+
+test('lineIsHardStart: blank hard line gets true', () => {
+  const r = fitText('A\n\nB', { w: 10000, h: 10000 }, { maxSize: 20, minSize: 8, leading: 1 }, fake)
+  expect(r.lines).toEqual(['A', '', 'B'])
+  expect(r.lineIsHardStart).toEqual([true, true, true])
+})
+
+test('lineIsHardStart length equals lines length', () => {
+  const r = fitText('Hello world foo bar baz\nSecond line here', { w: 80, h: 10000 }, { maxSize: 20, minSize: 8, leading: 1 }, fake)
+  expect(r.lineIsHardStart.length).toBe(r.lines.length)
+})

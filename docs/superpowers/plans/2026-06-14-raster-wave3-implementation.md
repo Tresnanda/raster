@@ -38,17 +38,17 @@
 ## Phase 0 — Review fixes from `codex/raster-addictive-features` (do first; fast, independent)
 
 ### 0a. Deterministic property tests
-- [ ] In `src/design/generate.test.ts`, change every `generate('3:4')` inside the 200-/50-iteration loops to `generate('3:4', { seed: i })`. Keeps coverage, makes the suite reproducible. (Confirmed flake today: unseeded runs fail ~1/30.)
-- [ ] Verify: run `npm test` 20× (or a loop) — zero failures.
+- [x] In `src/design/generate.test.ts`, change every `generate('3:4')` inside the 200-/50-iteration loops to `generate('3:4', { seed: i })`. Keeps coverage, makes the suite reproducible. (Confirmed flake today: unseeded runs fail ~1/30.)
+- [x] Verify: run `npm test` 20× (or a loop) — zero failures.
 
 ### 0b. Poster Mine quota / silent-loss guard
-- [ ] In `src/design/poster-mine.ts`, make the persisted copy lightweight: strip or downscale image bytes (`content` dataURLs + `imageSrcOriginal`) to a small thumbnail for the SAVED design (the in-canvas working design keeps full-res). Mirror the byte-stripping already in `src/design/share.ts`.
-- [ ] In `src/store/useDesign.ts:saveCurrentPoster`, detect a failed write (have `writeSavedPosters` return a boolean) and surface a "storage full" state instead of optimistically `set()`-ing a poster that won't survive reload.
-- [ ] Test: a design with a large fake dataURL still persists (round-trips through `read/writeSavedPosters`); the in-memory list does not claim success when the write throws.
+- [x] In `src/design/poster-mine.ts`, make the persisted copy lightweight: strip or downscale image bytes (`content` dataURLs + `imageSrcOriginal`) to a small thumbnail for the SAVED design (the in-canvas working design keeps full-res). Mirror the byte-stripping already in `src/design/share.ts`.
+- [x] In `src/store/useDesign.ts:saveCurrentPoster`, detect a failed write (have `writeSavedPosters` return a boolean) and surface a "storage full" state instead of optimistically `set()`-ing a poster that won't survive reload.
+- [x] Test: a design with a large fake dataURL still persists (round-trips through `read/writeSavedPosters`); the in-memory list does not claim success when the write throws.
 
 ### 0c. Cheap polish (optional, same PR)
-- [ ] `GridCoachControls`: wrap `buildGridCoachReport(design)` in `useMemo(() => …, [design])`.
-- [ ] Commit the currently-uncommitted working-tree changes on the branch (grid-coach bounds expansion + "Studio"/"Saved snapshots" copy) so they're actually part of history.
+- [x] `GridCoachControls`: wrap `buildGridCoachReport(design)` in `useMemo(() => …, [design])`.
+- [x] Commit the currently-uncommitted working-tree changes on the branch (grid-coach bounds expansion + "Studio"/"Saved snapshots" copy) so they're actually part of history.
 - [ ] Prune dead generator branches if trivial: retired `oversized-glyph` DominantType, `v-band` ImageTreatment, and the scrim-removal block in `enforceWhitespace`. (Low priority — they're inert.)
 
 ---
@@ -89,9 +89,9 @@ Each is: one pure `src/design/*` module + test, one store action, one small side
 
 ### 1d. Daily Remix — streak deepening (extends existing `daily-briefs.ts`)
 **What:** Daily Remix already works; add the habit hook.
-- [ ] New `src/design/streak.ts`: `recordVisit(today, prev): StreakState` computing `{ current, longest, lastDate }` (consecutive-day logic), localStorage-backed (`raster:streak`).
-- [ ] `DailyBriefControls`: show "🔥 N-day streak" and "Done today ✓" once applied.
-- [ ] Tests: consecutive days increment; a gap resets `current` (not `longest`); same-day re-visit is a no-op.
+- [x] New `src/design/streak.ts`: `recordVisit(today, prev): StreakState` computing `{ current, longest, lastDate }` (consecutive-day logic), localStorage-backed (`raster:streak`).
+- [x] `DailyBriefControls`: show "🔥 N-day streak" and "Done today ✓" once applied.
+- [x] Tests: consecutive days increment; a gap resets `current` (not `longest`); same-day re-visit is a no-op.
 
 ---
 
@@ -124,15 +124,15 @@ Each is: one pure `src/design/*` module + test, one store action, one small side
 
 ### 3c. Rulers + draggable guides
 **What:** Top + left rulers in poster units; drag from a ruler to create a guide; elements snap to guides.
-- [ ] Store: `guides: { axis: 'x' | 'y'; pos: number }[]` + `addGuide/removeGuide/clearGuides` (NOT undo-tracked, or a separate light history — decide and document).
-- [ ] Render rulers as a `CanvasStage` overlay (tick marks scale with zoom — reuse the existing `safeScale / zoom` math from ComposerOverlay).
+- [x] Store: `guides: { axis: 'x' | 'y'; pos: number }[]` + `addGuide/removeGuide/clearGuides` (NOT undo-tracked, or a separate light history — decide and document).
+- [x] Render rulers as a `CanvasStage` overlay (tick marks scale with zoom — reuse the existing `safeScale / zoom` math from ComposerOverlay).
 - [ ] Drag-to-create from ruler; integrate guide snapping into the existing move/resize snap logic alongside element smart-guides.
-- [ ] Tests: pure snap helper (`snapToGuides(value, guides, threshold)`) unit-tested; add/remove guide reducer-tested.
+- [x] Tests: pure snap helper (`snapToGuides(value, guides, threshold)`) unit-tested; add/remove guide reducer-tested.
 
 ### 3d. Version snapshots
 **What:** Lightweight in-session named checkpoints with quick restore (distinct from undo/redo and from Poster Mine's archive).
-- [ ] Reuse Poster Mine infra: add `source: 'snapshot'` and a "Pin snapshot" action + a horizontal snapshot strip with one-click restore (restore = `loadSavedPoster`-style `commit`). This avoids a parallel persistence layer.
-- [ ] Tests: pin creates a `source:'snapshot'` entry; restore swaps the design and is undoable.
+- [x] Reuse Poster Mine infra: add `source: 'snapshot'` and a "Pin snapshot" action + a horizontal snapshot strip with one-click restore (restore = `loadSavedPoster`-style `commit`). This avoids a parallel persistence layer.
+- [x] Tests: pin creates a `source:'snapshot'` entry; restore swaps the design and is undoable.
 
 ---
 
@@ -143,8 +143,8 @@ Each is: one pure `src/design/*` module + test, one store action, one small side
 - **PR 4 = Phase 3** (Components + editor table-stakes) — largest; can split 3a/3b vs 3c/3d if needed.
 
 ## Definition of done (every PR)
-- [ ] `npm run build` (`tsc -b && vite build`) clean.
-- [ ] `npm test` green, run 20× with zero flakes (seeded).
-- [ ] No new `^`/`~` deps; `.npmrc` untouched; `pnpm audit signatures` clean if deps changed.
-- [ ] New user-facing strings have no em dashes; all controls have `aria-label`.
-- [ ] Swiss invariants property-tested where the feature transforms a layout.
+- [x] `npm run build` (`tsc -b && vite build`) clean.
+- [x] `npm test` green, run 20× with zero flakes (seeded).
+- [x] No new `^`/`~` deps; `.npmrc` untouched; `pnpm audit signatures` clean if deps changed.
+- [x] New user-facing strings have no em dashes; all controls have `aria-label`.
+- [x] Swiss invariants property-tested where the feature transforms a layout.

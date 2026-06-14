@@ -108,6 +108,8 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   const duplicateElement = useDesign(s => s.duplicateElement)
   const bringForward = useDesign(s => s.bringForward)
   const sendBackward = useDesign(s => s.sendBackward)
+  const saveSelectedComponent = useDesign(s => s.saveSelectedComponent)
+  const autoTidy = useDesign(s => s.autoTidy)
   // Note: global keyboard shortcuts (Delete, arrows, Cmd+D, Esc, etc.) are handled
   // by useKeyboardShortcuts in App.tsx — not here. Only textarea-local handling remains.
 
@@ -123,6 +125,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   const [hud, setHud] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   // Marquee rubber-band rect (canvas units) while drag-selecting on empty canvas.
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; slotId: string } | null>(null)
 
   const slots = orderedSlots(design).filter(s => !s.hidden) // hidden layers aren't interactive
   const boundaries = gridBoundaries(canvas, design.grid)
@@ -326,7 +329,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
       <div
         data-overlay-bg
         style={{ position: 'absolute', inset: 0, pointerEvents: 'all' }}
-        onClick={() => { if (!editingId) selectElement(null) }}
+        onClick={() => { setContextMenu(null); if (!editingId) selectElement(null) }}
         onPointerDown={e => {
           if (editingId) return
           if (e.button !== 0) return
@@ -405,6 +408,52 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
         </div>
       )}
 
+      {contextMenu && (
+        <div
+          data-composer-context-menu
+          style={{
+            position: 'absolute',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            display: 'grid',
+            gap: 1,
+            minWidth: 150,
+            padding: 4,
+            background: '#ffffff',
+            border: `${1.5 / safeScale}px solid #18181b`,
+            boxShadow: `${3 / safeScale}px ${3 / safeScale}px 0 0 #18181b`,
+            zIndex: 80,
+            transform: `scale(${1 / safeScale})`,
+            transformOrigin: 'top left',
+            pointerEvents: 'all',
+          }}
+          onPointerDown={e => e.stopPropagation()}
+        >
+          {([
+            ['Duplicate', () => duplicateElement(contextMenu.slotId)],
+            ['Bring forward', () => bringForward(contextMenu.slotId)],
+            ['Send backward', () => sendBackward(contextMenu.slotId)],
+            ['Save as component', () => saveSelectedComponent('Component')],
+            ['Auto-tidy from context', () => autoTidy()],
+            ['Delete', () => deleteElement(contextMenu.slotId)],
+          ] as const).map(([label, action]) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              onClick={e => {
+                e.stopPropagation()
+                action()
+                setContextMenu(null)
+              }}
+              style={contextMenuBtnStyle}
+            >
+              {label === 'Auto-tidy from context' ? 'Auto-tidy' : label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {slots.map(slot => {
         const b = slotBox(canvas, design.grid, slot)
         const isSelected = selectedIds.includes(slot.id)
@@ -432,10 +481,20 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
             }}
             onClick={e => {
               e.stopPropagation()
+              setContextMenu(null)
               if (isEditing) return
               // Shift/Cmd-click toggles; plain click selects just this element.
               if (e.shiftKey || e.metaKey || e.ctrlKey) toggleSelection(slot.id)
               else selectElement(slot.id)
+            }}
+            onContextMenu={e => {
+              e.preventDefault()
+              e.stopPropagation()
+              const rect = overlayRef.current!.getBoundingClientRect()
+              const x = (e.clientX - rect.left) / safeScale
+              const y = (e.clientY - rect.top) / safeScale
+              if (!selectedIds.includes(slot.id)) selectElement(slot.id)
+              setContextMenu({ x, y, slotId: slot.id })
             }}
             onDoubleClick={e => {
               e.stopPropagation()
@@ -649,6 +708,18 @@ const toolbarBtnStyle: React.CSSProperties = {
   color: '#374151',
   fontSize: 'inherit',
   fontFamily: 'inherit',
+}
+
+const contextMenuBtnStyle: React.CSSProperties = {
+  padding: '5px 8px',
+  border: 'none',
+  background: 'transparent',
+  color: '#18181b',
+  cursor: 'pointer',
+  textAlign: 'left',
+  fontSize: 11,
+  fontWeight: 700,
+  fontFamily: "'Inter', sans-serif",
 }
 
 // ─── Cursor helpers ───────────────────────────────────────────────────────────

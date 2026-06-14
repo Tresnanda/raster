@@ -108,6 +108,19 @@ test('toolbar has Duplicate, Delete, Bring forward, Send backward buttons', asyn
   expect(container.querySelector('[aria-label="Send backward"]')).toBeTruthy()
 })
 
+test('right-clicking a slot opens the context menu with component and tidy actions', async () => {
+  const { container } = render(<ComposerOverlay scale={1} />)
+  const firstSlot = getSlots(container)[0] as HTMLElement
+
+  await act(async () => {
+    fireEvent.contextMenu(firstSlot)
+  })
+
+  expect(container.querySelector('[data-composer-context-menu]')).toBeTruthy()
+  expect(container.querySelector('[aria-label="Save as component"]')).toBeTruthy()
+  expect(container.querySelector('[aria-label="Auto-tidy from context"]')).toBeTruthy()
+})
+
 test('clicking Delete in toolbar calls deleteElement with correct id', async () => {
   const deleteElement = vi.spyOn(useDesign.getState(), 'deleteElement')
 

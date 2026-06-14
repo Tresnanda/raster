@@ -7,6 +7,10 @@ import { SystemRecipeControls } from './SystemRecipeControls'
 import { GridCoachControls } from './GridCoachControls'
 import { SeriesControls } from './SeriesControls'
 import { MotionControls } from './MotionControls'
+import { ArrangeControls } from './ArrangeControls'
+import { TypographyControls } from './TypographyControls'
+import { StyleControls } from './StyleControls'
+import { ComponentsControls } from './ComponentsControls'
 import { useDesign } from '../../store/useDesign'
 import '../../archetypes/index'
 
@@ -24,6 +28,9 @@ beforeEach(() => {
     campaignItems: [],
     activeCampaignId: null,
     dailyBrief: null,
+    dailyStreak: { current: 0, longest: 0, lastDate: null },
+    componentLibrary: [],
+    guides: [],
     motionSequence: {
       effect: 'rise',
       tempo: 100,
@@ -43,11 +50,47 @@ test('PosterMineControls saves the current design and opens the mine', () => {
   expect(useDesign.getState().mineOpen).toBe(true)
 })
 
+test('PosterMineControls pins a snapshot checkpoint', () => {
+  render(<PosterMineControls />)
+  fireEvent.click(screen.getByRole('button', { name: /pin snapshot/i }))
+  expect(useDesign.getState().savedPosters[0].source).toBe('snapshot')
+})
+
 test('DailyBriefControls starts the deterministic daily brief', () => {
   render(<DailyBriefControls today="2026-06-14" />)
   fireEvent.click(screen.getByRole('button', { name: /start brief/i }))
   expect(useDesign.getState().dailyBrief?.date).toBe('2026-06-14')
   expect(useDesign.getState().savedPosters[0].source).toBe('daily')
+  expect(screen.getByText(/1-day streak/i)).toBeInTheDocument()
+  expect(screen.getByText(/done today/i)).toBeInTheDocument()
+})
+
+test('ArrangeControls runs Auto-tidy on the current poster', () => {
+  useDesign.getState().setBox('word', { x: 650, y: 520, w: 420, h: 150 })
+  render(<ArrangeControls />)
+  fireEvent.click(screen.getByRole('button', { name: /auto-tidy/i }))
+  expect(useDesign.getState().design.slots.find(slot => slot.id === 'word')!.box).toBeUndefined()
+})
+
+test('TypographyControls applies curated type systems', () => {
+  render(<TypographyControls />)
+  fireEvent.click(screen.getByRole('button', { name: /apply Mono Technical/i }))
+  expect(useDesign.getState().design.typography.typeface).toBe('mono')
+})
+
+test('StyleControls exposes palette extraction from an image', () => {
+  render(<StyleControls />)
+  expect(screen.getByRole('button', { name: /pull palette from image/i })).toBeInTheDocument()
+})
+
+test('ComponentsControls saves and inserts selected components', () => {
+  useDesign.getState().setSelection(['word', 'subhead'])
+  render(<ComponentsControls />)
+  fireEvent.click(screen.getByRole('button', { name: /save selected component/i }))
+  expect(useDesign.getState().componentLibrary).toHaveLength(1)
+  const before = useDesign.getState().design.slots.length
+  fireEvent.click(screen.getByRole('button', { name: /insert selection group/i }))
+  expect(useDesign.getState().design.slots.length).toBeGreaterThan(before)
 })
 
 test('SystemRecipeControls saves and applies a recipe', () => {

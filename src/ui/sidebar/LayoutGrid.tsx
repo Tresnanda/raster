@@ -11,6 +11,8 @@ export function LayoutGrid() {
   const layout = useDesign(s => s.design.layout)
   const setLayout = useDesign(s => s.setLayout)
   const shuffleAction = useDesign(s => s.shuffle)
+  const shuffleScope = useDesign(s => s.shuffleScope)
+  const setShuffleScope = useDesign(s => s.setShuffleScope)
   const pickForMeAction = useDesign(s => s.pickForMe)
   const surpriseAction = useDesign(s => s.surprise)
   const openRiff = useDesign(s => s.openRiff)
@@ -78,6 +80,33 @@ export function LayoutGrid() {
             )}
           >
             {n}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Shuffle scope">
+        {(
+          [
+            { value: 'all', label: 'All' },
+            { value: 'content', label: 'Copy' },
+            { value: 'system', label: 'System' },
+          ] as const
+        ).map(scope => (
+          <button
+            key={scope.value}
+            type="button"
+            onClick={() => setShuffleScope(scope.value)}
+            aria-label={`${scope.label} scope`}
+            className={cn(
+              'h-7 rounded-md border-2 border-foreground px-2 font-sans text-[10px] font-semibold',
+              'transition-[transform,box-shadow,background-color,color] duration-100 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
+              shuffleScope === scope.value
+                ? 'bg-foreground text-background shadow-[2px_2px_0_0_var(--foreground)]'
+                : 'bg-card text-muted-foreground hover:-translate-y-px hover:text-foreground hover:shadow-[2px_2px_0_0_var(--foreground)]',
+            )}
+          >
+            {scope.label}
           </button>
         ))}
       </div>

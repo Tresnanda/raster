@@ -89,6 +89,10 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(random() * arr.length)]
 }
 
+function pickWith<T>(arr: T[], rng: () => number): T {
+  return arr[Math.floor(rng() * arr.length)]
+}
+
 function maybe(prob: number): boolean {
   return random() < prob
 }
@@ -104,6 +108,42 @@ function shuffle<T>(arr: T[]): T[] {
     ;[next[i], next[j]] = [next[j], next[i]]
   }
   return next
+}
+
+function shuffleWith<T>(arr: T[], rng: () => number): T[] {
+  const next = [...arr]
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[next[i], next[j]] = [next[j], next[i]]
+  }
+  return next
+}
+
+export function contentForRole(role: Slot['role'], rng: () => number, slot?: Slot): string {
+  switch (role) {
+    case 'headline':
+      return pickWith(HEADLINES, rng)
+    case 'glyph':
+      return pickWith(HEADLINE_WORDS, rng)
+    case 'subhead':
+      return pickWith(KICKERS, rng)
+    case 'caption':
+      return rng() > 0.45
+        ? pickWith(CAPTIONS, rng)
+        : `${pickWith(CITIES, rng)} — ${pickWith(VOLUMES, rng)}`
+    case 'date':
+      return `${pickWith(DATES, rng)}, ${pickWith(YEARS, rng)}`
+    case 'index': {
+      const count = Math.max(1, Math.min(slot?.cell.rs ?? 3, INDEX_LINES.length))
+      return shuffleWith(INDEX_LINES, rng).slice(0, count).join('\n')
+    }
+    case 'mark':
+      return pickWith(FOOTERS, rng)
+    case 'image':
+    case 'block':
+    case 'line':
+      return ''
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1255,4 +1295,4 @@ export function generate(format: Format, opts: GenerateOptions = {}): Design {
   }
 }
 
-export { cellsIntersect, resolveTextCollisions }
+export { OccupancyGrid, cellsIntersect, resolveTextCollisions }

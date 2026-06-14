@@ -12,6 +12,7 @@ export type PosterMineSource =
   | 'daily'
   | 'campaign'
   | 'recipe'
+  | 'snapshot'
 
 export interface SavedPoster {
   id: string

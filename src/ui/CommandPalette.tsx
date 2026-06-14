@@ -3,13 +3,14 @@ import type React from 'react'
 import {
   Shuffle, Grid2x2, Asterisk, GitBranch, Type, Image as ImageIcon, Square, Minus,
   Undo2, Redo2, Download, Link2, Maximize, Scan, Eye, Contrast, Sparkle, Grid3x3,
-  Archive, CalendarDays, Activity, Library,
+  Archive, CalendarDays, Activity, Library, Wand2,
 } from 'lucide-react'
 import { Play } from 'lucide-react'
 import { useDesign } from '../store/useDesign'
 import { exportRaster, exportSvg } from '../export/useExport'
 import { buildShareUrl } from '../design/share'
 import { playPosterMotion } from '../design/motion'
+import { TYPE_SYSTEMS } from '../design/type-systems'
 import { exportVideo, isVideoExportSupported } from '../export/video'
 import { exportKit } from '../export/kit'
 import { copyTextToClipboard } from '../lib/clipboard'
@@ -48,6 +49,7 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
         </CommandGroup>
 
         <CommandGroup heading="Creative loop">
+          <CommandItem onSelect={run(() => s().autoTidy())}><Wand2 /> Auto-tidy</CommandItem>
           <CommandItem onSelect={run(() => s().saveCurrentPoster('manual'))}><Archive /> Save to Poster Mine</CommandItem>
           <CommandItem onSelect={run(() => s().openMine())}><Archive /> Open Poster Mine</CommandItem>
           <CommandItem onSelect={run(() => s().saveCurrentRecipe())}><Library /> Save system recipe</CommandItem>
@@ -71,6 +73,11 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
         </CommandGroup>
 
         <CommandGroup heading="Style">
+          {TYPE_SYSTEMS.map(system => (
+            <CommandItem key={system.id} onSelect={run(() => s().applyTypeSystem(system.id))}>
+              <Type /> Type system: {system.name}
+            </CommandItem>
+          ))}
           <CommandItem onSelect={run(() => s().setStyle({ bwImage: !s().design.style.bwImage }))}>
             <Contrast /> Toggle black &amp; white
           </CommandItem>

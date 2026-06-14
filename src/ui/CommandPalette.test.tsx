@@ -21,6 +21,8 @@ test('renders command groups + items when open', () => {
   render(<CommandPalette svgRef={ref} />)
   expect(screen.getByText('Shuffle layout')).toBeInTheDocument()
   expect(screen.getByText('Surprise — generate new')).toBeInTheDocument()
+  expect(screen.getByText('Auto-tidy')).toBeInTheDocument()
+  expect(screen.getByText('Type system: Mono Technical')).toBeInTheDocument()
   expect(screen.getByText('Copy share link')).toBeInTheDocument()
 })
 

@@ -1,20 +1,39 @@
 // src/ui/sidebar/StyleControls.tsx
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { Check, Pipette } from 'lucide-react'
 import { useDesign } from '../../store/useDesign'
 import { PRESET_PALETTES } from '../../design/palettes'
+import { paletteFromImageFile } from '../../design/palette-extract'
+import type { Palette } from '../../types'
 import { Checkbox } from '../controls/Checkbox'
+import { Button } from '../../components/ui/button'
 import { cn } from '@/lib/utils'
 
 export function StyleControls() {
   const palette = useDesign(s => s.design.palette)
   const style = useDesign(s => s.design.style)
   const setPalette = useDesign(s => s.setPalette)
+  const applyExtractedPalette = useDesign(s => s.applyExtractedPalette)
   const setAccent = useDesign(s => s.setAccent)
   const setStyle = useDesign(s => s.setStyle)
   const colorInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [extractedPalette, setExtractedPalette] = useState<Palette | null>(null)
+  const [paletteError, setPaletteError] = useState<string | null>(null)
 
   const isSelectedPalette = (p: { bg: string; text: string; accent: string }) =>
     p.bg === palette.bg && p.text === palette.text && p.accent === palette.accent
+
+  const handlePaletteFile = async (file?: File) => {
+    if (!file) return
+    try {
+      const next = await paletteFromImageFile(file)
+      setExtractedPalette(next)
+      setPaletteError(null)
+    } catch {
+      setPaletteError('Could not read image palette.')
+    }
+  }
 
   return (
     <div className="sb-section space-y-4">
@@ -47,6 +66,55 @@ export function StyleControls() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => imageInputRef.current?.click()}
+          aria-label="Pull palette from image"
+        >
+          <Pipette size={13} strokeWidth={2.25} />
+          Pull palette from image
+        </Button>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          aria-label="Palette image file"
+          onChange={event => {
+            void handlePaletteFile(event.target.files?.[0])
+            event.currentTarget.value = ''
+          }}
+        />
+        {extractedPalette && (
+          <div className="flex items-center gap-2">
+            <div className="flex overflow-hidden rounded-md border-2 border-foreground">
+              {[extractedPalette.bg, extractedPalette.text, extractedPalette.accent].map(color => (
+                <span key={color} className="h-6 w-8" style={{ background: color }} />
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="default"
+              size="xs"
+              onClick={() => applyExtractedPalette(extractedPalette)}
+              aria-label="Apply extracted palette"
+            >
+              <Check size={12} strokeWidth={2.25} />
+              Apply
+            </Button>
+          </div>
+        )}
+        {paletteError && (
+          <p className="font-sans text-[10px] leading-relaxed text-destructive" role="status">
+            {paletteError}
+          </p>
+        )}
       </div>
 
       {/* Accent colour — styled swatch opens hidden color picker */}

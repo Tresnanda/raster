@@ -7,7 +7,9 @@ import { Header } from './sidebar/Header'
 import { LayoutGrid } from './sidebar/LayoutGrid'
 import { CanvasChips } from './sidebar/CanvasChips'
 import { PosterMineControls } from './sidebar/PosterMineControls'
+import { ArrangeControls } from './sidebar/ArrangeControls'
 import { DailyBriefControls } from './sidebar/DailyBriefControls'
+import { ComponentsControls } from './sidebar/ComponentsControls'
 import { SystemRecipeControls } from './sidebar/SystemRecipeControls'
 import { GridCoachControls } from './sidebar/GridCoachControls'
 import { ContentFields } from './sidebar/ContentFields'
@@ -64,10 +66,24 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
+        {/* Arrange */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-arrange" title="Arrange" defaultOpen>
+            <ArrangeControls />
+          </Section>
+        </div>
+
         {/* Poster Mine — persistent local archive */}
         <div className="sb-section border-t border-border/40">
           <Section id="sidebar-mine" title="Mine" defaultOpen>
             <PosterMineControls />
+          </Section>
+        </div>
+
+        {/* Components */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-components" title="Components" defaultOpen={false}>
+            <ComponentsControls />
           </Section>
         </div>
 

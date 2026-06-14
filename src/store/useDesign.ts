@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Box, Design, Format, ImageEffect, Palette, Shadow, Slot, StyleOptions, TextStyle, Typography } from '../types'
 import { buildDesign } from '../design/build'
 import { reShuffle, mergeContent } from '../design/shuffle'
+import { reshuffleContent, reshuffleSystem } from '../design/reshuffle'
 import { buildFromLayout } from '../design/layouts'
 import { DEFAULT_TYPOGRAPHY, DEFAULT_STYLE, classOf } from '../design/typeclass'
 import { canvasFor } from '../design/formats'
@@ -18,6 +19,17 @@ import {
   type SavedPoster,
 } from '../design/poster-mine'
 import { buildDailyBriefDesign, type DailySwissBrief } from '../design/daily-briefs'
+import { tidy } from '../design/auto-tidy'
+import { applyTypeSystem as applyTypeSystemToDesign } from '../design/type-systems'
+import { readStreak, recordVisit, writeStreak, type StreakState } from '../design/streak'
+import {
+  createSavedComponent,
+  insertSavedComponent,
+  readSavedComponents,
+  writeSavedComponents,
+  type SavedComponent,
+} from '../design/components'
+import type { Guide } from '../design/guides'
 import {
   applySystemRecipe,
   createSystemRecipe,
@@ -32,6 +44,7 @@ import { DEFAULT_MOTION_SEQUENCE, normalizeMotionSequence, type MotionSequence }
 
 const KEY = 'raster:design'
 const POSTER_MINE_STORAGE_ERROR = 'Poster Mine storage is full. Delete a few saved posters or use smaller uploads.'
+type ShuffleScope = 'all' | 'content' | 'system'
 
 function persist(d: Design) {
   try { localStorage.setItem(KEY, JSON.stringify(d)) } catch { /* quota / private mode */ }
@@ -117,18 +130,23 @@ interface State {
   setContent: (slotId: string, content: string) => void
   setFormat: (format: Format) => void
   setPalette: (p: Palette) => void
+  applyExtractedPalette: (p: Palette) => void
   setMode: (mode: 'grid' | 'free') => void
   setText: (slotId: string, patch: Partial<TextStyle>) => void
   setBox: (slotId: string, box: Box) => void
   shuffle: () => void
+  shuffleScope: ShuffleScope
+  setShuffleScope: (scope: ShuffleScope) => void
   pickForMe: () => void
   setTypography: (patch: Partial<Typography>) => void
+  applyTypeSystem: (id: string) => void
   setStyle: (patch: Partial<StyleOptions>) => void
   setAccent: (hex: string) => void
   setLayout: (n: number) => void
   nextLayout: () => void
   prevLayout: () => void
   surprise: () => void
+  autoTidy: () => void
 
   // Element CRUD
   selectElement: (id: string | null) => void
@@ -243,8 +261,20 @@ interface State {
   toggleSavedPosterFavorite: (id: string) => void
   updateSavedPosterTags: (id: string, tags: string[]) => void
 
+  // Reusable components
+  componentLibrary: SavedComponent[]
+  saveSelectedComponent: (name?: string) => SavedComponent | null
+  insertComponent: (id: string) => void
+
+  // Guides
+  guides: Guide[]
+  addGuide: (guide: Guide) => void
+  removeGuide: (index: number) => void
+  clearGuides: () => void
+
   // Daily Swiss Briefs
   dailyBrief: { date: string; brief: DailySwissBrief } | null
+  dailyStreak: StreakState
   applyDailyBrief: (date?: string) => void
 
   // System Recipes
@@ -255,6 +285,8 @@ interface State {
 
   // Swiss Grid Coach
   applyCoachFix: (fixId: CoachFixId) => void
+  pinSnapshot: () => SavedPoster | null
+  restoreSnapshot: (id: string) => void
 
   // Campaign Studio
   campaignRaw: string
@@ -341,11 +373,15 @@ export const useDesign = create<State>((set, get) => {
     mineOpen: false,
     savedPosters: readSavedPosters(),
     posterMineError: null,
+    componentLibrary: readSavedComponents(),
+    guides: [],
     dailyBrief: null,
+    dailyStreak: readStreak(),
     systemRecipes: readSystemRecipes(),
     campaignRaw: '',
     campaignItems: [],
     activeCampaignId: null,
+    shuffleScope: 'all',
 
     setSnap: (snap) => {
       set({ snap })
@@ -405,6 +441,11 @@ export const useDesign = create<State>((set, get) => {
       commit(d)
     },
 
+    applyExtractedPalette: (palette) => {
+      const d = { ...get().design, palette }
+      commit(d)
+    },
+
     setMode: (mode) => {
       const d = { ...get().design, mode }
       commit(d)
@@ -422,8 +463,21 @@ export const useDesign = create<State>((set, get) => {
     },
 
     shuffle: () => {
-      const d = reShuffle(get().design)
+      const current = get().design
+      const seed = ((current.seed ?? 0) + 1) >>> 0
+      const scope = get().shuffleScope
+      const d = scope === 'content'
+        ? reshuffleContent(current, seed)
+        : scope === 'system'
+          ? reshuffleSystem(current, seed)
+          : current.archetype === 'generated'
+            ? generate(current.format, { seed })
+            : reShuffle(current)
       commit(d)
+    },
+
+    setShuffleScope: (scope) => {
+      set({ shuffleScope: scope })
     },
 
     pickForMe: () => {
@@ -435,6 +489,10 @@ export const useDesign = create<State>((set, get) => {
     setTypography: (patch) => {
       const d = { ...get().design, typography: { ...get().design.typography, ...patch } }
       commit(d, { coalesceKey: 'typography' })
+    },
+
+    applyTypeSystem: (id) => {
+      commit(applyTypeSystemToDesign(get().design, id))
     },
 
     setStyle: (patch) => {
@@ -475,10 +533,20 @@ export const useDesign = create<State>((set, get) => {
 
     surprise: () => {
       const current = get().design
-      const d = generate(current.format)
+      const seed = ((current.seed ?? 0) + 1) >>> 0
+      const scope = get().shuffleScope
+      const d = scope === 'content'
+        ? reshuffleContent(current, seed)
+        : scope === 'system'
+          ? reshuffleSystem(current, seed)
+          : generate(current.format)
       // surprise is a discrete action — commit then clear selection
       commit(d)
       set({ selectedId: null, selectedIds: [] })
+    },
+
+    autoTidy: () => {
+      commit(tidy(get().design))
     },
 
     // ---------------------------------------------------------------------------
@@ -1154,6 +1222,34 @@ export const useDesign = create<State>((set, get) => {
       set({ savedPosters: posters, posterMineError: null })
     },
 
+    saveSelectedComponent: (name) => {
+      const ids = get().selectedIds
+      if (ids.length === 0) return null
+      const component = createSavedComponent(get().design, ids, { name })
+      const components = [component, ...get().componentLibrary].slice(0, 40)
+      if (!writeSavedComponents(components)) return null
+      set({ componentLibrary: components })
+      return component
+    },
+
+    insertComponent: (id) => {
+      const component = get().componentLibrary.find(item => item.id === id)
+      if (!component) return
+      commit(insertSavedComponent(get().design, component))
+    },
+
+    addGuide: (guide) => {
+      set({ guides: [...get().guides, guide] })
+    },
+
+    removeGuide: (index) => {
+      set({ guides: get().guides.filter((_, i) => i !== index) })
+    },
+
+    clearGuides: () => {
+      set({ guides: [] })
+    },
+
     // -------------------------------------------------------------------------
     // Daily Swiss Briefs
     // -------------------------------------------------------------------------
@@ -1168,8 +1264,11 @@ export const useDesign = create<State>((set, get) => {
       })
       const posters = [saved, ...get().savedPosters].slice(0, 80)
       const savedToMine = writeSavedPosters(posters)
+      const nextStreak = recordVisit(applied.date, get().dailyStreak)
+      writeStreak(nextStreak)
       set({
         dailyBrief: { date: applied.date, brief: applied.brief },
+        dailyStreak: nextStreak,
         savedPosters: savedToMine ? posters : get().savedPosters,
         posterMineError: savedToMine ? null : POSTER_MINE_STORAGE_ERROR,
         selectedId: null,
@@ -1209,6 +1308,24 @@ export const useDesign = create<State>((set, get) => {
 
     applyCoachFix: (fixId) => {
       commit(applyCoachFixToDesign(get().design, fixId))
+    },
+
+    pinSnapshot: () => {
+      const saved = createSavedPoster(get().design, { source: 'snapshot', title: 'Snapshot' })
+      const posters = [saved, ...get().savedPosters].slice(0, 80)
+      if (!writeSavedPosters(posters)) {
+        set({ posterMineError: POSTER_MINE_STORAGE_ERROR })
+        return null
+      }
+      set({ savedPosters: posters, posterMineError: null })
+      return saved
+    },
+
+    restoreSnapshot: (id) => {
+      const snapshot = get().savedPosters.find(poster => poster.id === id && poster.source === 'snapshot')
+      if (!snapshot) return
+      commit(JSON.parse(JSON.stringify(snapshot.design)) as Design)
+      set({ selectedId: null, selectedIds: [] })
     },
 
     // -------------------------------------------------------------------------

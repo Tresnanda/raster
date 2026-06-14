@@ -71,6 +71,8 @@ function ZoomHUD() {
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
   const snap = useDesign(s => s.snap)
+  const guides = useDesign(s => s.guides)
+  const addGuide = useDesign(s => s.addGuide)
   const zoom = useDesign(s => s.zoom)
   const pan = useDesign(s => s.pan)
   const setZoom = useDesign(s => s.setZoom)
@@ -194,6 +196,15 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   // ── Cursor style ──────────────────────────────────────────────────────────
 
   const cursor = isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : 'default'
+
+  const addGuideFromPointer = (axis: 'x' | 'y', e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const pos = axis === 'x'
+      ? ((e.clientX - rect.left) / rect.width) * c.w
+      : ((e.clientY - rect.top) / rect.height) * c.h
+    addGuide({ axis, pos: Math.round(Math.max(0, Math.min(axis === 'x' ? c.w : c.h, pos))) })
+  }
 
   // ── Tracks for add-element pop and surprise detection ─────────────────────
   const prevSlotsLenRef = useRef(design.slots.length)
@@ -334,6 +345,59 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
           }}
         >
           <Renderer design={design} svgRef={svgRef} />
+          <div
+            data-ruler-top
+            role="button"
+            tabIndex={0}
+            aria-label="Add vertical guide"
+            onPointerDown={e => addGuideFromPointer('x', e)}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: -18,
+              width: '100%',
+              height: 14,
+              border: '1px solid #18181b',
+              background: '#ffffff',
+              backgroundImage: 'repeating-linear-gradient(to right, #18181b 0 1px, transparent 1px 24px)',
+              pointerEvents: 'all',
+            }}
+          />
+          <div
+            data-ruler-left
+            role="button"
+            tabIndex={0}
+            aria-label="Add horizontal guide"
+            onPointerDown={e => addGuideFromPointer('y', e)}
+            style={{
+              position: 'absolute',
+              left: -18,
+              top: 0,
+              width: 14,
+              height: '100%',
+              border: '1px solid #18181b',
+              background: '#ffffff',
+              backgroundImage: 'repeating-linear-gradient(to bottom, #18181b 0 1px, transparent 1px 24px)',
+              pointerEvents: 'all',
+            }}
+          />
+          {guides.map((guide, index) => (
+            <div
+              key={`${guide.axis}-${guide.pos}-${index}`}
+              data-user-guide
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: guide.axis === 'x' ? guide.pos : 0,
+                top: guide.axis === 'y' ? guide.pos : 0,
+                width: guide.axis === 'x' ? 1 : c.w,
+                height: guide.axis === 'y' ? 1 : c.h,
+                background: '#2354d8',
+                opacity: 0.75,
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
           <ComposerOverlay scale={scale} zoom={zoom} snap={snap} />
         </div>
       </div>

@@ -6,7 +6,9 @@ import { Button } from '../../components/ui/button'
 export function DailyBriefControls({ today = todayKey() }: { today?: string }) {
   const brief = dailyBriefForDate(today)
   const active = useDesign(s => s.dailyBrief)
+  const streak = useDesign(s => s.dailyStreak)
   const applyDailyBrief = useDesign(s => s.applyDailyBrief)
+  const doneToday = active?.date === today && streak.lastDate === today
 
   return (
     <div className="sb-section space-y-2">
@@ -31,6 +33,18 @@ export function DailyBriefControls({ today = todayKey() }: { today?: string }) {
         <Sparkles size={13} strokeWidth={2.25} />
         {active?.date === today ? 'Restart brief' : 'Start brief'}
       </Button>
+      {streak.current > 0 && (
+        <div className="flex items-center justify-between rounded-md border-2 border-foreground bg-card px-2.5 py-2">
+          <span className="font-sans text-[10px] font-semibold text-foreground">
+            {streak.current}-day streak
+          </span>
+          {doneToday && (
+            <span className="font-mono text-[9px] uppercase text-muted-foreground">
+              Done today
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

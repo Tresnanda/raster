@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { CanvasStage } from './CanvasStage'
 import { CropModal } from './CropModal'
 import { ComposerRail } from './ComposerRail'
+import { RiffModal } from './RiffModal'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import '../archetypes/index'
 
@@ -21,6 +22,7 @@ export default function App() {
         <ComposerRail />
       </div>
       <CropModal />
+      <RiffModal />
     </div>
   )
 }

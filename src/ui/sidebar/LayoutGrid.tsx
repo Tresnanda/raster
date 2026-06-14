@@ -1,6 +1,6 @@
 // src/ui/sidebar/LayoutGrid.tsx
 import { useRef } from 'react'
-import { Shuffle, Dices, Sparkles } from 'lucide-react'
+import { Shuffle, Dices, Sparkles, Wand2 } from 'lucide-react'
 import gsap from 'gsap'
 import { useDesign } from '../../store/useDesign'
 import { LAYOUTS } from '../../design/layouts'
@@ -11,9 +11,11 @@ export function LayoutGrid() {
   const shuffleAction = useDesign(s => s.shuffle)
   const pickForMeAction = useDesign(s => s.pickForMe)
   const surpriseAction = useDesign(s => s.surprise)
+  const openRiff = useDesign(s => s.openRiff)
 
   const shuffleIconRef = useRef<HTMLSpanElement>(null)
   const surpriseIconRef = useRef<HTMLSpanElement>(null)
+  const riffIconRef = useRef<HTMLSpanElement>(null)
 
   function handleShuffle() {
     shuffleAction()
@@ -35,6 +37,21 @@ export function LayoutGrid() {
       scale: 0.8,
       duration: 0.3,
       ease: 'power3.out',
+      transformOrigin: '50% 50%',
+    })
+  }
+
+  function handleRiff() {
+    openRiff()
+    const icon = riffIconRef.current
+    if (!icon) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mq.matches) return
+    gsap.from(icon, {
+      scale: 0.7,
+      rotation: 20,
+      duration: 0.35,
+      ease: 'back.out(2)',
       transformOrigin: '50% 50%',
     })
   }
@@ -69,7 +86,7 @@ export function LayoutGrid() {
         ))}
       </div>
 
-      {/* Three generation buttons */}
+      {/* Generation buttons */}
       <div className="flex flex-col gap-1.5">
         <div className="flex gap-1.5">
           {/* Shuffle — outline */}
@@ -91,29 +108,47 @@ export function LayoutGrid() {
             className={[baseBtn, 'flex-1 border border-neutral-200 text-neutral-700 hover:border-neutral-400'].join(' ')}
           >
             <Dices size={14} />
-            Pick for me
+            Pick
           </button>
         </div>
 
-        {/* Surprise — primary filled */}
-        <button
-          onClick={handleSurprise}
-          title="Generate a brand-new unique design"
-          className={[
-            baseBtn,
-            'w-full border border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-800 hover:border-neutral-800',
-          ].join(' ')}
-        >
-          <span ref={surpriseIconRef} style={{ display: 'contents' }}>
-            <Sparkles size={14} />
-          </span>
-          Surprise me
-        </button>
+        <div className="flex gap-1.5">
+          {/* Surprise — primary filled */}
+          <button
+            onClick={handleSurprise}
+            title="Generate a brand-new unique design"
+            className={[
+              baseBtn,
+              'flex-1 border border-neutral-900 bg-neutral-900 text-white hover:bg-neutral-800 hover:border-neutral-800',
+            ].join(' ')}
+          >
+            <span ref={surpriseIconRef} style={{ display: 'contents' }}>
+              <Sparkles size={14} />
+            </span>
+            Surprise
+          </button>
+
+          {/* Riff — accent filled */}
+          <button
+            onClick={handleRiff}
+            title="Open variation explorer — mutate and evolve the current design"
+            data-testid="riff-button"
+            className={[
+              baseBtn,
+              'flex-1 border border-violet-600 bg-violet-600 text-white hover:bg-violet-700 hover:border-violet-700',
+            ].join(' ')}
+          >
+            <span ref={riffIconRef} style={{ display: 'contents' }}>
+              <Wand2 size={14} />
+            </span>
+            Riff
+          </button>
+        </div>
       </div>
 
       {/* Microcopy */}
       <p className="text-[11px] text-neutral-400 leading-relaxed">
-        Shuffle reworks this layout · Pick jumps to a preset · Surprise invents a new one.
+        Shuffle reworks this layout · Pick jumps to a preset · Surprise invents a new one · Riff mutates and evolves.
       </p>
     </div>
   )

@@ -28,21 +28,22 @@ export function Slider({
       step={step}
       value={[value]}
       onValueChange={([v]) => onChange(v)}
-      aria-label={ariaLabel}
       className={cn(
         'relative flex w-full touch-none select-none items-center',
         className,
       )}
     >
-      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-neutral-200">
-        <SliderPrimitive.Range className="absolute h-full bg-neutral-900" />
+      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-muted">
+        <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
+      {/* aria-label on Thumb so role="slider" + name query works in tests */}
       <SliderPrimitive.Thumb
+        aria-label={ariaLabel}
         className={cn(
-          'block h-3.5 w-3.5 rounded-full bg-white border border-neutral-300 shadow-sm',
+          'block h-3.5 w-3.5 rounded-full bg-background border border-border shadow-sm',
           'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
           'hover:scale-110',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/15 focus-visible:ring-offset-1',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-1',
           'disabled:pointer-events-none disabled:opacity-50',
         )}
       />

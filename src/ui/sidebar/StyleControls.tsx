@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import { useDesign } from '../../store/useDesign'
 import { PRESET_PALETTES } from '../../design/palettes'
 import { Checkbox } from '../controls/Checkbox'
+import { cn } from '@/lib/utils'
 
 export function StyleControls() {
   const palette = useDesign(s => s.design.palette)
@@ -19,7 +20,7 @@ export function StyleControls() {
     <div className="sb-section space-y-4">
       {/* Palette swatches */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Palette
         </div>
         <div className="flex flex-wrap gap-2">
@@ -28,14 +29,14 @@ export function StyleControls() {
               key={p.name}
               title={p.name}
               onClick={() => setPalette({ ...p.palette })}
-              className={[
+              className={cn(
                 'relative h-9 w-9 overflow-hidden rounded-lg border-2',
                 'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-                'active:scale-[0.97]',
+                'active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                 isSelectedPalette(p.palette)
-                  ? 'border-neutral-900 ring-2 ring-neutral-900 ring-offset-2'
-                  : 'border-neutral-200 hover:border-neutral-400',
-              ].join(' ')}
+                  ? 'border-foreground ring-2 ring-foreground ring-offset-2'
+                  : 'border-border hover:border-foreground/40',
+              )}
               style={{ background: p.palette.bg }}
             >
               <span
@@ -50,13 +51,13 @@ export function StyleControls() {
 
       {/* Accent colour — styled swatch opens hidden color picker */}
       <div className="flex items-center gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Accent
         </span>
         <button
           type="button"
           onClick={() => colorInputRef.current?.click()}
-          className="h-7 w-12 rounded-md border-2 border-neutral-200 shadow-sm hover:border-neutral-400 transition-colors duration-150 active:scale-[0.97] transition-transform"
+          className="h-7 w-12 rounded-md border-2 border-border shadow-sm hover:border-foreground/40 transition-colors duration-150 active:scale-[0.97]"
           style={{ background: palette.accent }}
           aria-label="Pick accent colour"
         />
@@ -89,7 +90,7 @@ export function StyleControls() {
         ))}
       </div>
 
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         Global defaults — select any element to override per-element style.
       </p>
     </div>

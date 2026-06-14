@@ -23,7 +23,7 @@ interface SliderRowProps {
 function SliderRow({ label, value, min, max, step, onChange }: SliderRowProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-20 shrink-0 text-xs text-neutral-500">{label}</div>
+      <div className="w-20 shrink-0 text-xs text-muted-foreground">{label}</div>
       <Slider
         min={min}
         max={max}
@@ -32,7 +32,7 @@ function SliderRow({ label, value, min, max, step, onChange }: SliderRowProps) {
         onChange={onChange}
         className="flex-1"
       />
-      <div className="w-12 text-right text-xs tabular-nums text-neutral-600">
+      <div className="w-12 text-right text-xs tabular-nums text-foreground/70">
         {step < 0.01 ? value.toFixed(3) : step < 1 ? value.toFixed(2) : value}
       </div>
     </div>
@@ -48,7 +48,7 @@ export function TypographyControls() {
       <div className="space-y-1">
         <label
           htmlFor="tc-typeface"
-          className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+          className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
         >
           Typeface
         </label>
@@ -94,7 +94,7 @@ export function TypographyControls() {
         />
       </div>
 
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         Global defaults — select any element to override it. Tracking and leading apply to title + headline.
       </p>
     </div>

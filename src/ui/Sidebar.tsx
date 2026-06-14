@@ -36,11 +36,11 @@ export function Sidebar({ svgRef }: SidebarProps) {
   return (
     <aside
       aria-label="Design"
-      className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-neutral-100 bg-white overflow-y-auto"
+      className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-border bg-background overflow-y-auto"
     >
-      <div ref={sidebarRootRef} className="px-4 py-4 space-y-0.5">
+      <div ref={sidebarRootRef} className="min-w-0 px-4 py-4 pb-10 space-y-0.5">
         {/* Brand lockup — not a collapsible section */}
-        <div className="sb-section pb-4 border-b border-neutral-100 mb-3">
+        <div className="sb-section pb-4 border-b border-border mb-3">
           <Header />
         </div>
 
@@ -51,7 +51,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        <div className="border-t border-neutral-100" />
+        <div className="border-t border-border" />
 
         {/* Canvas format */}
         <div className="sb-section">
@@ -60,7 +60,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        <div className="border-t border-neutral-100" />
+        <div className="border-t border-border" />
 
         {/* Typography — collapsed by default (global defaults) */}
         <div className="sb-section">
@@ -69,7 +69,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        <div className="border-t border-neutral-100" />
+        <div className="border-t border-border" />
 
         {/* Style — open by default */}
         <div className="sb-section">
@@ -78,7 +78,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        <div className="border-t border-neutral-100" />
+        <div className="border-t border-border" />
 
         {/* Content slots — open by default; on-canvas editing is primary but
             the section is readily available without requiring a click */}
@@ -88,7 +88,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        <div className="border-t border-neutral-100" />
+        <div className="border-t border-border" />
 
         {/* Export — collapsed */}
         <div className="sb-section">

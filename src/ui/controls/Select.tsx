@@ -1,4 +1,4 @@
-// src/ui/controls/Select.tsx — Ink Brutalism Radix Select replacing native <select>
+// src/ui/controls/Select.tsx — Neo-brutalist Radix Select
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -34,11 +34,10 @@ export function Select({
         aria-label={ariaLabel}
         className={cn(
           'inline-flex w-full items-center justify-between gap-2',
-          'rounded-none border-2 border-foreground bg-background px-2.5 py-1.5',
-          'font-mono text-xs font-bold uppercase tracking-[0.08em] text-foreground',
-          'shadow-brutal-sm',
+          'rounded-md border border-input bg-background px-2.5 py-1.5',
+          'font-sans text-xs font-medium text-foreground',
           'transition-[border-color] duration-100',
-          'focus-visible:border-accent focus-visible:outline-none',
+          'focus-visible:border-2 focus-visible:border-foreground focus-visible:outline-none',
           'disabled:cursor-not-allowed disabled:opacity-40',
           '[&>span]:line-clamp-1 [&>span]:text-left',
           className,
@@ -60,8 +59,8 @@ export function Select({
           sideOffset={2}
           className={cn(
             'z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden',
-            'rounded-none border-2 border-foreground bg-background shadow-brutal',
-            'p-0',
+            'rounded-md border-2 border-foreground bg-background shadow-brutal',
+            'p-1',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
             'data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
@@ -76,11 +75,11 @@ export function Select({
                 value={opt.value}
                 className={cn(
                   'relative flex w-full cursor-pointer select-none items-center',
-                  'rounded-none py-1.5 pl-2.5 pr-8',
-                  'font-mono text-xs font-bold uppercase tracking-[0.08em] text-foreground outline-none',
+                  'rounded-sm py-1.5 pl-2.5 pr-8',
+                  'font-sans text-xs font-medium text-foreground outline-none',
                   'transition-colors duration-100',
                   'data-[highlighted]:bg-foreground data-[highlighted]:text-background',
-                  'data-[state=checked]:text-accent',
+                  'data-[state=checked]:font-semibold',
                   'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
                 )}
               >

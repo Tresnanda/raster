@@ -1,5 +1,5 @@
 // src/ui/controls/NumberField.tsx
-// Ink Brutalism number field with Figma-style drag-to-scrub on the label
+// Neo-brutalist number field with Figma-style drag-to-scrub on the label
 import { useRef, useCallback } from 'react'
 import type { PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
@@ -76,10 +76,11 @@ export function NumberField({
 
   return (
     <div className={cn('flex flex-col gap-1', className)}>
+      {/* Scrubable label — clean sans */}
       <span
         role="presentation"
         className={cn(
-          'cursor-ew-resize select-none font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground',
+          'cursor-ew-resize select-none font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground',
           'hover:text-foreground transition-colors duration-100',
         )}
         title={`Drag to change ${label}`}
@@ -89,6 +90,7 @@ export function NumberField({
       >
         {label}
       </span>
+      {/* Value input — mono for numeric data */}
       <input
         ref={inputRef}
         id={inputId}
@@ -103,9 +105,9 @@ export function NumberField({
           if (!isNaN(v)) onChange(clamp(v))
         }}
         className={cn(
-          'w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground',
+          'w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground',
           'transition-[border-color] duration-100',
-          'focus:border-accent focus:outline-none',
+          'focus:border-2 focus:border-foreground focus:outline-none',
           // Hide native spinners
           '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
         )}

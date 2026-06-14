@@ -1,5 +1,5 @@
 // src/ui/controls/SegmentedControl.tsx
-// Ink Brutalism segmented control — hard borders, inverted active
+// Neo-brutalist segmented control — hard borders, inverted active, 6px radius
 import { type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string = string>({
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex flex-wrap gap-0 rounded-none border-2 border-foreground bg-background overflow-hidden',
+        'inline-flex flex-wrap gap-0 rounded-md border-2 border-foreground bg-background overflow-hidden',
         className,
       )}
     >
@@ -41,7 +41,7 @@ export function SegmentedControl<T extends string = string>({
           aria-label={typeof opt.ariaLabel === 'string' ? opt.ariaLabel : undefined}
           onClick={() => onValueChange(opt.value)}
           className={cn(
-            'px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em]',
+            'px-2.5 py-1.5 font-sans text-[10px] font-semibold',
             'transition-colors duration-100',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground focus-visible:z-10',
             // Dividers between items

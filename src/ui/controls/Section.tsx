@@ -1,5 +1,5 @@
 // src/ui/controls/Section.tsx
-// Ink Brutalism collapsible section using Radix Accordion, with localStorage persistence
+// Neo-brutalist collapsible section using Radix Accordion, with localStorage persistence
 import { useState, type ReactNode } from 'react'
 import * as AccordionPrimitive from '@radix-ui/react-accordion'
 import { cn } from '@/lib/utils'
@@ -42,27 +42,23 @@ export function Section({ id, title, children, defaultOpen = true, className }: 
         <AccordionPrimitive.Header asChild>
           <AccordionPrimitive.Trigger
             className={cn(
-              'group flex w-full items-center justify-between gap-2 px-0 py-2',
-              'font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground',
+              'group flex w-full items-center justify-between gap-2 px-0 py-2.5',
+              'font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground',
               'transition-colors duration-100 hover:text-foreground',
               'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
             )}
           >
-            {/* Industrial section label with bracket markers */}
-            <span className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="text-muted-foreground/60 font-mono text-[11px]">▚</span>
-              <span>{title.toUpperCase()}</span>
-            </span>
+            <span>{title.toUpperCase()}</span>
             {/* +/− caret */}
             <span
               aria-hidden="true"
-              className="font-mono text-[14px] font-bold text-muted-foreground group-data-[state=open]:hidden leading-none"
+              className="font-sans text-[13px] font-semibold text-muted-foreground group-data-[state=open]:hidden leading-none"
             >
               +
             </span>
             <span
               aria-hidden="true"
-              className="hidden font-mono text-[14px] font-bold text-muted-foreground group-data-[state=open]:inline leading-none"
+              className="hidden font-sans text-[13px] font-semibold text-muted-foreground group-data-[state=open]:inline leading-none"
             >
               −
             </span>
@@ -75,7 +71,7 @@ export function Section({ id, title, children, defaultOpen = true, className }: 
             'data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up',
           )}
         >
-          <div className="pb-2 pt-1">{children}</div>
+          <div className="pb-3 pt-1">{children}</div>
         </AccordionPrimitive.Content>
       </AccordionPrimitive.Item>
     </AccordionPrimitive.Root>

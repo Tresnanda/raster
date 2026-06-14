@@ -124,13 +124,13 @@ export function CropModal() {
       <div
         ref={cardRef}
         role="document"
-        className="bg-background rounded-none border-2 border-foreground shadow-brutal w-[min(90vw,640px)] flex flex-col overflow-hidden"
+        className="bg-background rounded-md border-2 border-foreground shadow-brutal-lg w-[min(90vw,640px)] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-4 py-3 border-b-2 border-foreground flex items-center justify-between">
-          <span className="font-mono text-[11px] font-bold tracking-[0.12em] uppercase text-foreground">
-            [ Crop Image ]
+        <div className="px-5 py-3.5 border-b border-border/40 flex items-center justify-between">
+          <span className="font-sans text-sm font-semibold text-foreground">
+            Crop Image
           </span>
           <Button
             variant="ghost"
@@ -164,7 +164,7 @@ export function CropModal() {
         <div className="px-5 py-4 flex flex-col gap-4">
           {/* Zoom control */}
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground whitespace-nowrap w-10 shrink-0">
+            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap w-10 shrink-0">
               Zoom
             </span>
             <Slider

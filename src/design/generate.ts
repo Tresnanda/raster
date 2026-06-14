@@ -321,7 +321,7 @@ class OccupancyGrid {
   }
 }
 
-// Tracks which cells contain image pixels — used for scrim decisions
+// Tracks which cells contain image pixels for placement constraints.
 class ImageRegionSet {
   private grid: boolean[][]
   readonly cols: number
@@ -360,8 +360,8 @@ class ImageRegionSet {
 // Skeleton decision space — the "infinite" dimension
 // ---------------------------------------------------------------------------
 
-type ImageTreatment = 'none' | 'full-bleed' | 'framed-block' | 'half-split-left' | 'half-split-right' | 'h-band' | 'v-band'
-type DominantType = 'mega-word' | 'headline-stack' | 'giant-numeral' | 'oversized-glyph'
+type ImageTreatment = 'none' | 'full-bleed' | 'framed-block' | 'half-split-left' | 'half-split-right' | 'h-band'
+type DominantType = 'mega-word' | 'headline-stack' | 'giant-numeral'
 type DominantAnchor = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'left-band' | 'right-band' | 'top-band' | 'bottom-band' | 'mid-left' | 'mid-right'
 type AccentType = 'none' | 'h-rule' | 'v-rule' | 'accent-block'
 type ClusterKind = 'meta' | 'caption' | 'index' | 'date' | 'kicker' | 'footer-mark'
@@ -568,7 +568,7 @@ function chooseSkeleton(grammar: SwissGrammar, brief: GenerationBrief): Skeleton
   const grammarDefaults = grammarSkeleton(grammar)
   const dominantType = grammarDefaults.dominantType
   // Size range varies by type
-  const dominantSize = dominantType === 'mega-word' || dominantType === 'oversized-glyph'
+  const dominantSize = dominantType === 'mega-word'
     ? randInt(240, 380)
     : dominantType === 'giant-numeral'
       ? randInt(280, 400)
@@ -622,7 +622,6 @@ function imageCandidates(treatment: ImageTreatment): GridCell[] {
         { c: 0, cs: COLS, r: Math.floor((ROWS - rs) / 2), rs },
       ].map(clampCell)
     }
-    case 'v-band': return [] // dropped — read as an accidental sliver
   }
 }
 
@@ -659,7 +658,7 @@ function placeImage(
  *  Biases toward edges and corners — never the exact center. */
 function resolveDominantCell(anchor: DominantAnchor, dominantType: DominantType): GridCell {
   // Row/col spans vary by type:
-  //   mega-word / oversized-glyph: wide & tall
+  //   mega-word: wide & tall
   //   giant-numeral: wide & medium
   //   headline-stack: medium width, taller
   const cs = dominantType === 'headline-stack' ? randInt(6, 10) : randInt(8, 12)
@@ -737,17 +736,6 @@ function placeDominant(
         cell,
         content: maybe(0.6) ? pick(YEARS) : pick(NUMERALS),
         text: headlineText(skeleton.dominantSize, align),
-        typeClass: 'title',
-      }
-      break
-    case 'oversized-glyph':
-      // Retired from the dominant pool (it produced lone letters). Kept for the
-      // exhaustive switch — now emits a full short word, never a single char.
-      slot = {
-        id: id(), role: 'glyph', z,
-        cell,
-        content: pick(HEADLINE_WORDS),
-        text: titleText(skeleton.dominantSize, align),
         typeClass: 'title',
       }
       break
@@ -877,8 +865,7 @@ function clusterSlot(kind: ClusterKind, cell: GridCell, z: number, id: () => str
   }
 }
 
-/** Place 0..n supporting clusters in free occupancy slots.
- *  Each cluster gets a scrim if it lands on an image region. */
+/** Place 0..n supporting clusters in free occupancy slots. */
 function placeSupportingClusters(
   skeleton: Skeleton,
   occ: OccupancyGrid,
@@ -977,12 +964,6 @@ function enforceWhitespace(slots: Slot[], occ: OccupancyGrid): Slot[] {
     const toDrop = droppable[i]
     const idx = result.findIndex(s => s.id === toDrop.id)
     if (idx !== -1) result.splice(idx, 1)
-    // Remove paired scrim: same cell position, role: 'block', z = toDrop.z - 1
-    const scrimIdx = result.findIndex(
-      s => s.role === 'block' && s.z === (toDrop.z! - 1) &&
-        s.cell.c === toDrop.cell.c && s.cell.r === toDrop.cell.r
-    )
-    if (scrimIdx !== -1) result.splice(scrimIdx, 1)
   }
   return result
 }

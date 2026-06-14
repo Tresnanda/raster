@@ -49,7 +49,7 @@
 ### 0c. Cheap polish (optional, same PR)
 - [x] `GridCoachControls`: wrap `buildGridCoachReport(design)` in `useMemo(() => …, [design])`.
 - [x] Commit the currently-uncommitted working-tree changes on the branch (grid-coach bounds expansion + "Studio"/"Saved snapshots" copy) so they're actually part of history.
-- [ ] Prune dead generator branches if trivial: retired `oversized-glyph` DominantType, `v-band` ImageTreatment, and the scrim-removal block in `enforceWhitespace`. (Low priority — they're inert.)
+- [x] Prune dead generator branches if trivial: retired `oversized-glyph` DominantType, `v-band` ImageTreatment, and the scrim-removal block in `enforceWhitespace`. (Low priority — they're inert.)
 
 ---
 
@@ -118,15 +118,15 @@ Each is: one pure `src/design/*` module + test, one store action, one small side
 **Tests:** round-trip save→insert preserves relative geometry; new ids are unique vs existing; content/text/images preserved.
 
 ### 3b. Context menu (shadcn `context-menu`)
-- [ ] `npx shadcn add context-menu` (do not overwrite existing brutalist primitives).
-- [ ] Wire `onContextMenu` in `ComposerOverlay.tsx` on a selected element: Cut / Copy / Paste / Duplicate / Delete, Bring forward / Send back, Lock / Hide, Align (reuse `alignSelection`), "Save as component", "Auto-tidy". All actions route through existing store actions.
-- [ ] Tests: menu renders for a selected slot; each item dispatches the right store action (RTL).
+- [x] `npx shadcn add context-menu` (do not overwrite existing brutalist primitives).
+- [x] Wire `onContextMenu` in `ComposerOverlay.tsx` on a selected element: Cut / Copy / Paste / Duplicate / Delete, Bring forward / Send back, Lock / Hide, Align (reuse `alignSelection`), "Save as component", "Auto-tidy". All actions route through existing store actions.
+- [x] Tests: menu renders for a selected slot; each item dispatches the right store action (RTL).
 
 ### 3c. Rulers + draggable guides
 **What:** Top + left rulers in poster units; drag from a ruler to create a guide; elements snap to guides.
 - [x] Store: `guides: { axis: 'x' | 'y'; pos: number }[]` + `addGuide/removeGuide/clearGuides` (NOT undo-tracked, or a separate light history — decide and document).
 - [x] Render rulers as a `CanvasStage` overlay (tick marks scale with zoom — reuse the existing `safeScale / zoom` math from ComposerOverlay).
-- [ ] Drag-to-create from ruler; integrate guide snapping into the existing move/resize snap logic alongside element smart-guides.
+- [x] Drag-to-create from ruler; integrate guide snapping into the existing move/resize snap logic alongside element smart-guides.
 - [x] Tests: pure snap helper (`snapToGuides(value, guides, threshold)`) unit-tested; add/remove guide reducer-tested.
 
 ### 3d. Version snapshots

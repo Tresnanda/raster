@@ -756,3 +756,77 @@ test('setProcessedImage updates content WITHOUT adding a history step', () => {
   expect(slot.content).toBe('data:image/png;base64,processed')
   expect(useDesign.getState().past.length).toBe(pastBefore)
 })
+
+// ── Riff store tests ──────────────────────────────────────────────────────────
+
+test('seedRiff creates root node and sets currentId', () => {
+  const state = useDesign.getState()
+  state.seedRiff()
+  const { riffTree, design } = useDesign.getState()
+  expect(riffTree.rootId).not.toBeNull()
+  expect(riffTree.currentId).toBe(riffTree.rootId)
+  const root = riffTree.nodes[riffTree.rootId!]
+  expect(root.parentId).toBeNull()
+  expect(root.design).toEqual(design)
+})
+
+test('seedRiff is idempotent — calling twice does not overwrite root', () => {
+  const state = useDesign.getState()
+  state.seedRiff()
+  const firstRoot = useDesign.getState().riffTree.rootId
+  state.seedRiff()
+  expect(useDesign.getState().riffTree.rootId).toBe(firstRoot)
+})
+
+test('applyRiff appends a child node, sets currentId, and commits working design', () => {
+  const state = useDesign.getState()
+  state.seedRiff()
+  const rootId = useDesign.getState().riffTree.rootId!
+  const pastBefore = useDesign.getState().past.length
+
+  const newDesign = { ...useDesign.getState().design, seed: 9999 }
+  state.applyRiff(newDesign)
+
+  const { riffTree, design } = useDesign.getState()
+  expect(design.seed).toBe(9999)
+  expect(riffTree.currentId).not.toBe(rootId)
+  const child = riffTree.nodes[riffTree.currentId!]
+  expect(child.parentId).toBe(rootId)
+  expect(child.design.seed).toBe(9999)
+  // Past should have grown by 1 (undoable)
+  expect(useDesign.getState().past.length).toBe(pastBefore + 1)
+})
+
+test('gotoRiffNode switches working design to that node', () => {
+  const state = useDesign.getState()
+  state.seedRiff()
+  const rootId = useDesign.getState().riffTree.rootId!
+  const originalSeed = useDesign.getState().design.seed
+
+  const variantDesign = { ...useDesign.getState().design, seed: 12345 }
+  state.applyRiff(variantDesign)
+  expect(useDesign.getState().design.seed).toBe(12345)
+
+  state.gotoRiffNode(rootId)
+  expect(useDesign.getState().design.seed).toBe(originalSeed)
+  expect(useDesign.getState().riffTree.currentId).toBe(rootId)
+})
+
+test('setRiffStrength clamps to 0..1', () => {
+  useDesign.getState().setRiffStrength(0.7)
+  expect(useDesign.getState().riffStrength).toBe(0.7)
+
+  useDesign.getState().setRiffStrength(-0.5)
+  expect(useDesign.getState().riffStrength).toBe(0)
+
+  useDesign.getState().setRiffStrength(2)
+  expect(useDesign.getState().riffStrength).toBe(1)
+})
+
+test('openRiff and closeRiff toggle riffOpen', () => {
+  expect(useDesign.getState().riffOpen).toBe(false)
+  useDesign.getState().openRiff()
+  expect(useDesign.getState().riffOpen).toBe(true)
+  useDesign.getState().closeRiff()
+  expect(useDesign.getState().riffOpen).toBe(false)
+})

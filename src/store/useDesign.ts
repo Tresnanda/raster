@@ -56,6 +56,12 @@ function nextElId(): string {
   return `el-${Date.now()}-${++_elCounter}`
 }
 
+/** Counter for riff node ids — simple incrementing, collision-free. */
+let _riffNodeCounter = 0
+function nextRiffId(): string {
+  return `riff-${++_riffNodeCounter}`
+}
+
 // ---------------------------------------------------------------------------
 // History coalescing
 // ---------------------------------------------------------------------------
@@ -156,6 +162,41 @@ interface State {
   placeImage: (slotId: string, src: string) => void
   setImageEffect: (slotId: string, effect: ImageEffect) => void
   setProcessedImage: (slotId: string, dataUrl: string) => void
+
+  // -------------------------------------------------------------------------
+  // Riff / variation explorer
+  // -------------------------------------------------------------------------
+
+  /** Whether the Riff modal is open. */
+  riffOpen: boolean
+  openRiff: () => void
+  closeRiff: () => void
+
+  /** Mutation strength 0..1. Default 0.5. */
+  riffStrength: number
+  setRiffStrength: (n: number) => void
+
+  /** In-memory lineage tree. */
+  riffTree: {
+    nodes: Record<string, RiffNode>
+    rootId: string | null
+    currentId: string | null
+  }
+
+  /** Seed the tree from the current design (creates root, sets current). */
+  seedRiff: () => void
+
+  /** Apply a mutated variant as the working design and add a child tree node. */
+  applyRiff: (design: Design) => void
+
+  /** Jump to an earlier tree node and branch from there. */
+  gotoRiffNode: (id: string) => void
+}
+
+export interface RiffNode {
+  id: string
+  parentId: string | null
+  design: Design
 }
 
 import '../archetypes/index'
@@ -196,6 +237,9 @@ export const useDesign = create<State>((set, get) => {
     past: [],
     future: [],
     clipboard: null,
+    riffOpen: false,
+    riffStrength: 0.5,
+    riffTree: { nodes: {}, rootId: null, currentId: null },
 
     setSnap: (snap) => {
       set({ snap })
@@ -775,6 +819,67 @@ export const useDesign = create<State>((set, get) => {
       // persist to localStorage so the result survives a refresh
       persist(next)
       set({ design: next })
+    },
+
+    // -------------------------------------------------------------------------
+    // Riff / variation explorer
+    // -------------------------------------------------------------------------
+
+    openRiff: () => {
+      set({ riffOpen: true })
+    },
+
+    closeRiff: () => {
+      set({ riffOpen: false })
+    },
+
+    setRiffStrength: (n) => {
+      set({ riffStrength: Math.max(0, Math.min(1, n)) })
+    },
+
+    seedRiff: () => {
+      const { design, riffTree } = get()
+      // Only create root if tree is empty
+      if (riffTree.rootId !== null) return
+      const id = nextRiffId()
+      const node = { id, parentId: null, design }
+      set({
+        riffTree: {
+          nodes: { [id]: node },
+          rootId: id,
+          currentId: id,
+        },
+      })
+    },
+
+    applyRiff: (design) => {
+      const { riffTree } = get()
+      const id = nextRiffId()
+      const parentId = riffTree.currentId
+      const node = { id, parentId, design }
+      const nodes = { ...riffTree.nodes, [id]: node }
+      // Commit as undoable history step
+      commit(design)
+      set({
+        riffTree: {
+          nodes,
+          rootId: riffTree.rootId,
+          currentId: id,
+        },
+      })
+    },
+
+    gotoRiffNode: (id) => {
+      const { riffTree } = get()
+      const node = riffTree.nodes[id]
+      if (!node) return
+      commit(node.design)
+      set({
+        riffTree: {
+          ...riffTree,
+          currentId: id,
+        },
+      })
     },
   }
 })

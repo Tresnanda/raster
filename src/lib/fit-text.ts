@@ -4,15 +4,20 @@ export interface FitOpts { maxSize: number; minSize: number; leading: number }
 export interface FitResult { size: number; lines: string[] }
 
 function wrap(text: string, size: number, maxW: number, measure: Measurer): string[] {
-  const words = text.split(/\s+/).filter(Boolean)
   const lines: string[] = []
-  let cur = ''
-  for (const word of words) {
-    const trial = cur ? cur + ' ' + word : word
-    if (measure(trial, size) <= maxW || !cur) cur = trial
-    else { lines.push(cur); cur = word }
+  // Honor explicit line breaks first: each \n is a HARD break the user intended.
+  // Then word-wrap each segment independently so only genuinely-too-wide lines wrap.
+  for (const segment of text.split('\n')) {
+    const words = segment.split(/[ \t]+/).filter(Boolean)
+    if (words.length === 0) { lines.push(''); continue }  // preserve blank lines
+    let cur = ''
+    for (const word of words) {
+      const trial = cur ? cur + ' ' + word : word
+      if (measure(trial, size) <= maxW || !cur) cur = trial
+      else { lines.push(cur); cur = word }
+    }
+    if (cur) lines.push(cur)
   }
-  if (cur) lines.push(cur)
   return lines.length ? lines : ['']
 }
 

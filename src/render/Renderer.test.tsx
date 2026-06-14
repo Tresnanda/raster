@@ -1,8 +1,11 @@
-import { expect, test } from 'vitest'
+import { expect, test, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { Renderer } from './Renderer'
 import { buildDesign } from '../design/build'
+import { useDesign } from '../store/useDesign'
 import '../archetypes/index'
+
+beforeEach(() => { localStorage.clear(); useDesign.getState().reset('mega-word', '1:1') })
 
 const measure = (t: string, s: number) => t.length * s * 0.5
 
@@ -189,4 +192,113 @@ test('slot with no opacity renders <g data-slot> with opacity 1 (default)', () =
   // Either no attribute or "1" — both are equivalent
   const opacityAttr = group.getAttribute('opacity')
   expect(opacityAttr === null || opacityAttr === '1').toBe(true)
+})
+// ── Transform: rotation ───────────────────────────────────────────────────────
+
+test('slot with rotation:45 produces transform containing rotate(45', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.rotation = 45
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.getAttribute('transform')).toContain('rotate(45')
+})
+
+test('slot with no rotation has no transform attribute', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  delete slot.rotation
+  delete slot.flipH
+  delete slot.flipV
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  const t = group.getAttribute('transform')
+  expect(!t || t === '' || t === 'none').toBe(true)
+})
+
+// ── Transform: flip ───────────────────────────────────────────────────────────
+
+test('slot with flipH produces transform containing scale(-1 1)', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.flipH = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.getAttribute('transform')).toContain('scale(-1 1)')
+})
+
+test('slot with flipV produces transform containing scale(1 -1)', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.flipV = true
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.getAttribute('transform')).toContain('scale(1 -1)')
+})
+
+// ── Transform: shadow ─────────────────────────────────────────────────────────
+
+test('slot with shadow adds feDropShadow filter in defs', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.shadow = { dx: 0, dy: 8, blur: 16, color: '#000000' }
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const filter = container.querySelector(`#shadow-${slot.id}`)
+  expect(filter).toBeTruthy()
+  const feDropShadow = filter!.querySelector('feDropShadow')
+  expect(feDropShadow).toBeTruthy()
+})
+
+test('slot with shadow sets filter attribute on group', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.shadow = { dx: 0, dy: 8, blur: 16, color: '#000000' }
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.getAttribute('filter')).toBe(`url(#shadow-${slot.id})`)
+})
+
+test('slot without shadow has no filter attribute', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  delete slot.shadow
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.getAttribute('filter')).toBeNull()
+})
+
+// ── Transform: blend ─────────────────────────────────────────────────────────
+
+test('slot with blend:multiply sets mix-blend-mode style on group', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  slot.blend = 'multiply'
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  expect(group.style.mixBlendMode).toBe('multiply')
+})
+
+test('slot with no blend has no mix-blend-mode style', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const slot = d.slots.find(s => s.id === 'word')!
+  delete slot.blend
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${slot.id}"]`) as SVGElement
+  // Either no style or empty string
+  const bm = group.style.mixBlendMode
+  expect(!bm || bm === 'normal').toBe(true)
+})
+
+// ── Transform: block radius ───────────────────────────────────────────────────
+
+test('block slot with radius:20 renders rect with rx="20"', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  // Add a block slot
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  blockSlot.radius = 20
+  const { container } = render(<Renderer design={useDesign.getState().design} measure={measure} />)
+  const rect = container.querySelector(`[data-slot="${blockSlot.id}"] rect`) as SVGRectElement
+  expect(rect?.getAttribute('rx')).toBe('20')
 })

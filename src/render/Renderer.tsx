@@ -1,5 +1,6 @@
 import type React from 'react'
-import type { Design } from '../types'
+import type { Design, Slot } from '../types'
+import type { Box } from '../types'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { defaultMeasurer, type Measure } from '../lib/measure'
@@ -10,6 +11,40 @@ import { SlotText } from './slot-text'
 import { orderedSlots } from '../design/order'
 
 const GRAIN_SEED = 7
+
+// ---------------------------------------------------------------------------
+// Transform helpers
+// ---------------------------------------------------------------------------
+
+/** Build a centered SVG transform string for rotation + flip, or undefined if none needed. */
+function buildTransform(box: Box, slot: Slot): string | undefined {
+  const hasRotation = slot.rotation !== undefined && slot.rotation !== 0
+  const hasFlipH = !!slot.flipH
+  const hasFlipV = !!slot.flipV
+  if (!hasRotation && !hasFlipH && !hasFlipV) return undefined
+
+  const cx = box.x + box.w / 2
+  const cy = box.y + box.h / 2
+  const parts: string[] = []
+
+  if (hasRotation) {
+    parts.push(`rotate(${slot.rotation} ${cx} ${cy})`)
+  }
+  if (hasFlipH) {
+    // Mirror around cx: translate to place origin at cx, scale -1, translate back
+    parts.push(`translate(${2 * cx} 0) scale(-1 1)`)
+  }
+  if (hasFlipV) {
+    // Mirror around cy
+    parts.push(`translate(0 ${2 * cy}) scale(1 -1)`)
+  }
+
+  return parts.join(' ')
+}
+
+// ---------------------------------------------------------------------------
+// Renderer
+// ---------------------------------------------------------------------------
 
 export function Renderer({ design, measure, svgRef }: {
   design: Design
@@ -27,25 +62,17 @@ export function Renderer({ design, measure, svgRef }: {
     const colW = (canvas.w - 2 * margin - (cols - 1) * gutter) / cols
     const rowH = (canvas.h - 2 * margin - (rows - 1) * gutter) / rows
 
-    const verticals: number[] = []
-    for (let c = 0; c <= cols; c++) {
-      // left edge of col c (or right edge after last col)
-      verticals.push(margin + c * (colW + gutter) - (c > 0 ? gutter : 0))
-    }
-    // Actually compute column boundary x positions correctly:
-    // left edge of each column + right edge of last column
     const vLines: number[] = []
     for (let c = 0; c < cols; c++) {
-      vLines.push(margin + c * (colW + gutter))            // left edge
-      vLines.push(margin + c * (colW + gutter) + colW)     // right edge
+      vLines.push(margin + c * (colW + gutter))
+      vLines.push(margin + c * (colW + gutter) + colW)
     }
-    // deduplicate (adjacent cols share a boundary)
     const vUniq = [...new Set(vLines)]
 
     const hLines: number[] = []
     for (let r = 0; r < rows; r++) {
-      hLines.push(margin + r * (rowH + gutter))            // top edge
-      hLines.push(margin + r * (rowH + gutter) + rowH)     // bottom edge
+      hLines.push(margin + r * (rowH + gutter))
+      hLines.push(margin + r * (rowH + gutter) + rowH)
     }
     const hUniq = [...new Set(hLines)]
 
@@ -63,6 +90,16 @@ export function Renderer({ design, measure, svgRef }: {
     )
   })()
 
+  // ---- Collect shadow filters ----
+  const slotsWithShadow = orderedSlots(design).filter(s => s.shadow)
+
+  // ---- Resolve stroke colour token ----
+  function resolveStroke(stroke: string): string {
+    if (stroke === 'accent') return palette.accent
+    if (stroke === 'text') return palette.text
+    return stroke
+  }
+
   return (
       <svg
         ref={svgRef}
@@ -70,10 +107,10 @@ export function Renderer({ design, measure, svgRef }: {
         viewBox={`0 0 ${canvas.w} ${canvas.h}`}
         width="100%" height="100%"
       >
-        {/* Background — stays as sibling, not wrapped */}
+        {/* Background */}
         <rect data-bg x={0} y={0} width={canvas.w} height={canvas.h} fill={palette.bg} />
 
-        {/* Defs: filters for bw and grain */}
+        {/* Defs: bw filter, grain filter, per-slot shadow filters */}
         <defs>
           <filter id="raster-bw">
             <feColorMatrix type="saturate" values="0" />
@@ -89,16 +126,47 @@ export function Renderer({ design, measure, svgRef }: {
               />
             </filter>
           )}
+          {slotsWithShadow.map(slot => {
+            const sh = slot.shadow!
+            return (
+              <filter key={slot.id} id={`shadow-${slot.id}`}>
+                <feDropShadow
+                  dx={sh.dx}
+                  dy={sh.dy}
+                  stdDeviation={sh.blur / 2}
+                  floodColor={sh.color}
+                  floodOpacity={0.5}
+                />
+              </filter>
+            )
+          })}
         </defs>
 
-        {/* Slots — rendered in ascending z-order, each wrapped in <g data-slot> */}
+        {/* Slots */}
         {orderedSlots(design).map(slot => {
           const box = slotBox(canvas, design.grid, slot)
+          const transform = buildTransform(box, slot) || undefined
+          const filterAttr = slot.shadow ? `url(#shadow-${slot.id})` : undefined
+          const blendMode = (slot.blend && slot.blend !== 'normal')
+            ? slot.blend as React.CSSProperties['mixBlendMode']
+            : undefined
 
           if (slot.role === 'image') {
             return (
-              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
-                <SlotImage box={box} src={slot.content} bw={slot.bw ?? style.bwImage} />
+              <g key={slot.id} data-slot={slot.id}
+                opacity={slot.opacity ?? 1}
+                transform={transform}
+                filter={filterAttr}
+                style={{ mixBlendMode: blendMode }}
+              >
+                <SlotImage
+                  box={box}
+                  src={slot.content}
+                  bw={slot.bw ?? style.bwImage}
+                  radius={slot.radius}
+                  stroke={slot.stroke ? resolveStroke(slot.stroke) : undefined}
+                  strokeWidth={slot.strokeWidth}
+                />
               </g>
             )
           }
@@ -106,9 +174,22 @@ export function Renderer({ design, measure, svgRef }: {
           if (slot.role === 'block') {
             const fill = slot.fill === 'accent' ? palette.accent
               : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
+            const rx = slot.radius ?? 0
+            const strokeColor = slot.stroke ? resolveStroke(slot.stroke) : undefined
             return (
-              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
-                <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
+              <g key={slot.id} data-slot={slot.id}
+                opacity={slot.opacity ?? 1}
+                transform={transform}
+                filter={filterAttr}
+                style={{ mixBlendMode: blendMode }}
+              >
+                <rect
+                  x={box.x} y={box.y} width={box.w} height={box.h}
+                  fill={fill}
+                  rx={rx} ry={rx}
+                  stroke={strokeColor}
+                  strokeWidth={strokeColor ? (slot.strokeWidth ?? 2) : undefined}
+                />
               </g>
             )
           }
@@ -117,7 +198,12 @@ export function Renderer({ design, measure, svgRef }: {
             const fill = slot.fill === 'accent' ? palette.accent
               : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
             return (
-              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
+              <g key={slot.id} data-slot={slot.id}
+                opacity={slot.opacity ?? 1}
+                transform={transform}
+                filter={filterAttr}
+                style={{ mixBlendMode: blendMode }}
+              >
                 <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
               </g>
             )
@@ -130,7 +216,12 @@ export function Renderer({ design, measure, svgRef }: {
             ((style.accentHeadline && cls === 'title') ? palette.accent : palette.text)
 
           return (
-            <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
+            <g key={slot.id} data-slot={slot.id}
+              opacity={slot.opacity ?? 1}
+              transform={transform}
+              filter={filterAttr}
+              style={{ mixBlendMode: blendMode }}
+            >
               <SlotText
                 id={slot.id}
                 box={box}
@@ -146,10 +237,10 @@ export function Renderer({ design, measure, svgRef }: {
           )
         })}
 
-        {/* Grid overlay — above slots */}
+        {/* Grid overlay */}
         {gridLines}
 
-        {/* Film grain — topmost, above everything */}
+        {/* Film grain */}
         {style.filmGrain && (
           <rect
             data-grain

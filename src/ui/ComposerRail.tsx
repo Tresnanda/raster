@@ -7,7 +7,9 @@ import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { resolveTextStyle } from '../render/resolve-style'
 import { ImageInput } from './ImageInput'
-import type { FontFamily, Slot } from '../types'
+import type { FontFamily, ImageEffectKind, Slot } from '../types'
+import type { ImageEffect } from '../types'
+import { EFFECT_DEFAULTS } from '../lib/image-effects'
 
 // ── Micro label ──────────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -232,6 +234,311 @@ function ImageFillControl({
   )
 }
 
+// ── ImageEffectsPanel ──────────────────────────────────────────────────────────
+const EFFECT_CHIPS: { kind: ImageEffectKind; label: string }[] = [
+  { kind: 'none',       label: 'None' },
+  { kind: 'halftone',   label: 'Halftone' },
+  { kind: 'duotone',   label: 'Duotone' },
+  { kind: 'dither',    label: 'Dither' },
+  { kind: 'posterize', label: 'Posterize' },
+  { kind: 'threshold', label: 'Threshold' },
+  { kind: 'invert',    label: 'Invert' },
+  { kind: 'grayscale', label: 'B&W' },
+]
+
+function ImageEffectsPanel({
+  slotId,
+  effect,
+  onSetEffect,
+}: {
+  slotId: string
+  effect: ImageEffect | undefined
+  onSetEffect: (slotId: string, effect: ImageEffect) => void
+}) {
+  const activeKind: ImageEffectKind = effect?.kind ?? 'none'
+  const params = effect?.params ?? {}
+
+  const chipCls = (active: boolean) => [
+    'rounded border px-2 py-1 text-[11px] font-medium transition-colors duration-100',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+    'active:scale-[0.97]',
+    active
+      ? 'border-neutral-900 bg-neutral-900 text-white'
+      : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+  ].join(' ')
+
+  const selectKind = (kind: ImageEffectKind) => {
+    onSetEffect(slotId, { kind, params: { ...EFFECT_DEFAULTS[kind], ...params } })
+  }
+
+  const updateParam = (key: string, value: number | string) => {
+    onSetEffect(slotId, {
+      kind: activeKind,
+      params: { ...params, [key]: value },
+    })
+  }
+
+  return (
+    <div className="space-y-2.5" data-effects-panel>
+      {/* Kind chips -- 4-column grid */}
+      <div className="grid grid-cols-4 gap-1">
+        {EFFECT_CHIPS.map(({ kind, label }) => (
+          <button
+            key={kind}
+            aria-label={label}
+            onClick={() => selectKind(kind)}
+            className={chipCls(activeKind === kind)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Param controls for the active kind */}
+      {activeKind === 'halftone' && (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <label
+              htmlFor={`ef-cell-${slotId}`}
+              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+            >
+              Cell size
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id={`ef-cell-${slotId}`}
+                aria-label="Cell"
+                type="range"
+                min={4}
+                max={24}
+                step={1}
+                value={Number(params.cell ?? 8)}
+                onChange={e => updateParam('cell', Number(e.target.value))}
+                className="flex-1 accent-neutral-900"
+              />
+              <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
+                {Number(params.cell ?? 8)}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label
+              htmlFor={`ef-angle-${slotId}`}
+              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+            >
+              Angle
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id={`ef-angle-${slotId}`}
+                aria-label="Angle"
+                type="range"
+                min={0}
+                max={90}
+                step={1}
+                value={Number(params.angle ?? 45)}
+                onChange={e => updateParam('angle', Number(e.target.value))}
+                className="flex-1 accent-neutral-900"
+              />
+              <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
+                {Number(params.angle ?? 45)}&#xb0;
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col gap-0.5">
+              <label
+                htmlFor={`ef-dark-${slotId}`}
+                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+              >
+                Dark
+              </label>
+              <input
+                id={`ef-dark-${slotId}`}
+                type="color"
+                aria-label="Dark colour"
+                value={String(params.dark ?? '#000000')}
+                onChange={e => updateParam('dark', e.target.value)}
+                className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <label
+                htmlFor={`ef-light-${slotId}`}
+                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+              >
+                Light
+              </label>
+              <input
+                id={`ef-light-${slotId}`}
+                type="color"
+                aria-label="Light colour"
+                value={String(params.light ?? '#ffffff')}
+                onChange={e => updateParam('light', e.target.value)}
+                className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeKind === 'duotone' && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col gap-0.5">
+            <label
+              htmlFor={`ef-dark-${slotId}`}
+              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+            >
+              Dark
+            </label>
+            <input
+              id={`ef-dark-${slotId}`}
+              type="color"
+              aria-label="Dark colour"
+              value={String(params.dark ?? '#000000')}
+              onChange={e => updateParam('dark', e.target.value)}
+              className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label
+              htmlFor={`ef-light-${slotId}`}
+              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+            >
+              Light
+            </label>
+            <input
+              id={`ef-light-${slotId}`}
+              type="color"
+              aria-label="Light colour"
+              value={String(params.light ?? '#ffffff')}
+              onChange={e => updateParam('light', e.target.value)}
+              className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+            />
+          </div>
+        </div>
+      )}
+
+      {activeKind === 'dither' && (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <label
+              htmlFor={`ef-scale-${slotId}`}
+              className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+            >
+              Scale
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id={`ef-scale-${slotId}`}
+                aria-label="Scale"
+                type="range"
+                min={1}
+                max={4}
+                step={1}
+                value={Number(params.scale ?? 2)}
+                onChange={e => updateParam('scale', Number(e.target.value))}
+                className="flex-1 accent-neutral-900"
+              />
+              <span className="w-4 text-right text-[10px] tabular-nums text-neutral-500">
+                {Number(params.scale ?? 2)}
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col gap-0.5">
+              <label
+                htmlFor={`ef-dark-${slotId}`}
+                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+              >
+                Dark
+              </label>
+              <input
+                id={`ef-dark-${slotId}`}
+                type="color"
+                aria-label="Dark colour"
+                value={String(params.dark ?? '#000000')}
+                onChange={e => updateParam('dark', e.target.value)}
+                className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <label
+                htmlFor={`ef-light-${slotId}`}
+                className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+              >
+                Light
+              </label>
+              <input
+                id={`ef-light-${slotId}`}
+                type="color"
+                aria-label="Light colour"
+                value={String(params.light ?? '#ffffff')}
+                onChange={e => updateParam('light', e.target.value)}
+                className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeKind === 'posterize' && (
+        <div className="space-y-1">
+          <label
+            htmlFor={`ef-levels-${slotId}`}
+            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+          >
+            Levels
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id={`ef-levels-${slotId}`}
+              aria-label="Levels"
+              type="range"
+              min={2}
+              max={8}
+              step={1}
+              value={Number(params.levels ?? 4)}
+              onChange={e => updateParam('levels', Number(e.target.value))}
+              className="flex-1 accent-neutral-900"
+            />
+            <span className="w-4 text-right text-[10px] tabular-nums text-neutral-500">
+              {Number(params.levels ?? 4)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {activeKind === 'threshold' && (
+        <div className="space-y-1">
+          <label
+            htmlFor={`ef-cutoff-${slotId}`}
+            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+          >
+            Cutoff
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id={`ef-cutoff-${slotId}`}
+              aria-label="Cutoff"
+              type="range"
+              min={0}
+              max={255}
+              step={1}
+              value={Number(params.cutoff ?? 128)}
+              onChange={e => updateParam('cutoff', Number(e.target.value))}
+              className="flex-1 accent-neutral-900"
+            />
+            <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
+              {Number(params.cutoff ?? 128)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function ComposerRail() {
   const design = useDesign(s => s.design)
@@ -262,6 +569,7 @@ export function ComposerRail() {
   const setStrokeWidth = useDesign(s => s.setStrokeWidth)
   const setShadow = useDesign(s => s.setShadow)
   const setBlend = useDesign(s => s.setBlend)
+  const setImageEffect = useDesign(s => s.setImageEffect)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
   const undo = useDesign(s => s.undo)
@@ -724,6 +1032,18 @@ export function ComposerRail() {
                       onChange={v => setBw(selectedSlot.id, v)}
                     />
                   </InspectorRow>
+
+                  {/* EFFECTS */}
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                      Effects
+                    </div>
+                    <ImageEffectsPanel
+                      slotId={selectedSlot.id}
+                      effect={selectedSlot.imageEffect}
+                      onSetEffect={setImageEffect}
+                    />
+                  </div>
                 </div>
               )}
 

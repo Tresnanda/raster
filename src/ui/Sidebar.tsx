@@ -41,7 +41,7 @@ export function Sidebar({ svgRef }: SidebarProps) {
   }, { scope: sidebarRootRef })
 
   return (
-    <aside className="w-[360px] shrink-0 min-h-0 border-r border-neutral-200 bg-white overflow-y-auto">
+    <aside className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-neutral-200 bg-white overflow-y-auto">
       <div ref={sidebarRootRef} className="p-5">
         <Header />
 

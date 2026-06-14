@@ -1,2 +1,16 @@
 @import "./fonts/fonts.css";
 @import "tailwindcss";
+
+/* Lock the document to the viewport — only inner panes scroll, never the page.
+   Prevents scroll-chaining from a pane spilling into a full-page scroll/void. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}

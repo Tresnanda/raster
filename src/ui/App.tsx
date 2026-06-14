@@ -2,7 +2,6 @@
 import { useRef } from 'react'
 import { Sidebar } from './Sidebar'
 import { CanvasStage } from './CanvasStage'
-import { BottomBar } from './BottomBar'
 import { CropModal } from './CropModal'
 import { ComposerRail } from './ComposerRail'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
@@ -21,7 +20,6 @@ export default function App() {
         </main>
         <ComposerRail />
       </div>
-      <BottomBar />
       <CropModal />
     </div>
   )

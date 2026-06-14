@@ -148,6 +148,9 @@ export type SwissGrammar =
   | 'typographic-monument'
   | 'image-diptych'
   | 'index-rail'
+  | 'occlusion-bar'
+
+export type ExpressiveMove = 'none' | 'controlled-occlusion'
 
 export interface GenerationReadability {
   textOverlapCount: number
@@ -156,10 +159,13 @@ export interface GenerationReadability {
   supportingTextCount: number
   dominantRatio: number
   occupiedFraction: number
+  expressiveMoveCount: number
+  occludedTitleFraction: number
 }
 
 export interface GenerationMeta {
   grammar: SwissGrammar
+  expressiveMove: ExpressiveMove
   score: number
   candidateCount: number
   readability: GenerationReadability

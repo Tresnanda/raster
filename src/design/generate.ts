@@ -1,4 +1,4 @@
-import type { Design, Format, GenerationReadability, GridCell, Slot, SwissGrammar, TextStyle } from '../types'
+import type { Design, ExpressiveMove, Format, GenerationReadability, GridCell, Slot, SwissGrammar, TextStyle } from '../types'
 import { defaultGrid } from './formats'
 import { PRESET_PALETTES } from './palettes'
 import { DEFAULT_TYPOGRAPHY } from './typeclass'
@@ -142,6 +142,16 @@ function cellsIntersect(a: GridCell, b: GridCell): boolean {
   const aC = a.c + a.cs   // exclusive right
   const bC = b.c + b.cs
   return a.r < bR && aR > b.r && a.c < bC && aC > b.c
+}
+
+function cellArea(cell: GridCell): number {
+  return cell.cs * cell.rs
+}
+
+function cellIntersectionArea(a: GridCell, b: GridCell): number {
+  const r = Math.max(0, Math.min(a.r + a.rs, b.r + b.rs) - Math.max(a.r, b.r))
+  const c = Math.max(0, Math.min(a.c + a.cs, b.c + b.cs) - Math.max(a.c, b.c))
+  return r * c
 }
 
 /**
@@ -318,6 +328,7 @@ type ClusterKind = 'meta' | 'caption' | 'index' | 'date' | 'kicker' | 'footer-ma
 
 interface Skeleton {
   grammar: SwissGrammar
+  expressiveMove: ExpressiveMove
   imageTreatment: ImageTreatment
   dominantType: DominantType
   dominantAnchor: DominantAnchor
@@ -336,12 +347,14 @@ const SWISS_GRAMMARS: SwissGrammar[] = [
   'typographic-monument',
   'image-diptych',
   'index-rail',
+  'occlusion-bar',
 ]
 
-function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment' | 'dominantType' | 'dominantAnchor' | 'clusterKinds' | 'accentType'> {
+function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'expressiveMove' | 'imageTreatment' | 'dominantType' | 'dominantAnchor' | 'clusterKinds' | 'accentType'> {
   switch (grammar) {
     case 'split-field':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['half-split-left', 'half-split-right', 'framed-block'] as ImageTreatment[]),
         dominantType: pick(['mega-word', 'headline-stack'] as DominantType[]),
         dominantAnchor: pick(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'mid-left', 'mid-right'] as DominantAnchor[]),
@@ -350,6 +363,7 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment'
       }
     case 'asymmetric-headline':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['none', 'framed-block', 'h-band'] as ImageTreatment[]),
         dominantType: pick(['mega-word', 'mega-word', 'headline-stack'] as DominantType[]),
         dominantAnchor: pick(['top-left', 'bottom-left', 'top-right', 'bottom-right', 'left-band', 'right-band'] as DominantAnchor[]),
@@ -358,6 +372,7 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment'
       }
     case 'modular-catalog':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['framed-block', 'framed-block', 'none'] as ImageTreatment[]),
         dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
         dominantAnchor: pick(['top-left', 'top-right', 'left-band', 'right-band'] as DominantAnchor[]),
@@ -366,6 +381,7 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment'
       }
     case 'typographic-monument':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['none', 'none', 'full-bleed'] as ImageTreatment[]),
         dominantType: pick(['mega-word', 'giant-numeral'] as DominantType[]),
         dominantAnchor: pick(['top-left', 'bottom-left', 'top-right', 'bottom-right', 'mid-left', 'mid-right'] as DominantAnchor[]),
@@ -374,6 +390,7 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment'
       }
     case 'image-diptych':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['half-split-left', 'half-split-right', 'framed-block'] as ImageTreatment[]),
         dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
         dominantAnchor: pick(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as DominantAnchor[]),
@@ -382,11 +399,21 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'imageTreatment'
       }
     case 'index-rail':
       return {
+        expressiveMove: 'none',
         imageTreatment: pick(['none', 'h-band', 'framed-block'] as ImageTreatment[]),
         dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
         dominantAnchor: pick(['left-band', 'right-band', 'top-left', 'top-right'] as DominantAnchor[]),
         clusterKinds: ['index', ...shuffle(['footer-mark', 'date', 'meta']).slice(0, randInt(1, 2))] as ClusterKind[],
         accentType: pick(['v-rule', 'none', 'h-rule'] as AccentType[]),
+      }
+    case 'occlusion-bar':
+      return {
+        expressiveMove: 'controlled-occlusion',
+        imageTreatment: pick(['none', 'framed-block', 'h-band'] as ImageTreatment[]),
+        dominantType: pick(['mega-word', 'headline-stack'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'top-right', 'mid-left', 'mid-right', 'bottom-left', 'bottom-right'] as DominantAnchor[]),
+        clusterKinds: shuffle(['meta', 'date', 'footer-mark', 'caption']).slice(0, randInt(1, 2)) as ClusterKind[],
+        accentType: 'none',
       }
   }
 }
@@ -405,6 +432,7 @@ function chooseSkeleton(grammar: SwissGrammar): Skeleton {
 
   return {
     grammar,
+    expressiveMove: grammarDefaults.expressiveMove,
     imageTreatment: grammarDefaults.imageTreatment,
     dominantType,
     dominantAnchor: grammarDefaults.dominantAnchor,
@@ -584,6 +612,35 @@ function placeDominant(
   void imgRegions; void bgColor // no scrims — real photos carry their own contrast
 
   return [slot!]
+}
+
+function placeControlledOcclusion(
+  skeleton: Skeleton,
+  dominantSlots: Slot[],
+  occ: OccupancyGrid,
+  id: () => string,
+): Slot | null {
+  if (skeleton.expressiveMove !== 'controlled-occlusion') return null
+
+  const title = dominantSlots.find(s => s.typeClass === 'title')
+  if (!title) return null
+
+  const barRow = Math.min(
+    ROWS - 1,
+    title.cell.r + Math.max(0, Math.floor(title.cell.rs * 0.45)),
+  )
+  const cell = clampCell({ c: 0, cs: COLS, r: barRow, rs: 1 })
+  occ.claim(cell)
+
+  return {
+    id: id(),
+    role: 'block',
+    z: 6,
+    cell,
+    content: '',
+    fill: 'accent',
+    name: 'controlled-occlusion',
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -803,7 +860,12 @@ function compose(
   const dominantSlots = placeDominant(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...dominantSlots)
 
-  // 2. Image (z:1) — placed in free space beside the dominant, or full-bleed behind.
+  // 2. Optional expressive move — one grid-aligned violation, claimed so small
+  //    supporting text does not land underneath it.
+  const occlusionSlot = placeControlledOcclusion(skeleton, dominantSlots, occ, id)
+  if (occlusionSlot) allSlots.push(occlusionSlot)
+
+  // 3. Image (z:1) — placed in free space beside the dominant, or full-bleed behind.
   const imageSlot = placeImage(skeleton.imageTreatment, occ, imgRegions, id)
   if (imageSlot) allSlots.push(imageSlot)
 
@@ -817,18 +879,18 @@ function compose(
     skeleton.clusterKinds = skeleton.clusterKinds.slice(0, 1)
   }
 
-  // 3. Supporting clusters (z:4) — placed only in free cells (around the image).
+  // 4. Supporting clusters (z:4) — placed only in free cells (around the image).
   const clusterSlots = placeSupportingClusters(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...clusterSlots)
 
-  // 4. Accent (z:2, optional)
+  // 5. Accent (z:2, optional)
   const accentSlot = placeAccent(skeleton, occ, id)
   if (accentSlot) allSlots.push(accentSlot)
 
-  // 5. Whitespace enforcement: drop clusters if over 70% cell budget
+  // 6. Whitespace enforcement: drop clusters if over 70% cell budget
   const budgetedSlots = enforceWhitespace(allSlots, occ)
 
-  // 6. Final collision guard: text-on-text overlap resolution
+  // 7. Final collision guard: text-on-text overlap resolution
   return resolveTextCollisions(budgetedSlots, COLS, ROWS)
 }
 
@@ -840,6 +902,10 @@ const TEXT_ROLES_SET = new Set(['headline', 'subhead', 'caption', 'date', 'index
 
 function isFullBleedCell(cell: GridCell): boolean {
   return cell.c === 0 && cell.cs === COLS && cell.r === 0 && cell.rs === ROWS
+}
+
+function isControlledOcclusion(slot: Slot): boolean {
+  return slot.role === 'block' && slot.name === 'controlled-occlusion'
 }
 
 function occupiedFraction(slots: Slot[]): number {
@@ -874,6 +940,14 @@ function analyzeReadability(slots: Slot[]): GenerationReadability {
 
   const sizes = textSlots.map(s => s.text?.size ?? 0).sort((a, b) => b - a)
   const dominantRatio = sizes.length < 2 ? 3 : sizes[0] / Math.max(1, sizes[1])
+  const title = slots.find(s => s.typeClass === 'title' && s.text)
+  const controlledOcclusions = slots.filter(isControlledOcclusion)
+  const occludedTitleArea = title
+    ? controlledOcclusions.reduce((sum, s) => sum + cellIntersectionArea(s.cell, title.cell), 0)
+    : 0
+  const occludedTitleFraction = title
+    ? Math.min(1, occludedTitleArea / Math.max(1, cellArea(title.cell)))
+    : 0
 
   return {
     textOverlapCount,
@@ -882,6 +956,8 @@ function analyzeReadability(slots: Slot[]): GenerationReadability {
     supportingTextCount: slots.filter(s => s.text && s.typeClass !== 'title').length,
     dominantRatio,
     occupiedFraction: occupiedFraction(slots),
+    expressiveMoveCount: controlledOcclusions.length,
+    occludedTitleFraction,
   }
 }
 
@@ -908,6 +984,16 @@ function scoreCandidate(slots: Slot[], skeleton: Skeleton): { score: number; rea
   if (readability.dominantRatio < 2) score -= Math.round((2 - readability.dominantRatio) * 14)
   if (readability.occupiedFraction > 0.7) score -= Math.round((readability.occupiedFraction - 0.7) * 80)
   if (readability.occupiedFraction < 0.08) score -= 8
+  if (readability.expressiveMoveCount > 1) score -= (readability.expressiveMoveCount - 1) * 30
+  if (skeleton.expressiveMove === 'controlled-occlusion') {
+    if (readability.expressiveMoveCount !== 1) score -= 30
+    if (readability.occludedTitleFraction <= 0) score -= 20
+    if (readability.occludedTitleFraction > 0.35) {
+      score -= Math.round((readability.occludedTitleFraction - 0.35) * 100)
+    }
+  } else if (readability.occludedTitleFraction > 0) {
+    score -= 24
+  }
   score += edgeTensionScore(slots)
   if (slots.some(s => s.role === 'line' || s.role === 'block')) score += 2
   if (skeleton.grammar === 'modular-catalog' || skeleton.grammar === 'index-rail') {
@@ -983,6 +1069,7 @@ function buildCandidate(
     layout: 0,
     generation: {
       grammar,
+      expressiveMove: skeleton.expressiveMove,
       score: generation.score,
       candidateCount,
       readability: generation.readability,

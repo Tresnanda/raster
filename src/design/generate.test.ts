@@ -12,6 +12,7 @@ const SWISS_GRAMMARS = new Set([
   'typographic-monument',
   'image-diptych',
   'index-rail',
+  'occlusion-bar',
 ])
 
 function cellInBounds(cell: GridCell): boolean {
@@ -363,6 +364,36 @@ test('80 seeded runs: Surprise uses several explicit Swiss grammars', () => {
   }
 
   expect(grammars.size).toBeGreaterThanOrEqual(4)
+})
+
+test('occlusion-bar grammar creates one controlled readable title occlusion', () => {
+  const d = generate('4:5', {
+    seed: 240614,
+    candidateCount: 16,
+    grammar: 'occlusion-bar',
+  })
+  const generation = d.generation
+  const occlusion = d.slots.find(s => s.name === 'controlled-occlusion')
+  const title = d.slots.find(s => s.typeClass === 'title' && s.text)
+
+  expect(generation?.grammar).toBe('occlusion-bar')
+  expect(generation?.expressiveMove).toBe('controlled-occlusion')
+  expect(generation?.readability.expressiveMoveCount).toBeLessThanOrEqual(1)
+  expect(generation?.readability.occludedTitleFraction).toBeGreaterThan(0)
+  expect(generation?.readability.occludedTitleFraction).toBeLessThanOrEqual(0.35)
+  expect(occlusion).toBeDefined()
+  expect(title).toBeDefined()
+  expect(cellsIntersect(occlusion!.cell, title!.cell)).toBe(true)
+  expect((occlusion!.z ?? 0)).toBeGreaterThan(title!.z ?? 0)
+})
+
+test('80 seeded runs: expressive rule breaks are singular and readable', () => {
+  for (let i = 0; i < 80; i++) {
+    const d = generate('3:4', { seed: 9000 + i, candidateCount: 12 })
+    const generation = d.generation
+    expect(generation?.readability.expressiveMoveCount).toBeLessThanOrEqual(1)
+    expect(generation?.readability.occludedTitleFraction).toBeLessThanOrEqual(0.35)
+  }
 })
 
 // ---------------------------------------------------------------------------

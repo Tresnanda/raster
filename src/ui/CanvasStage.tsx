@@ -1,7 +1,8 @@
 import type React from 'react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import { Minus, Plus, Maximize, Scan } from 'lucide-react'
 import { Renderer } from '../render/Renderer'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
@@ -9,16 +10,76 @@ import { ComposerOverlay } from './ComposerOverlay'
 import { GrainAnimator } from './GrainAnimator'
 import { useImageEffectProcessor } from './useImageEffectProcessor'
 
+// ── ZoomHUD ───────────────────────────────────────────────────────────────────
+
+const hudBtnStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  padding: '2px 4px', border: 'none', background: 'transparent',
+  cursor: 'pointer', borderRadius: 4, color: '#374151',
+}
+
+function ZoomHUD() {
+  const zoom = useDesign(s => s.zoom)
+  const setZoom = useDesign(s => s.setZoom)
+  const zoomToFit = useDesign(s => s.zoomToFit)
+  const setPan = useDesign(s => s.setPan)
+
+  const pct = Math.round(zoom * 100)
+
+  return (
+    <div data-zoom-hud style={{
+      position: 'absolute', bottom: 12, left: 12,
+      display: 'flex', alignItems: 'center', gap: 4,
+      background: 'rgba(255,255,255,0.92)', border: '1px solid #e5e7eb',
+      borderRadius: 8, padding: '4px 6px',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+      fontSize: 12, fontFamily: "'Inter', sans-serif",
+      userSelect: 'none', zIndex: 50,
+    }}>
+      <button aria-label="Zoom out" onClick={() => setZoom(zoom / 1.25)} style={hudBtnStyle}>
+        <Minus size={13} />
+      </button>
+      <button
+        aria-label="Reset to fit"
+        data-zoom-pct
+        onClick={() => { zoomToFit(); setPan({ x: 0, y: 0 }) }}
+        style={{ ...hudBtnStyle, minWidth: 44, fontVariantNumeric: 'tabular-nums', fontFamily: 'inherit', fontSize: 12 }}
+      >
+        {pct}%
+      </button>
+      <button aria-label="Zoom in" onClick={() => setZoom(zoom * 1.25)} style={hudBtnStyle}>
+        <Plus size={13} />
+      </button>
+      <div style={{ width: 1, background: '#e5e7eb', height: 16, margin: '0 2px' }} />
+      <button aria-label="Fit" title="Fit to screen" onClick={() => { zoomToFit(); setPan({ x: 0, y: 0 }) }} style={hudBtnStyle}>
+        <Maximize size={13} />
+      </button>
+      <button aria-label="100%" title="100%" onClick={() => { useDesign.getState().zoomTo100(); setPan({ x: 0, y: 0 }) }} style={hudBtnStyle}>
+        <Scan size={13} />
+      </button>
+    </div>
+  )
+}
+
+// ── CanvasStage ───────────────────────────────────────────────────────────────
+
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
   const snap = useDesign(s => s.snap)
+  const zoom = useDesign(s => s.zoom)
+  const pan = useDesign(s => s.pan)
+  const setZoom = useDesign(s => s.setZoom)
+  const setPan = useDesign(s => s.setPan)
+
   const c = canvasFor(design.format)
   // Letterbox: preserve aspect ratio; fit entirely within available space
   const isPortrait = c.h >= c.w
 
   // Measure the rendered pixel width of the SVG container to compute scale.
   // scale = renderedPixelWidth / canvas.w — used by ComposerOverlay to align handles.
+  // getBoundingClientRect() includes CSS transform scale so it returns the visual size.
   const containerRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
 
   useLayoutEffect(() => {
@@ -29,10 +90,105 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [c.w])
+  }, [c.w, zoom])
 
   // Run image effect processor -- watches image slots and re-derives content
   useImageEffectProcessor()
+
+  // ── Space + drag / middle-mouse pan ───────────────────────────────────────
+
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
+
+  // Track pan drag state in a ref to avoid stale closures in pointer handlers
+  const panDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      e.preventDefault()
+      setIsSpaceHeld(true)
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      setIsSpaceHeld(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [])
+
+  // ── Wheel zoom (non-passive so we can preventDefault) ────────────────────
+
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const { zoom: currentZoom, pan: currentPan } = useDesign.getState()
+
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch or Ctrl+scroll → zoom to cursor
+        const factor = e.deltaY < 0 ? 1.1 : (1 / 1.1)
+        const rect = el.getBoundingClientRect()
+        const cursorX = e.clientX - rect.left - rect.width / 2
+        const cursorY = e.clientY - rect.top - rect.height / 2
+        const newZoom = Math.min(8, Math.max(0.1, currentZoom * factor))
+        const worldX = (cursorX - currentPan.x) / currentZoom
+        const worldY = (cursorY - currentPan.y) / currentZoom
+        setPan({ x: cursorX - worldX * newZoom, y: cursorY - worldY * newZoom })
+        setZoom(newZoom)
+      } else {
+        // Plain scroll → pan
+        setPan({ x: currentPan.x - e.deltaX, y: currentPan.y - e.deltaY })
+      }
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [setZoom, setPan])
+
+  // ── Pointer handlers for pan drag ────────────────────────────────────────
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Middle mouse button (button=1) or Space+left-click (button=0)
+    if (e.button !== 1 && !(e.button === 0 && isSpaceHeld)) return
+    e.preventDefault()
+    ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
+    panDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startPanX: pan.x,
+      startPanY: pan.y,
+    }
+    setIsPanning(true)
+  }
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panDragRef.current) return
+    const { startX, startY, startPanX, startPanY } = panDragRef.current
+    setPan({
+      x: startPanX + (e.clientX - startX),
+      y: startPanY + (e.clientY - startY),
+    })
+  }
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panDragRef.current) return
+    ;(e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId)
+    panDragRef.current = null
+    setIsPanning(false)
+  }
+
+  // ── Cursor style ──────────────────────────────────────────────────────────
+
+  const cursor = isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : 'default'
 
   // ── Tracks for add-element pop and surprise detection ─────────────────────
   const prevSlotsLenRef = useRef(design.slots.length)
@@ -147,22 +303,37 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   }, { scope: containerRef, dependencies: [design.slots.length] })
 
   return (
-    <div className="flex h-full items-center justify-center bg-neutral-200 p-8">
-      <div
-        ref={containerRef}
-        className="relative shadow-2xl"
-        style={{
-          aspectRatio: `${c.w}/${c.h}`,
-          maxHeight: '100%',
-          maxWidth: '100%',
-          height: isPortrait ? '100%' : 'auto',
-          width: isPortrait ? 'auto' : '100%',
-        }}
-      >
-        <Renderer design={design} svgRef={svgRef} />
-        <ComposerOverlay scale={scale} snap={snap} />
+    <div
+      ref={stageRef}
+      className="flex h-full items-center justify-center bg-neutral-200 p-8 overflow-hidden"
+      style={{ position: 'relative', cursor }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+    >
+      {/* Pan translation wrapper */}
+      <div style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+        {/* containerRef: the letterboxed poster box — applies zoom scale */}
+        <div
+          ref={containerRef}
+          className="relative shadow-2xl"
+          style={{
+            aspectRatio: `${c.w}/${c.h}`,
+            maxHeight: '100%',
+            maxWidth: '100%',
+            height: isPortrait ? '100%' : 'auto',
+            width: isPortrait ? 'auto' : '100%',
+            transform: `scale(${zoom})`,
+            transformOrigin: 'center',
+          }}
+        >
+          <Renderer design={design} svgRef={svgRef} />
+          <ComposerOverlay scale={scale} snap={snap} />
+        </div>
       </div>
       <GrainAnimator svgRef={svgRef} enabled={design.style.filmGrain} />
+      {/* Zoom HUD — bottom left corner of stage */}
+      <ZoomHUD />
     </div>
   )
 }

@@ -29,7 +29,7 @@ import { EFFECT_DEFAULTS } from '../lib/image-effects'
 // ── Micro label ──────────────────────────────────────────────────────────────
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-0.5">
+    <div className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-0.5">
       {children}
     </div>
   )
@@ -58,13 +58,13 @@ function InspectorRow({ label, children, overridden }: { label: string; children
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+        <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </span>
         {overridden && (
           <span
             title="Overridden"
-            className="inline-block h-1.5 w-1.5 rounded-none bg-accent shrink-0"
+            className="inline-block h-1.5 w-1.5 rounded-full bg-accent shrink-0"
             aria-label="field overridden"
           />
         )}
@@ -103,9 +103,9 @@ function ImageFillControl({
   }
 
   const btnCls = [
-    'flex items-center gap-1.5 rounded-none border-2 border-foreground px-2.5 py-1.5',
-    'font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-foreground',
-    'shadow-brutal-sm hover:-translate-y-px active:translate-y-px active:translate-x-px active:shadow-none',
+    'flex items-center gap-1.5 rounded-md border-2 border-foreground px-2.5 py-1.5',
+    'font-sans text-[10px] font-medium text-foreground',
+    'shadow-brutal hover:-translate-y-px active:translate-y-px active:translate-x-px active:shadow-none',
     'transition-transform duration-100',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
   ].join(' ')
@@ -116,12 +116,12 @@ function ImageFillControl({
       {imageFill ? (
         <div className="flex items-center gap-2" data-imagefill-set>
           <div
-            className="h-7 w-10 shrink-0 border-2 border-foreground overflow-hidden"
+            className="h-7 w-10 shrink-0 rounded-md border-2 border-foreground overflow-hidden"
             aria-label="Image fill preview"
           >
             <img src={imageFill} alt="" className="h-full w-full object-cover" />
           </div>
-          <span className="flex-1 min-w-0 truncate font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">Image set</span>
+          <span className="flex-1 min-w-0 truncate font-sans text-[10px] text-muted-foreground">Image set</span>
           <button
             onClick={onClear}
             aria-label="Remove image fill"
@@ -152,14 +152,14 @@ function ImageFillControl({
             <ImageIcon size={13} strokeWidth={1.5} />
             Image fill
           </button>
-          <div className="flex items-center gap-1.5 rounded-none border-2 border-foreground px-2.5 py-1.5 focus-within:border-accent transition-colors duration-100">
+          <div className="flex items-center gap-1.5 rounded-md border border-input px-2.5 py-1.5 focus-within:border-2 focus-within:border-foreground transition-colors duration-100">
             <ImageIcon size={12} className="shrink-0 text-muted-foreground" strokeWidth={2} />
             <input
               type="url"
               placeholder="Paste image URL"
               value={urlValue}
               aria-label="Image fill URL"
-              className="min-w-0 flex-1 bg-transparent font-mono text-[10px] uppercase tracking-[0.08em] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent font-sans text-[10px] text-foreground placeholder:text-muted-foreground focus:outline-none"
               onChange={e => setUrlValue(e.target.value)}
               onBlur={e => onUrl(e.target.value)}
               onKeyDown={e => {
@@ -198,8 +198,8 @@ function ImageEffectsPanel({
   const params = effect?.params ?? {}
 
   const chipCls = (active: boolean) => [
-    'rounded-none border-2 border-foreground px-2 py-1',
-    'font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+    'rounded-md border-2 border-foreground px-2 py-1',
+    'font-sans text-[9px] font-medium',
     'transition-colors duration-100',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
     active
@@ -278,7 +278,7 @@ function ImageEffectsPanel({
                 aria-label="Dark colour"
                 value={String(params.dark ?? '#000000')}
                 onChange={e => updateParam('dark', e.target.value)}
-                className="h-7 w-full cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
               />
             </div>
             <div className="flex flex-col gap-0.5">
@@ -289,7 +289,7 @@ function ImageEffectsPanel({
                 aria-label="Light colour"
                 value={String(params.light ?? '#ffffff')}
                 onChange={e => updateParam('light', e.target.value)}
-                className="h-7 w-full cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
               />
             </div>
           </div>
@@ -351,7 +351,7 @@ function ImageEffectsPanel({
                 aria-label="Dark colour"
                 value={String(params.dark ?? '#000000')}
                 onChange={e => updateParam('dark', e.target.value)}
-                className="h-7 w-full cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
               />
             </div>
             <div className="flex flex-col gap-0.5">
@@ -362,7 +362,7 @@ function ImageEffectsPanel({
                 aria-label="Light colour"
                 value={String(params.light ?? '#ffffff')}
                 onChange={e => updateParam('light', e.target.value)}
-                className="h-7 w-full cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
               />
             </div>
           </div>
@@ -432,8 +432,8 @@ const BLEND_OPTIONS = [
 
 // ── Add button ────────────────────────────────────────────────────────────────
 const addBtnCls = [
-  'flex flex-col items-center gap-1 rounded-none border-2 border-foreground py-2 px-1',
-  'font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground',
+  'flex flex-col items-center gap-1 py-2 px-1',
+  'font-sans text-[9px] font-medium text-muted-foreground',
   'hover:bg-muted hover:text-foreground',
   'transition-colors duration-100',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
@@ -489,7 +489,7 @@ export function ComposerRail() {
     : null
 
   const iconBtnCls = [
-    'rounded-none p-1 text-muted-foreground',
+    'rounded-md p-1 text-muted-foreground',
     'hover:bg-muted hover:text-foreground',
     'transition-colors duration-100',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
@@ -497,13 +497,13 @@ export function ComposerRail() {
 
   return (
     <aside
-      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l-2 border-foreground bg-background overflow-y-auto flex flex-col"
+      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-border/50 bg-background overflow-y-auto flex flex-col"
       aria-label="Element"
     >
-      {/* Brutalist properties masthead */}
-      <div className="px-3 pt-3 pb-2 flex items-center justify-between border-b-2 border-foreground">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-foreground">
-          [ PROPERTIES ]
+      {/* Properties masthead */}
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border/40">
+        <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Properties
         </div>
         <div className="flex items-center gap-0">
           <button
@@ -513,7 +513,7 @@ export function ComposerRail() {
             disabled={!canUndo}
             data-undo-btn
             className={[
-              'rounded-none p-1.5 transition-colors duration-100',
+              'rounded-md p-1.5 transition-colors duration-100',
               canUndo
                 ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 : 'text-muted-foreground/30 cursor-not-allowed',
@@ -528,7 +528,7 @@ export function ComposerRail() {
             disabled={!canRedo}
             data-redo-btn
             className={[
-              'rounded-none p-1.5 transition-colors duration-100',
+              'rounded-md p-1.5 transition-colors duration-100',
               canRedo
                 ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 : 'text-muted-foreground/30 cursor-not-allowed',
@@ -540,7 +540,7 @@ export function ComposerRail() {
       </div>
 
       {/* Compact Add row — always visible */}
-      <div className="grid grid-cols-4 gap-0 border-b-2 border-foreground">
+      <div className="grid grid-cols-4 gap-0 border-b border-border/40">
         <button onClick={() => addElement('text')} className={addBtnCls} aria-label="Add text element" data-add-element="text">
           <Type size={14} strokeWidth={1.5} />
           <span className="text-[10px]">Text</span>
@@ -562,55 +562,55 @@ export function ComposerRail() {
       {/* ── EMPTY STATE ───────────────────────────────────────────────────────── */}
       {!selectedSlot && (
         <div className="flex-1 flex flex-col">
-          {/* Empty state — brutalist */}
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-8 text-center border-b-2 border-foreground">
-            <div className="flex h-9 w-9 items-center justify-center border-2 border-foreground bg-muted">
+          {/* Empty state */}
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-8 text-center border-b border-border/40">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-foreground bg-muted">
               <MousePointer2 size={16} className="text-muted-foreground" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">No selection</p>
-              <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground leading-relaxed">
+              <p className="font-sans text-[11px] font-semibold text-foreground">No selection</p>
+              <p className="mt-1 font-sans text-[10px] text-muted-foreground leading-relaxed">
                 Select an element on canvas
               </p>
             </div>
           </div>
 
           {/* Layers in empty state */}
-          <div className="px-3 pt-3">
-            <div className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2">
-              ▚ Layers
+          <div className="px-4 pt-3">
+            <div className="font-sans text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
+              Layers
             </div>
           </div>
           <div className="flex flex-col pb-2" data-layers-list>
             {layers.length === 0 && (
-              <div className="px-3 py-3 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">No layers yet.</div>
+              <div className="px-4 py-3 font-sans text-[10px] text-muted-foreground">No layers yet.</div>
             )}
             {layers.map(slot => (
               <div
                 key={slot.id}
                 data-layer-row={slot.id}
                 className={[
-                  'group relative flex items-center gap-2 px-3 py-1.5 cursor-pointer',
+                  'group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer',
                   'transition-colors duration-100',
                   'hover:bg-muted',
                 ].join(' ')}
                 onClick={() => selectElement(slot.id)}
               >
                 <SlotTypeIcon slot={slot} />
-                <span className="flex-1 min-w-0 truncate font-mono text-[9px] uppercase tracking-[0.06em] text-foreground tabular-nums">
+                <span className="flex-1 min-w-0 truncate font-sans text-[10px] text-foreground">
                   {slotLabel(slot)}
                 </span>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
                   <button
                     onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
-                    className="rounded-none p-0.5 hover:bg-foreground hover:text-background text-muted-foreground"
+                    className="rounded-sm p-0.5 hover:bg-foreground hover:text-background text-muted-foreground"
                     aria-label="Duplicate"
                   >
                     <Copy size={11} />
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
-                    className="rounded-none p-0.5 hover:bg-accent hover:text-background text-muted-foreground"
+                    className="rounded-sm p-0.5 hover:bg-accent hover:text-background text-muted-foreground"
                     aria-label="Delete"
                   >
                     <Trash2 size={11} />
@@ -638,9 +638,9 @@ export function ComposerRail() {
         return (
           <div className="flex flex-col flex-1">
             {/* Element header: type + deselect + actions */}
-            <div className="flex items-center gap-0 px-3 py-1.5 border-b-2 border-foreground">
-              <span className="flex-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-foreground">
-                [ {typeLabel} ]
+            <div className="flex items-center gap-0 px-3 py-2 border-b border-border/40">
+              <span className="flex-1 font-sans text-[11px] font-semibold text-foreground">
+                {typeLabel}
               </span>
               <button
                 onClick={() => duplicateElement(selectedSlot.id)}
@@ -674,14 +674,14 @@ export function ComposerRail() {
               >
                 <Trash2 size={11} strokeWidth={2.5} />
               </button>
-              {/* Brutalist deselect [ X ] */}
+              {/* Deselect */}
               <button
                 onClick={() => selectElement(null)}
                 aria-label="Deselect"
                 title="Deselect (Esc)"
-                className="ml-1 rounded-none border-2 border-foreground px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-foreground hover:bg-foreground hover:text-background transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                className="ml-1 rounded-md border-2 border-foreground px-2 py-1 font-sans text-[9px] font-semibold text-foreground hover:bg-foreground hover:text-background transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
               >
-                [ X ]
+                Esc
               </button>
             </div>
 
@@ -690,7 +690,7 @@ export function ComposerRail() {
               <div className="px-3 pt-2">
                 <button
                   onClick={() => resetElement(selectedSlot.id)}
-                  className="w-full rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-foreground hover:bg-foreground hover:text-background transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                  className="w-full rounded-md border border-input py-1.5 font-sans text-[10px] font-medium text-muted-foreground hover:border-foreground hover:text-foreground transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                 >
                   Reset to global
                 </button>
@@ -709,7 +709,7 @@ export function ComposerRail() {
                         rows={2}
                         value={selectedSlot.content}
                         onChange={e => setContent(selectedSlot.id, e.target.value)}
-                        className="w-full rounded-none border-2 border-foreground bg-background px-2 py-1.5 font-mono text-xs text-foreground resize-none focus:border-accent focus:outline-none"
+                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 font-sans text-xs text-foreground resize-none focus:border-2 focus:border-foreground focus:outline-none"
                       />
                     </InspectorRow>
                   </Section>
@@ -718,7 +718,7 @@ export function ComposerRail() {
 
               {/* ── POSITION (all elements) ───────────────────────────────────── */}
               {resolvedBox && (
-                <div className="px-3 pt-1 pb-1 border-t-2 border-foreground">
+                <div className="px-3 pt-1 pb-1 border-t border-border/40">
                   <Section id="rail-position" title="Position" defaultOpen>
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -785,7 +785,7 @@ export function ComposerRail() {
                               aria-label={label}
                               onClick={() => alignElement(selectedSlot.id, edge)}
                               className={[
-                                'flex-1 flex items-center justify-center rounded-none border-2 border-foreground py-1.5',
+                                'flex-1 flex items-center justify-center rounded-md border-2 border-foreground py-1.5',
                                 'text-muted-foreground hover:bg-muted hover:text-foreground',
                                 'transition-colors duration-100',
                                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
@@ -803,7 +803,7 @@ export function ComposerRail() {
 
               {/* ── TRANSFORM (all elements, collapsed) ──────────────────────── */}
               {selectedSlot && (
-                <div className="px-3 pt-1 pb-1 border-t-2 border-foreground">
+                <div className="px-3 pt-1 pb-1 border-t border-border/40">
                   <Section id="rail-transform" title="Transform" defaultOpen>
                     <div className="space-y-2.5">
                       {/* Rotation */}
@@ -819,7 +819,7 @@ export function ComposerRail() {
                             step={1}
                             value={selectedSlot.rotation ?? 0}
                             onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
-                            className="w-16 rounded-none border-2 border-foreground bg-background px-2 py-1 font-mono text-xs tabular-nums text-foreground focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className="w-16 rounded-md border border-input bg-background px-2 py-1 font-mono text-xs tabular-nums text-foreground focus:border-2 focus:border-foreground focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <span className="font-mono text-[11px] text-muted-foreground">°</span>
                           <Slider
@@ -841,7 +841,7 @@ export function ComposerRail() {
                           onClick={() => setFlip(selectedSlot.id, 'H', !selectedSlot.flipH)}
                           title="Flip horizontal"
                           className={[
-                            'flex flex-1 items-center justify-center gap-1 rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+                            'flex flex-1 items-center justify-center gap-1 rounded-md border-2 border-foreground py-1.5 font-sans text-[9px] font-semibold',
                             'active:scale-[0.97] transition-transform duration-150',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
                             selectedSlot.flipH
@@ -857,7 +857,7 @@ export function ComposerRail() {
                           onClick={() => setFlip(selectedSlot.id, 'V', !selectedSlot.flipV)}
                           title="Flip vertical"
                           className={[
-                            'flex flex-1 items-center justify-center gap-1 rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+                            'flex flex-1 items-center justify-center gap-1 rounded-md border-2 border-foreground py-1.5 font-sans text-[9px] font-semibold',
                             'active:scale-[0.97] transition-transform duration-150',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
                             selectedSlot.flipV
@@ -927,7 +927,7 @@ export function ComposerRail() {
                                 aria-label="Shadow colour"
                                 value={selectedSlot.shadow.color}
                                 onChange={e => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, color: e.target.value })}
-                                className="h-7 w-10 cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                                className="h-7 w-10 cursor-pointer rounded-md border-2 border-foreground p-0.5"
                               />
                             </div>
                           </div>
@@ -957,7 +957,7 @@ export function ComposerRail() {
                                     : design.palette.accent
                                 }
                                 onChange={e => setStroke(selectedSlot.id, e.target.value)}
-                                className="h-7 w-full cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                                className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
                               />
                             </div>
                             <NumberInput
@@ -977,7 +977,7 @@ export function ComposerRail() {
 
               {/* ── TYPE (text only, collapsed) ───────────────────────────────── */}
               {isText && selectedSlot.text && resolvedText && (
-                <div className="px-3 pt-1 pb-1 border-t-2 border-foreground">
+                <div className="px-3 pt-1 pb-1 border-t border-border/40">
                   <Section id="rail-type" title="Type" defaultOpen>
                     <div className="space-y-2.5">
                       {/* Typeface — Radix Select */}
@@ -1001,7 +1001,7 @@ export function ComposerRail() {
                           max={600}
                           value={resolvedText.size}
                           onChange={e => overrideText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
-                          className="w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-2 focus:border-foreground focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                       </InspectorRow>
 
@@ -1025,7 +1025,7 @@ export function ComposerRail() {
                           step={0.005}
                           value={resolvedText.tracking}
                           onChange={e => overrideText(selectedSlot.id, { tracking: Number(e.target.value) })}
-                          className="w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-2 focus:border-foreground focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                       </InspectorRow>
 
@@ -1038,7 +1038,7 @@ export function ComposerRail() {
                           step={0.01}
                           value={resolvedText.leading}
                           onChange={e => overrideText(selectedSlot.id, { leading: Number(e.target.value) })}
-                          className="w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-2 focus:border-foreground focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                       </InspectorRow>
 
@@ -1051,7 +1051,7 @@ export function ComposerRail() {
                               onClick={() => setText(selectedSlot.id, { align: a })}
                               aria-label={`Align ${a}`}
                               className={[
-                                'flex-1 flex items-center justify-center rounded-none border-2 border-foreground py-1.5',
+                                'flex-1 flex items-center justify-center rounded-md border-2 border-foreground py-1.5',
                                 'transition-colors duration-100',
                                 selectedSlot.text?.align === a
                                   ? 'bg-foreground text-background border-foreground'
@@ -1074,7 +1074,7 @@ export function ComposerRail() {
                               key={f}
                               onClick={() => setText(selectedSlot.id, { fit: f })}
                               className={[
-                                'flex-1 rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+                                'flex-1 rounded-md border-2 border-foreground py-1.5 font-sans text-[9px] font-semibold',
                                 'transition-colors duration-100',
                                 selectedSlot.text?.fit === f
                                   ? 'bg-foreground text-background border-foreground'
@@ -1095,7 +1095,7 @@ export function ComposerRail() {
                             aria-label="Element colour"
                             value={selectedSlot.color ?? design.palette.text}
                             onChange={e => setColor(selectedSlot.id, e.target.value)}
-                            className="h-7 w-10 cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                            className="h-7 w-10 cursor-pointer rounded-md border-2 border-foreground p-0.5"
                           />
                           {!selectedSlot.color && (
                             <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">global</span>
@@ -1127,7 +1127,7 @@ export function ComposerRail() {
                               title={title}
                               data-case={value}
                               className={[
-                                'flex-1 flex items-center justify-center rounded-none border-2 border-foreground py-1.5',
+                                'flex-1 flex items-center justify-center rounded-md border-2 border-foreground py-1.5',
                                 'transition-colors duration-100',
                                 (selectedSlot.textTransform ?? 'none') === value
                                   ? 'bg-foreground text-background border-foreground'
@@ -1155,7 +1155,7 @@ export function ComposerRail() {
                               title={label}
                               data-liststyle={value}
                               className={[
-                                'flex-1 flex items-center justify-center gap-1 rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+                                'flex-1 flex items-center justify-center gap-1 rounded-md border-2 border-foreground py-1.5 font-sans text-[9px] font-semibold',
                                 'transition-colors duration-100',
                                 (selectedSlot.listStyle ?? 'none') === value
                                   ? 'bg-foreground text-background border-foreground'
@@ -1179,7 +1179,7 @@ export function ComposerRail() {
                           step={1}
                           value={selectedSlot.indent ?? 0}
                           onChange={e => setIndent(selectedSlot.id, Number(e.target.value))}
-                          className="w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground focus:border-2 focus:border-foreground focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                       </InspectorRow>
                     </div>
@@ -1189,7 +1189,7 @@ export function ComposerRail() {
 
               {/* ── EFFECTS (image only, open) ────────────────────────────────── */}
               {isImage && (
-                <div className="px-3 pt-1 pb-1 border-t-2 border-foreground">
+                <div className="px-3 pt-1 pb-1 border-t border-border/40">
                   <Section id="rail-effects" title="Effects" defaultOpen>
                     <div className="space-y-2.5">
                       <ImageInput slotId={selectedSlot.id} />
@@ -1197,7 +1197,7 @@ export function ComposerRail() {
                         <button
                           onClick={() => requestCrop(selectedSlot.id, selectedSlot.content)}
                           className={[
-                            'w-full rounded-none border-2 border-foreground py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-foreground',
+                            'w-full rounded-md border-2 border-foreground py-1.5 font-sans text-[10px] font-medium text-foreground',
                             'hover:bg-muted transition-colors duration-100',
                             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
                           ].join(' ')}
@@ -1225,7 +1225,7 @@ export function ComposerRail() {
 
               {/* ── FILL (shape / line only, open) ───────────────────────────── */}
               {isShape && (
-                <div className="px-3 pt-1 pb-1 border-t-2 border-foreground">
+                <div className="px-3 pt-1 pb-1 border-t border-border/40">
                   <Section id="rail-fill" title="Fill" defaultOpen>
                     <div className="flex gap-1 flex-wrap">
                       {(['accent', 'text'] as const).map(f => (
@@ -1233,7 +1233,7 @@ export function ComposerRail() {
                           key={f}
                           onClick={() => setFill(selectedSlot.id, f)}
                           className={[
-                            'flex-1 rounded-none border-2 border-foreground py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em]',
+                            'flex-1 rounded-md border-2 border-foreground py-1.5 font-sans text-[9px] font-semibold',
                             'transition-colors duration-100',
                             selectedSlot.fill === f
                               ? 'bg-foreground text-background border-foreground'
@@ -1253,7 +1253,7 @@ export function ComposerRail() {
                         }
                         onChange={e => setFill(selectedSlot.id, e.target.value)}
                         title="Custom colour"
-                        className="h-8 w-8 cursor-pointer rounded-none border-2 border-foreground p-0.5"
+                        className="h-8 w-8 cursor-pointer rounded-md border-2 border-foreground p-0.5"
                       />
                     </div>
                   </Section>
@@ -1272,7 +1272,7 @@ export function ComposerRail() {
                         key={slot.id}
                         data-layer-row={slot.id}
                         className={[
-                          'group relative flex items-center gap-1.5 py-1.5 rounded-none cursor-pointer',
+                          'group relative flex items-center gap-1.5 py-1.5 rounded-md cursor-pointer px-2',
                           'transition-colors duration-100',
                           selectedId === slot.id
                             ? 'bg-foreground text-background'
@@ -1281,7 +1281,7 @@ export function ComposerRail() {
                         onClick={() => selectElement(slot.id)}
                       >
                         <SlotTypeIcon slot={slot} />
-                        <span className="flex-1 min-w-0 truncate font-mono text-[9px] uppercase tracking-[0.06em] tabular-nums">
+                        <span className="flex-1 min-w-0 truncate font-sans text-[10px]">
                           {slotLabel(slot)}
                         </span>
                         <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100 mr-1">
@@ -1323,7 +1323,7 @@ export function ComposerRail() {
             </div>
 
             {/* Snap to grid — pinned bottom */}
-            <div className="mt-auto border-t-2 border-foreground px-3 py-3">
+            <div className="mt-auto border-t border-border/40 px-3 py-3">
               <Checkbox
                 id="rail-snap"
                 label="Snap to grid"

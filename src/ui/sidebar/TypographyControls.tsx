@@ -1,6 +1,7 @@
 // src/ui/sidebar/TypographyControls.tsx
 import { useDesign } from '../../store/useDesign'
 import { Slider } from '../components/slider'
+import { Select } from '../components/select'
 import type { FontFamily } from '../../types'
 
 const TYPEFACE_OPTIONS: { value: FontFamily; label: string }[] = [
@@ -27,8 +28,8 @@ function SliderRow({ label, value, min, max, step, onChange }: SliderRowProps) {
         min={min}
         max={max}
         step={step}
-        value={[value]}
-        onValueChange={([v]) => onChange(v)}
+        value={value}
+        onChange={onChange}
         className="flex-1"
       />
       <div className="w-12 text-right text-xs tabular-nums text-neutral-600">
@@ -51,16 +52,13 @@ export function TypographyControls() {
         >
           Typeface
         </label>
-        <select
+        <Select
           id="tc-typeface"
           value={typography.typeface}
-          onChange={e => setTypography({ typeface: e.target.value as FontFamily })}
-          className="w-full rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
-        >
-          {TYPEFACE_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onValueChange={v => setTypography({ typeface: v as FontFamily })}
+          options={TYPEFACE_OPTIONS}
+          aria-label="Typeface"
+        />
       </div>
 
       <div className="space-y-2.5">

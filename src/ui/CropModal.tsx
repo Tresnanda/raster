@@ -252,8 +252,8 @@ export function CropModal() {
               min={1}
               max={3}
               step={0.01}
-              value={[zoom]}
-              onValueChange={([v]) => setZoom(v)}
+              value={zoom}
+              onChange={setZoom}
               aria-label="Zoom"
             />
             <span

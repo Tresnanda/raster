@@ -1,5 +1,5 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2, List, ListOrdered, CaseUpper, CaseLower, CaseSensitive } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2, List, ListOrdered, CaseUpper, CaseLower, CaseSensitive } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
@@ -7,6 +7,10 @@ import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { resolveTextStyle } from '../render/resolve-style'
 import { ImageInput } from './ImageInput'
+import { Checkbox } from './components/Checkbox'
+import { NumberInput } from './components/NumberInput'
+import { Slider } from './components/slider'
+import { Switch } from './components/Switch'
 import type { FontFamily, ImageEffectKind, Slot } from '../types'
 import type { ImageEffect } from '../types'
 import { EFFECT_DEFAULTS } from '../lib/image-effects'
@@ -42,75 +46,6 @@ function slotLabel(slot: Slot): string {
   const content = slot.content?.trim()
   if (content) return content.length > 20 ? content.slice(0, 20) + '…' : content
   return slot.role
-}
-
-// ── Custom checkbox ───────────────────────────────────────────────────────────
-function Checkbox({ id, label, checked, onChange }: { id: string; label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-center gap-2 select-none">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={e => onChange(e.target.checked)}
-        className="sr-only"
-        data-rail-checkbox={id}
-      />
-      <span
-        aria-hidden="true"
-        className={[
-          'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors duration-150',
-          checked ? 'border-neutral-900 bg-neutral-900' : 'border-neutral-300 bg-white',
-        ].join(' ')}
-      >
-        {checked && <Check size={10} strokeWidth={3} className="text-white" />}
-      </span>
-      <span className="text-sm text-neutral-700">{label}</span>
-    </label>
-  )
-}
-
-// ── NumberField ───────────────────────────────────────────────────────────────
-function NumberField({
-  id,
-  label,
-  value,
-  min,
-  max,
-  step = 1,
-  onChange,
-}: {
-  id: string
-  label: string
-  value: number
-  min?: number
-  max?: number
-  step?: number
-  onChange: (v: number) => void
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <label
-        htmlFor={id}
-        className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className={[
-          'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-          'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-        ].join(' ')}
-      />
-    </div>
-  )
 }
 
 // ── InspectorRow ──────────────────────────────────────────────────────────────
@@ -305,16 +240,14 @@ function ImageEffectsPanel({
               Cell size
             </label>
             <div className="flex items-center gap-2">
-              <input
-                id={`ef-cell-${slotId}`}
+              <Slider
                 aria-label="Cell"
-                type="range"
                 min={4}
                 max={24}
                 step={1}
                 value={Number(params.cell ?? 8)}
-                onChange={e => updateParam('cell', Number(e.target.value))}
-                className="flex-1 accent-neutral-900"
+                onChange={v => updateParam('cell', v)}
+                className="flex-1"
               />
               <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
                 {Number(params.cell ?? 8)}
@@ -329,16 +262,14 @@ function ImageEffectsPanel({
               Angle
             </label>
             <div className="flex items-center gap-2">
-              <input
-                id={`ef-angle-${slotId}`}
+              <Slider
                 aria-label="Angle"
-                type="range"
                 min={0}
                 max={90}
                 step={1}
                 value={Number(params.angle ?? 45)}
-                onChange={e => updateParam('angle', Number(e.target.value))}
-                className="flex-1 accent-neutral-900"
+                onChange={v => updateParam('angle', v)}
+                className="flex-1"
               />
               <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
                 {Number(params.angle ?? 45)}&#xb0;
@@ -429,16 +360,14 @@ function ImageEffectsPanel({
               Scale
             </label>
             <div className="flex items-center gap-2">
-              <input
-                id={`ef-scale-${slotId}`}
+              <Slider
                 aria-label="Scale"
-                type="range"
                 min={1}
                 max={4}
                 step={1}
                 value={Number(params.scale ?? 2)}
-                onChange={e => updateParam('scale', Number(e.target.value))}
-                className="flex-1 accent-neutral-900"
+                onChange={v => updateParam('scale', v)}
+                className="flex-1"
               />
               <span className="w-4 text-right text-[10px] tabular-nums text-neutral-500">
                 {Number(params.scale ?? 2)}
@@ -491,16 +420,14 @@ function ImageEffectsPanel({
             Levels
           </label>
           <div className="flex items-center gap-2">
-            <input
-              id={`ef-levels-${slotId}`}
+            <Slider
               aria-label="Levels"
-              type="range"
               min={2}
               max={8}
               step={1}
               value={Number(params.levels ?? 4)}
-              onChange={e => updateParam('levels', Number(e.target.value))}
-              className="flex-1 accent-neutral-900"
+              onChange={v => updateParam('levels', v)}
+              className="flex-1"
             />
             <span className="w-4 text-right text-[10px] tabular-nums text-neutral-500">
               {Number(params.levels ?? 4)}
@@ -518,16 +445,14 @@ function ImageEffectsPanel({
             Cutoff
           </label>
           <div className="flex items-center gap-2">
-            <input
-              id={`ef-cutoff-${slotId}`}
+            <Slider
               aria-label="Cutoff"
-              type="range"
               min={0}
               max={255}
               step={1}
               value={Number(params.cutoff ?? 128)}
-              onChange={e => updateParam('cutoff', Number(e.target.value))}
-              className="flex-1 accent-neutral-900"
+              onChange={v => updateParam('cutoff', v)}
+              className="flex-1"
             />
             <span className="w-6 text-right text-[10px] tabular-nums text-neutral-500">
               {Number(params.cutoff ?? 128)}
@@ -851,21 +776,21 @@ export function ComposerRail() {
 
                   {/* Typeface */}
                   <InspectorRow label="Typeface" overridden={ov.includes('family')}>
-                    <select
-                      id={`insp-typeface-${selectedSlot.id}`}
-                      aria-label="Typeface"
-                      value={resolvedText!.family}
-                      onChange={e => overrideText(selectedSlot.id, { family: e.target.value as FontFamily })}
-                      className={[
-                        'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
-                    >
-                      <option value="display">Archivo Display</option>
-                      <option value="sans">Inter</option>
-                      <option value="condensed">Archivo Narrow</option>
-                      <option value="mono">Space Mono</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        id={`insp-typeface-${selectedSlot.id}`}
+                        aria-label="Typeface"
+                        value={resolvedText!.family}
+                        onChange={e => overrideText(selectedSlot.id, { family: e.target.value as FontFamily })}
+                        className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 pr-8 text-xs text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
+                      >
+                        <option value="display">Archivo Display</option>
+                        <option value="sans">Inter</option>
+                        <option value="condensed">Archivo Narrow</option>
+                        <option value="mono">Space Mono</option>
+                      </select>
+                      <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    </div>
                   </InspectorRow>
 
                   {/* Size */}
@@ -878,29 +803,26 @@ export function ComposerRail() {
                       max={600}
                       value={resolvedText!.size}
                       onChange={e => overrideText(selectedSlot.id, { size: Number(e.target.value), fit: 'fixed' })}
-                      className={[
-                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </InspectorRow>
 
                   {/* Weight */}
                   <InspectorRow label="Weight">
-                    <select
-                      id={`insp-weight-${selectedSlot.id}`}
-                      aria-label="Weight"
-                      value={selectedSlot.text.weight}
-                      onChange={e => setText(selectedSlot.id, { weight: Number(e.target.value) })}
-                      className={[
-                        'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
-                    >
-                      {[100, 200, 300, 400, 500, 600, 700, 800, 900].map(w => (
-                        <option key={w} value={w}>{w}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        id={`insp-weight-${selectedSlot.id}`}
+                        aria-label="Weight"
+                        value={selectedSlot.text.weight}
+                        onChange={e => setText(selectedSlot.id, { weight: Number(e.target.value) })}
+                        className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-1.5 pr-8 text-xs text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
+                      >
+                        {[100, 200, 300, 400, 500, 600, 700, 800, 900].map(w => (
+                          <option key={w} value={w}>{w}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    </div>
                   </InspectorRow>
 
                   {/* Tracking */}
@@ -912,10 +834,7 @@ export function ComposerRail() {
                       step={0.005}
                       value={resolvedText!.tracking}
                       onChange={e => overrideText(selectedSlot.id, { tracking: Number(e.target.value) })}
-                      className={[
-                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </InspectorRow>
 
@@ -928,10 +847,7 @@ export function ComposerRail() {
                       step={0.01}
                       value={resolvedText!.leading}
                       onChange={e => overrideText(selectedSlot.id, { leading: Number(e.target.value) })}
-                      className={[
-                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </InspectorRow>
 
@@ -1072,10 +988,7 @@ export function ComposerRail() {
                       step={1}
                       value={selectedSlot.indent ?? 0}
                       onChange={e => setIndent(selectedSlot.id, Number(e.target.value))}
-                      className={[
-                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </InspectorRow>
                 </div>
@@ -1170,26 +1083,26 @@ export function ComposerRail() {
                     Position & Size
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <NumberField
+                    <NumberInput
                       id={`insp-x-${selectedSlot.id}`}
                       label="X position"
                       value={Math.round(resolvedBox.x)}
                       onChange={v => setBox(selectedSlot.id, { ...resolvedBox, x: v })}
                     />
-                    <NumberField
+                    <NumberInput
                       id={`insp-y-${selectedSlot.id}`}
                       label="Y position"
                       value={Math.round(resolvedBox.y)}
                       onChange={v => setBox(selectedSlot.id, { ...resolvedBox, y: v })}
                     />
-                    <NumberField
+                    <NumberInput
                       id={`insp-w-${selectedSlot.id}`}
                       label="Width"
                       value={Math.round(resolvedBox.w)}
                       min={1}
                       onChange={v => setBox(selectedSlot.id, { ...resolvedBox, w: v })}
                     />
-                    <NumberField
+                    <NumberInput
                       id={`insp-h-${selectedSlot.id}`}
                       label="Height"
                       value={Math.round(resolvedBox.h)}
@@ -1219,7 +1132,7 @@ export function ComposerRail() {
                     step={1}
                     value={Math.round((selectedSlot.opacity ?? 1) * 100)}
                     onChange={e => setOpacity(selectedSlot.id, Number(e.target.value) / 100)}
-                    className="w-full accent-neutral-900"
+                    className="w-full cursor-pointer appearance-none h-1 rounded-full bg-neutral-200 accent-neutral-900 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:rounded-full"
                   />
                 </div>
               )}
@@ -1282,10 +1195,7 @@ export function ComposerRail() {
                       step={1}
                       value={selectedSlot.rotation ?? 0}
                       onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
-                      className={[
-                        'w-20 rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
-                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                      ].join(' ')}
+                      className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs tabular-nums text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                     <span className="text-[11px] text-neutral-400">°</span>
                     <input
@@ -1296,7 +1206,7 @@ export function ComposerRail() {
                       step={1}
                       value={selectedSlot.rotation ?? 0}
                       onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
-                      className="flex-1 accent-neutral-900"
+                      className="flex-1 cursor-pointer appearance-none h-1 rounded-full bg-neutral-200 accent-neutral-900 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:rounded-full"
                     />
                   </div>
                 </div>
@@ -1345,23 +1255,20 @@ export function ComposerRail() {
                   >
                     Blend
                   </label>
-                  <select
-                    id={`insp-blend-${selectedSlot.id}`}
-                    aria-label="Blend mode"
-                    value={selectedSlot.blend ?? 'normal'}
-                    onChange={e => setBlend(selectedSlot.id, e.target.value)}
-                    className={[
-                      'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
-                      'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
-                    ].join(' ')}
-                  >
-                    {[
-                      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-                      'difference', 'exclusion', 'soft-light', 'hard-light',
-                    ].map(mode => (
-                      <option key={mode} value={mode}>{mode}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      id={`insp-blend-${selectedSlot.id}`}
+                      aria-label="Blend mode"
+                      value={selectedSlot.blend ?? 'normal'}
+                      onChange={e => setBlend(selectedSlot.id, e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-neutral-800 transition-[border-color] duration-150 hover:border-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10"
+                    >
+                      {['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'difference', 'exclusion', 'soft-light', 'hard-light'].map(mode => (
+                        <option key={mode} value={mode}>{mode}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  </div>
                 </div>
 
                 {/* Shadow */}
@@ -1370,46 +1277,33 @@ export function ComposerRail() {
                     <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
                       Shadow
                     </span>
-                    <button
+                    <Switch
                       aria-label="Toggle shadow"
-                      onClick={() => {
-                        if (selectedSlot.shadow) {
-                          setShadow(selectedSlot.id, null)
-                        } else {
+                      checked={!!selectedSlot.shadow}
+                      onCheckedChange={checked => {
+                        if (checked) {
                           setShadow(selectedSlot.id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+                        } else {
+                          setShadow(selectedSlot.id, null)
                         }
                       }}
-                      className={[
-                        'h-5 w-9 rounded-full border transition-colors duration-150',
-                        selectedSlot.shadow
-                          ? 'border-neutral-900 bg-neutral-900'
-                          : 'border-neutral-300 bg-neutral-100',
-                      ].join(' ')}
-                    >
-                      <span
-                        className={[
-                          'block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-150',
-                          'mx-auto',
-                          selectedSlot.shadow ? 'translate-x-1.5' : '-translate-x-1.5',
-                        ].join(' ')}
-                      />
-                    </button>
+                    />
                   </div>
                   {selectedSlot.shadow && (
                     <div className="grid grid-cols-3 gap-1">
-                      <NumberField
+                      <NumberInput
                         id={`insp-shadow-dx-${selectedSlot.id}`}
                         label="X"
                         value={selectedSlot.shadow.dx}
                         onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dx: v })}
                       />
-                      <NumberField
+                      <NumberInput
                         id={`insp-shadow-dy-${selectedSlot.id}`}
                         label="Y"
                         value={selectedSlot.shadow.dy}
                         onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dy: v })}
                       />
-                      <NumberField
+                      <NumberInput
                         id={`insp-shadow-blur-${selectedSlot.id}`}
                         label="Blur"
                         value={selectedSlot.shadow.blur}
@@ -1439,7 +1333,7 @@ export function ComposerRail() {
                 {/* Corner radius + stroke — block and image only */}
                 {(isShape || isImage) && (
                   <div className="space-y-2">
-                    <NumberField
+                    <NumberInput
                       id={`insp-radius-${selectedSlot.id}`}
                       label="Corner radius"
                       value={selectedSlot.radius ?? 0}
@@ -1459,7 +1353,7 @@ export function ComposerRail() {
                           type="color"
                           aria-label="Stroke colour"
                           value={
-                            selectedSlot.stroke && !['accent','text'].includes(selectedSlot.stroke)
+                            selectedSlot.stroke && !['accent', 'text'].includes(selectedSlot.stroke)
                               ? selectedSlot.stroke
                               : design.palette.accent
                           }
@@ -1467,7 +1361,7 @@ export function ComposerRail() {
                           className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
                         />
                       </div>
-                      <NumberField
+                      <NumberInput
                         id={`insp-strokewidth-${selectedSlot.id}`}
                         label="Stroke width"
                         value={selectedSlot.strokeWidth ?? 0}
@@ -1492,6 +1386,7 @@ export function ComposerRail() {
             label="Snap to grid"
             checked={snap}
             onChange={setSnap}
+            data-checkbox="rail-snap"
           />
         </div>
       </div>

@@ -1,47 +1,8 @@
 // src/ui/sidebar/StyleControls.tsx
 import { useRef } from 'react'
-import { Check } from 'lucide-react'
 import { useDesign } from '../../store/useDesign'
 import { PRESET_PALETTES } from '../../design/palettes'
-
-interface CustomCheckboxProps {
-  id: string
-  label: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}
-
-function CustomCheckbox({ id, label, checked, onChange }: CustomCheckboxProps) {
-  return (
-    <label
-      htmlFor={id}
-      className="flex cursor-pointer items-center gap-2.5 select-none"
-    >
-      {/* Hidden real input for a11y/keyboard */}
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={e => onChange(e.target.checked)}
-        className="sr-only"
-        data-style-checkbox={id}
-      />
-      {/* Visual box */}
-      <span
-        aria-hidden="true"
-        className={[
-          'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors duration-150',
-          checked
-            ? 'border-neutral-900 bg-neutral-900'
-            : 'border-neutral-300 bg-white',
-        ].join(' ')}
-      >
-        {checked && <Check size={10} strokeWidth={3} className="text-white" />}
-      </span>
-      <span className="text-sm text-neutral-700">{label}</span>
-    </label>
-  )
-}
+import { Checkbox } from '../components/Checkbox'
 
 export function StyleControls() {
   const palette = useDesign(s => s.design.palette)
@@ -118,7 +79,7 @@ export function StyleControls() {
             { key: 'gridOverlay', label: 'Show grid overlay' },
           ] as const
         ).map(({ key, label }) => (
-          <CustomCheckbox
+          <Checkbox
             key={key}
             id={`sc-${key}`}
             label={label}

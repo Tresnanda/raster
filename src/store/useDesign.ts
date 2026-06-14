@@ -870,6 +870,11 @@ export const useDesign = create<State>((set, get) => {
       // This keeps the processed output out of history so undo only targets
       // the user's effect choices, not the derived pixel result.
       const design = get().design
+      const target = design.slots.find(s => s.id === slotId)
+      // Equality guard: if content is already this value, do NOTHING. Without this,
+      // every write produces a new slots reference, which re-triggers the processor
+      // effect -> writes again -> infinite ~8/sec re-process loop.
+      if (!target || target.content === dataUrl) return
       const nextSlots = design.slots.map(s =>
         s.id === slotId ? { ...s, content: dataUrl } : s
       )

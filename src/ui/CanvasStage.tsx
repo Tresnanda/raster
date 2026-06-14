@@ -328,7 +328,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
           }}
         >
           <Renderer design={design} svgRef={svgRef} />
-          <ComposerOverlay scale={scale} snap={snap} />
+          <ComposerOverlay scale={scale} zoom={zoom} snap={snap} />
         </div>
       </div>
       <GrainAnimator svgRef={svgRef} enabled={design.style.filmGrain} />

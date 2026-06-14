@@ -7,9 +7,12 @@ interface SlotImageProps {
   radius?: number
   stroke?: string
   strokeWidth?: number
+  /** Slot id — used to make the clipPath id unique (box-derived ids can collide
+   *  when two images share identical geometry). */
+  id?: string
 }
 
-export function SlotImage({ box, src, bw, radius, stroke, strokeWidth }: SlotImageProps) {
+export function SlotImage({ box, src, bw, radius, stroke, strokeWidth, id }: SlotImageProps) {
   if (!src) {
     const cx = box.x + box.w / 2
     const cy = box.y + box.h / 2
@@ -35,8 +38,9 @@ export function SlotImage({ box, src, bw, radius, stroke, strokeWidth }: SlotIma
   }
 
   const rx = radius ?? 0
-  // Use a unique clipPath id based on box coordinates (stable per render)
-  const clipId = `img-clip-${box.x}-${box.y}-${box.w}-${box.h}-${rx}`
+  // Slot-derived clipPath id (unique per element; box-derived ids could collide
+  // when two images share identical geometry). Falls back to box coords if no id.
+  const clipId = `img-clip-${id ?? `${box.x}-${box.y}-${box.w}-${box.h}`}-${rx}`
   const hasClip = rx > 0
   const sw = strokeWidth ?? 2
   const strokeInset = stroke ? sw / 2 : 0

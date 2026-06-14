@@ -166,6 +166,7 @@ export function Renderer({ design, measure, svgRef }: {
                   radius={slot.radius}
                   stroke={slot.stroke ? resolveStroke(slot.stroke) : undefined}
                   strokeWidth={slot.strokeWidth}
+                  id={slot.id}
                 />
               </g>
             )

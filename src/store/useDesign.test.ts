@@ -757,6 +757,17 @@ test('setProcessedImage updates content WITHOUT adding a history step', () => {
   expect(useDesign.getState().past.length).toBe(pastBefore)
 })
 
+test('setProcessedImage is a no-op when content is unchanged (prevents re-process loop)', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().setProcessedImage(imgSlot.id, 'data:image/png;base64,same')
+  const designAfterFirst = useDesign.getState().design
+  // Second identical write must NOT produce a new design reference (else the
+  // processor effect would re-fire forever).
+  useDesign.getState().setProcessedImage(imgSlot.id, 'data:image/png;base64,same')
+  expect(useDesign.getState().design).toBe(designAfterFirst)
+})
+
 // ── Riff store tests ──────────────────────────────────────────────────────────
 
 test('seedRiff creates root node and sets currentId', () => {

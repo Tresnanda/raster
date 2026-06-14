@@ -85,10 +85,15 @@ function snapToNearest(val: number, boundaries: number[], threshold: number): nu
 
 interface ComposerOverlayProps {
   scale: number
+  /** Current canvas zoom. The overlay lives inside the zoom-scaled stage, so its
+   *  own CSS transform must be divided by zoom to avoid double-scaling (the parent
+   *  already applies `scale(zoom)`). All pointer/handle math still uses the true
+   *  total screen scale (`scale`). */
+  zoom?: number
   snap?: boolean
 }
 
-export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
+export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverlayProps) {
   const design = useDesign(s => s.design)
   const selectedId = useDesign(s => s.selectedId)
   const selectElement = useDesign(s => s.selectElement)
@@ -292,7 +297,10 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
       style={{
         width: canvas.w,
         height: canvas.h,
-        transform: `scale(${safeScale})`,
+        // Divide by zoom: the parent stage already applies scale(zoom), so the
+        // overlay's own transform must be the un-zoomed base scale to line up 1:1
+        // with the SVG. Pointer/handle math below still uses the full `safeScale`.
+        transform: `scale(${safeScale / (zoom > 0 ? zoom : 1)})`,
         transformOrigin: 'top left',
         pointerEvents: 'none',
       }}

@@ -17,7 +17,7 @@ function Switch({
       data-slot="switch"
       data-size={size}
       className={cn(
-        "peer group/switch relative inline-flex shrink-0 items-center rounded-none border-2 border-foreground transition-all outline-none",
+        "peer group/switch relative inline-flex shrink-0 items-center rounded-md border-2 border-foreground transition-all outline-none",
         "after:absolute after:-inset-x-3 after:-inset-y-2",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
         "aria-invalid:border-destructive",
@@ -32,7 +32,7 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "pointer-events-none block rounded-none ring-0 transition-transform",
+          "pointer-events-none block rounded-sm ring-0 transition-transform",
           "group-data-[size=default]/switch:size-3 group-data-[size=sm]/switch:size-2.5",
           "group-data-[size=default]/switch:data-checked:translate-x-[calc(100%+2px)]",
           "group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%+2px)]",

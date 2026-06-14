@@ -1,10 +1,11 @@
 // src/ui/sidebar/ExportControls.tsx
 import type React from 'react'
 import { useState } from 'react'
-import { Link2, Check } from 'lucide-react'
+import { Link2, Check, Package, Loader2 } from 'lucide-react'
 import { SlotText } from 'slot-text/react'
 import { useDesign } from '../../store/useDesign'
 import { exportRaster, exportSvg } from '../../export/useExport'
+import { exportKit } from '../../export/kit'
 import { buildShareUrl } from '../../design/share'
 import { Button } from '../../components/ui/button'
 
@@ -16,6 +17,13 @@ export function ExportControls({ svgRef }: ExportControlsProps) {
   const design = useDesign(s => s.design)
   const name = `raster-${design.layout}`
   const [copied, setCopied] = useState(false)
+  const [kitBusy, setKitBusy] = useState(false)
+
+  const runKit = async () => {
+    if (kitBusy) return
+    setKitBusy(true)
+    try { await exportKit(design) } finally { setKitBusy(false) }
+  }
 
   const run = (fn: (el: SVGSVGElement) => void) => {
     if (svgRef.current) fn(svgRef.current)
@@ -70,6 +78,18 @@ export function ExportControls({ svgRef }: ExportControlsProps) {
         {copied ? <Check size={13} strokeWidth={2.5} /> : <Link2 size={13} strokeWidth={2} />}
         {/* slot-text (textmotion) rolls the label between states */}
         <SlotText text={copied ? 'Link copied' : 'Copy share link'} />
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={runKit}
+        disabled={kitBusy}
+        className="w-full"
+        aria-label="Export social kit"
+      >
+        {kitBusy ? <Loader2 size={13} className="animate-spin" /> : <Package size={13} strokeWidth={2} />}
+        {kitBusy ? 'Building kit…' : 'Export kit (feed · square · story · poster)'}
       </Button>
 
       <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">

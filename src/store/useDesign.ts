@@ -149,6 +149,9 @@ interface State {
 
   // Generic patch helper
   updateSlot: (id: string, patch: Partial<Slot>, coalesceKey?: string) => void
+  toggleHidden: (id: string) => void
+  toggleLocked: (id: string) => void
+  renameSlot: (id: string, name: string) => void
 
   // Transform helpers
   setRotation: (id: string, deg: number) => void
@@ -808,6 +811,19 @@ export const useDesign = create<State>((set, get) => {
         slots: get().design.slots.map(s => s.id === id ? { ...s, ...patch } : s),
       }
       commit(d, coalesceKey ? { coalesceKey } : undefined)
+    },
+
+    toggleHidden: (id) => {
+      const s = get().design.slots.find(x => x.id === id)
+      get().updateSlot(id, { hidden: !s?.hidden })
+      if (!s?.hidden && get().selectedId === id) set({ selectedId: null }) // deselect when hiding
+    },
+    toggleLocked: (id) => {
+      const s = get().design.slots.find(x => x.id === id)
+      get().updateSlot(id, { locked: !s?.locked })
+    },
+    renameSlot: (id, name) => {
+      get().updateSlot(id, { name: name.trim() || undefined }, `name:${id}`)
     },
 
     setRotation: (id, deg) => {

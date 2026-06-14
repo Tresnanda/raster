@@ -1,6 +1,7 @@
 // src/ui/ComposerRail.tsx — Element inspector pane, fully restructured
 import {
   Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2,
+  Eye, EyeOff, Lock, LockOpen,
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, ImageIcon, X,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
@@ -10,6 +11,7 @@ import {
   MousePointer2,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
 import { canvasFor } from '../design/formats'
@@ -45,12 +47,101 @@ function SlotTypeIcon({ slot }: { slot: Slot }) {
 
 // ── Slot label ───────────────────────────────────────────────────────────────
 function slotLabel(slot: Slot): string {
+  if (slot.name?.trim()) return slot.name.trim()
   if (slot.role === 'image') return 'Image'
   if (slot.role === 'block') return 'Shape'
   if (slot.role === 'line') return 'Line'
   const content = slot.content?.trim()
   if (content) return content.length > 20 ? content.slice(0, 20) + '…' : content
   return slot.role
+}
+
+// ── Layers list (visibility / lock / rename / dup / delete / z-order) ──────────
+function LayersList() {
+  const design = useDesign(s => s.design)
+  const selectedId = useDesign(s => s.selectedId)
+  const selectElement = useDesign(s => s.selectElement)
+  const toggleHidden = useDesign(s => s.toggleHidden)
+  const toggleLocked = useDesign(s => s.toggleLocked)
+  const renameSlot = useDesign(s => s.renameSlot)
+  const duplicateElement = useDesign(s => s.duplicateElement)
+  const deleteElement = useDesign(s => s.deleteElement)
+  const bringForward = useDesign(s => s.bringForward)
+  const sendBackward = useDesign(s => s.sendBackward)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
+
+  const layers = [...orderedSlots(design)].reverse() // topmost first
+
+  if (layers.length === 0) {
+    return <div className="px-4 py-3 font-sans text-[10px] text-muted-foreground">No layers yet.</div>
+  }
+
+  const iconBtn = 'rounded-sm p-0.5 text-muted-foreground hover:bg-foreground hover:text-background transition-colors duration-100'
+
+  return (
+    <div className="flex flex-col" data-layers-list>
+      {layers.map(slot => {
+        const isSel = selectedId === slot.id
+        const isRenaming = renaming === slot.id
+        const commit = () => { renameSlot(slot.id, draft); setRenaming(null) }
+        return (
+          <div
+            key={slot.id}
+            data-layer-row={slot.id}
+            className={cn(
+              'group relative flex items-center gap-1.5 px-4 py-1.5 cursor-pointer transition-colors duration-100',
+              isSel ? 'bg-muted' : 'hover:bg-muted',
+              slot.hidden && 'opacity-50',
+            )}
+            onClick={() => selectElement(slot.id)}
+          >
+            {/* Visibility */}
+            <button
+              onClick={e => { e.stopPropagation(); toggleHidden(slot.id) }}
+              className={iconBtn} aria-label={slot.hidden ? 'Show layer' : 'Hide layer'}
+            >
+              {slot.hidden ? <EyeOff size={12} /> : <Eye size={12} />}
+            </button>
+            <SlotTypeIcon slot={slot} />
+            {isRenaming ? (
+              <input
+                autoFocus
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onBlur={commit}
+                onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setRenaming(null) }}
+                onClick={e => e.stopPropagation()}
+                className="flex-1 min-w-0 bg-background border border-foreground rounded-sm px-1 font-sans text-[10px] text-foreground outline-none"
+              />
+            ) : (
+              <span
+                className={cn('flex-1 min-w-0 truncate font-sans text-[10px]', slot.locked ? 'text-muted-foreground italic' : 'text-foreground')}
+                onDoubleClick={e => { e.stopPropagation(); setDraft(slot.name ?? slotLabel(slot)); setRenaming(slot.id) }}
+                title="Double-click to rename"
+              >
+                {slotLabel(slot)}
+              </span>
+            )}
+            {/* Lock — always visible when locked, else on hover */}
+            <button
+              onClick={e => { e.stopPropagation(); toggleLocked(slot.id) }}
+              className={cn(iconBtn, slot.locked ? 'opacity-100 text-amber-600' : 'opacity-0 group-hover:opacity-100')}
+              aria-label={slot.locked ? 'Unlock layer' : 'Lock layer'}
+            >
+              {slot.locked ? <Lock size={11} /> : <LockOpen size={11} />}
+            </button>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+              <button onClick={e => { e.stopPropagation(); bringForward(slot.id) }} className={iconBtn} aria-label="Bring forward"><ChevronUp size={11} /></button>
+              <button onClick={e => { e.stopPropagation(); sendBackward(slot.id) }} className={iconBtn} aria-label="Send backward"><ChevronDown size={11} /></button>
+              <button onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }} className={iconBtn} aria-label="Duplicate"><Copy size={11} /></button>
+              <button onClick={e => { e.stopPropagation(); deleteElement(slot.id) }} className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-background transition-colors duration-100" aria-label="Delete"><Trash2 size={11} /></button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 // ── InspectorRow ──────────────────────────────────────────────────────────────
@@ -482,7 +573,6 @@ export function ComposerRail() {
   const canRedo = useDesign(s => s.future.length > 0)
 
   const canvas = canvasFor(design.format)
-  const layers = [...orderedSlots(design)].reverse()
   const selectedSlot = selectedId ? design.slots.find(s => s.id === selectedId) : null
 
   const resolvedBox = selectedSlot
@@ -582,44 +672,7 @@ export function ComposerRail() {
               Layers
             </div>
           </div>
-          <div className="flex flex-col pb-2" data-layers-list>
-            {layers.length === 0 && (
-              <div className="px-4 py-3 font-sans text-[10px] text-muted-foreground">No layers yet.</div>
-            )}
-            {layers.map(slot => (
-              <div
-                key={slot.id}
-                data-layer-row={slot.id}
-                className={[
-                  'group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer',
-                  'transition-colors duration-100',
-                  'hover:bg-muted',
-                ].join(' ')}
-                onClick={() => selectElement(slot.id)}
-              >
-                <SlotTypeIcon slot={slot} />
-                <span className="flex-1 min-w-0 truncate font-sans text-[10px] text-foreground">
-                  {slotLabel(slot)}
-                </span>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-                  <button
-                    onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
-                    className="rounded-sm p-0.5 hover:bg-foreground hover:text-background text-muted-foreground"
-                    aria-label="Duplicate"
-                  >
-                    <Copy size={11} />
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
-                    className="rounded-sm p-0.5 hover:bg-accent hover:text-background text-muted-foreground"
-                    aria-label="Delete"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="pb-2"><LayersList /></div>
         </div>
       )}
 
@@ -1264,60 +1317,7 @@ export function ComposerRail() {
               {/* ── LAYERS (always, collapsed) ────────────────────────────────── */}
               <div className="px-4 pt-1 pb-1 border-t border-border">
                 <Section id="rail-layers" title="Layers" defaultOpen={false}>
-                  <div className="flex flex-col" data-layers-list>
-                    {layers.length === 0 && (
-                      <div className="py-3 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">No layers yet.</div>
-                    )}
-                    {layers.map(slot => (
-                      <div
-                        key={slot.id}
-                        data-layer-row={slot.id}
-                        className={[
-                          'group relative flex items-center gap-1.5 py-1.5 rounded-md cursor-pointer px-2',
-                          'transition-colors duration-100',
-                          selectedId === slot.id
-                            ? 'bg-foreground text-background'
-                            : 'hover:bg-muted',
-                        ].join(' ')}
-                        onClick={() => selectElement(slot.id)}
-                      >
-                        <SlotTypeIcon slot={slot} />
-                        <span className="flex-1 min-w-0 truncate font-sans text-[10px]">
-                          {slotLabel(slot)}
-                        </span>
-                        <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100 mr-1">
-                          <button
-                            onClick={e => { e.stopPropagation(); bringForward(slot.id) }}
-                            className="rounded-none p-0.5 hover:bg-background/20 text-inherit"
-                            aria-label="Bring forward"
-                          >
-                            <ChevronUp size={11} />
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); sendBackward(slot.id) }}
-                            className="rounded-none p-0.5 hover:bg-background/20 text-inherit"
-                            aria-label="Send backward"
-                          >
-                            <ChevronDown size={11} />
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); duplicateElement(slot.id) }}
-                            className="rounded-none p-0.5 hover:bg-background/20 text-inherit"
-                            aria-label="Duplicate"
-                          >
-                            <Copy size={11} />
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); deleteElement(slot.id) }}
-                            className="rounded-none p-0.5 hover:text-accent text-inherit"
-                            aria-label="Delete"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="-mx-4"><LayersList /></div>
                 </Section>
               </div>
 

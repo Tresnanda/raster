@@ -116,6 +116,14 @@ export interface Slot {
   /** Current image effect descriptor. Source of truth for re-processing. */
   imageEffect?: ImageEffect
 
+  // ── Layers pack ────────────────────────────────────────────────────────────
+  /** Hidden layers are not rendered or exported and can't be selected. */
+  hidden?: boolean
+  /** Locked layers can't be moved/resized/deleted (still selectable to inspect). */
+  locked?: boolean
+  /** Optional custom layer name (shown in the Layers list). */
+  name?: string
+
   // ── Type pack ──────────────────────────────────────────────────────────────
   /** Text case transform applied before measuring and rendering. */
   textTransform?: 'none' | 'upper' | 'lower' | 'title'

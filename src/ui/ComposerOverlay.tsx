@@ -116,7 +116,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   // Center-snap guide state
   const [centerGuides, setCenterGuides] = useState<{ x: boolean; y: boolean }>({ x: false, y: false })
 
-  const slots = orderedSlots(design)
+  const slots = orderedSlots(design).filter(s => !s.hidden) // hidden layers aren't interactive
   const boundaries = gridBoundaries(canvas, design.grid)
 
   // Root ref for useGSAP scope
@@ -364,10 +364,10 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
               width: b.w,
               height: b.h,
               pointerEvents: 'all',
-              cursor: isEditing ? 'text' : 'move',
+              cursor: isEditing ? 'text' : slot.locked ? 'default' : 'move',
               boxSizing: 'border-box',
-              // Selection outline
-              outline: isSelected ? '1px solid #3b82f6' : undefined,
+              // Selection outline (amber for locked, blue otherwise)
+              outline: isSelected ? `1px solid ${slot.locked ? '#d97706' : '#3b82f6'}` : undefined,
             }}
             onClick={e => {
               e.stopPropagation()
@@ -375,16 +375,16 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
             }}
             onDoubleClick={e => {
               e.stopPropagation()
-              if (isText) {
+              if (isText && !slot.locked) {
                 selectElement(slot.id)
                 setEditingId(slot.id)
               }
             }}
             onPointerDown={e => {
               if (isEditing) return
-              // Select on pointerdown; move starts on drag
               selectElement(slot.id)
-              startMove(slot, e)
+              // Locked layers select but never move.
+              if (!slot.locked) startMove(slot, e)
             }}
             // Image drag-and-drop
             onDragOver={isImage ? e => { e.preventDefault(); setImageDragOverId(slot.id) } : undefined}
@@ -471,8 +471,8 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
               )
             })()}
 
-            {/* Selection: 8 resize handles + floating toolbar */}
-            {isSelected && !isEditing && (
+            {/* Selection: 8 resize handles + floating toolbar (not for locked) */}
+            {isSelected && !isEditing && !slot.locked && (
               <>
                 {/* Resize handles */}
                 {HANDLES.map(h => (

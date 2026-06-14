@@ -143,7 +143,7 @@ export function Renderer({ design, measure, svgRef }: {
         </defs>
 
         {/* Slots */}
-        {orderedSlots(design).map(slot => {
+        {orderedSlots(design).filter(s => !s.hidden).map(slot => {
           const box = slotBox(canvas, design.grid, slot)
           const transform = buildTransform(box, slot) || undefined
           const filterAttr = slot.shadow ? `url(#shadow-${slot.id})` : undefined

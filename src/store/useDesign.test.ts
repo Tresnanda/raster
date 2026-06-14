@@ -1,4 +1,4 @@
-import { expect, test, beforeEach } from 'vitest'
+import { expect, test, beforeEach, vi } from 'vitest'
 import { useDesign } from './useDesign'
 import { classOf, DEFAULT_TYPOGRAPHY, DEFAULT_STYLE } from '../design/typeclass'
 import '../archetypes/index'
@@ -9,6 +9,7 @@ beforeEach(() => {
   useDesign.setState({
     mineOpen: false,
     savedPosters: [],
+    posterMineError: null,
     systemRecipes: [],
     campaignRaw: '',
     campaignItems: [],
@@ -983,16 +984,30 @@ test('setListStyle coalesces repeated calls', () => {
 test('saveCurrentPoster stores a design snapshot in Poster Mine', () => {
   useDesign.getState().setContent('word', 'MINE THIS')
   const saved = useDesign.getState().saveCurrentPoster('manual')
-  expect(saved.title).toBe('MINE THIS')
+  expect(saved?.title).toBe('MINE THIS')
   expect(useDesign.getState().savedPosters).toHaveLength(1)
+  expect(useDesign.getState().posterMineError).toBeNull()
   expect(localStorage.getItem('raster:poster-mine')).toContain('MINE THIS')
+})
+
+test('saveCurrentPoster surfaces storage failures instead of claiming a saved poster', () => {
+  const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key) => {
+    if (key === 'raster:poster-mine') throw new Error('QuotaExceededError')
+  })
+
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+
+  expect(saved).toBeNull()
+  expect(useDesign.getState().savedPosters).toHaveLength(0)
+  expect(useDesign.getState().posterMineError).toMatch(/storage/i)
+  setItemSpy.mockRestore()
 })
 
 test('loadSavedPoster loads a poster without deleting the mine', () => {
   useDesign.getState().setContent('word', 'ARCHIVED')
   const saved = useDesign.getState().saveCurrentPoster('manual')
   useDesign.getState().setContent('word', 'CURRENT')
-  useDesign.getState().loadSavedPoster(saved.id)
+  useDesign.getState().loadSavedPoster(saved!.id)
   expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('ARCHIVED')
   expect(useDesign.getState().savedPosters).toHaveLength(1)
 })

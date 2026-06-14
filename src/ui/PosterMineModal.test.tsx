@@ -7,7 +7,7 @@ import '../archetypes/index'
 beforeEach(() => {
   localStorage.clear()
   useDesign.getState().reset('mega-word', '4:5')
-  useDesign.setState({ mineOpen: false, savedPosters: [] })
+  useDesign.setState({ mineOpen: false, savedPosters: [], posterMineError: null })
 })
 
 test('PosterMineModal stays hidden until opened', () => {
@@ -23,8 +23,9 @@ test('PosterMineModal renders saved posters and can load one', () => {
 
   render(<PosterMineModal />)
   expect(screen.getByText('Poster Mine')).toBeInTheDocument()
-  expect(screen.getAllByText(saved.title).length).toBeGreaterThan(0)
+  expect(saved).not.toBeNull()
+  expect(screen.getAllByText(saved!.title).length).toBeGreaterThan(0)
 
-  fireEvent.click(screen.getByRole('button', { name: `Load ${saved.title}` }))
+  fireEvent.click(screen.getByRole('button', { name: `Load ${saved!.title}` }))
   expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('ARCHIVED')
 })

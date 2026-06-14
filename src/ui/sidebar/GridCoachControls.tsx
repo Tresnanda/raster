@@ -1,4 +1,5 @@
 import { Activity, Wand2 } from 'lucide-react'
+import { useMemo } from 'react'
 import { buildGridCoachReport, type CoachFixId } from '../../design/grid-coach'
 import { useDesign } from '../../store/useDesign'
 import { Button } from '../../components/ui/button'
@@ -13,7 +14,7 @@ const FIX_LABELS: Record<CoachFixId, string> = {
 export function GridCoachControls() {
   const design = useDesign(s => s.design)
   const applyCoachFix = useDesign(s => s.applyCoachFix)
-  const report = buildGridCoachReport(design)
+  const report = useMemo(() => buildGridCoachReport(design), [design])
   const fixes = report.findings.filter(finding => finding.fixId)
 
   return (

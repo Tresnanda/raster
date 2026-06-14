@@ -2,6 +2,7 @@ import type { Design, Slot } from '../types'
 import { dominantTextSlot } from './series'
 
 export const POSTER_MINE_KEY = 'raster:poster-mine'
+const POSTER_MINE_LIMIT = 80
 
 export type PosterMineSource =
   | 'manual'
@@ -35,6 +36,30 @@ export interface CreateSavedPosterOptions {
 
 function cloneDesign(design: Design): Design {
   return JSON.parse(JSON.stringify(design)) as Design
+}
+
+const isDataUrl = (value?: string): boolean => !!value && value.startsWith('data:')
+
+function lightweightDesignForStorage(design: Design): Design {
+  const cloned = cloneDesign(design)
+  return {
+    ...cloned,
+    slots: cloned.slots.map(slot => {
+      if (slot.role !== 'image') return slot
+      return {
+        ...slot,
+        content: isDataUrl(slot.content) ? '' : slot.content,
+        imageSrcOriginal: isDataUrl(slot.imageSrcOriginal) ? undefined : slot.imageSrcOriginal,
+      }
+    }),
+  }
+}
+
+function lightweightPosterForStorage(poster: SavedPoster): SavedPoster {
+  return {
+    ...poster,
+    design: lightweightDesignForStorage(poster.design),
+  }
 }
 
 function createId(): string {
@@ -78,7 +103,7 @@ export function createSavedPoster(design: Design, opts: CreateSavedPosterOptions
     updatedAt: now,
     favorite: false,
     tags: normalizePosterTags(opts.tags ?? []),
-    design: cloneDesign(design),
+    design: lightweightDesignForStorage(design),
   }
 }
 
@@ -114,10 +139,12 @@ export function readSavedPosters(): SavedPoster[] {
   }
 }
 
-export function writeSavedPosters(posters: SavedPoster[]): void {
+export function writeSavedPosters(posters: SavedPoster[]): boolean {
   try {
-    localStorage.setItem(POSTER_MINE_KEY, JSON.stringify(posters))
+    const lightweightPosters = posters.slice(0, POSTER_MINE_LIMIT).map(lightweightPosterForStorage)
+    localStorage.setItem(POSTER_MINE_KEY, JSON.stringify(lightweightPosters))
+    return true
   } catch {
-    // Ignore quota/private-mode failures; the in-memory store still works.
+    return false
   }
 }

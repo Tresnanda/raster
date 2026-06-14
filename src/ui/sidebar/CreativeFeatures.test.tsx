@@ -18,6 +18,7 @@ beforeEach(() => {
   useDesign.setState({
     mineOpen: false,
     savedPosters: [],
+    posterMineError: null,
     systemRecipes: [],
     campaignRaw: '',
     campaignItems: [],

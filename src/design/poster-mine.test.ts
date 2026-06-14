@@ -1,13 +1,19 @@
-import { expect, test } from 'vitest'
+import { beforeEach, expect, test } from 'vitest'
 import { buildDesign } from './build'
 import {
   createSavedPoster,
   deleteSavedPoster,
   derivePosterTitle,
+  readSavedPosters,
   toggleSavedPosterFavorite,
   updateSavedPosterTags,
+  writeSavedPosters,
 } from './poster-mine'
 import '../archetypes/index'
+
+beforeEach(() => {
+  localStorage.clear()
+})
 
 test('derivePosterTitle uses the dominant readable text', () => {
   const design = buildDesign('mega-word', '4:5', 0)
@@ -67,4 +73,62 @@ test('deleteSavedPoster removes a poster from the mine', () => {
   ]
 
   expect(deleteSavedPoster(posters, 'a').map(p => p.id)).toEqual(['b'])
+})
+
+test('createSavedPoster strips heavy image bytes from the persisted design only', () => {
+  const dataUrl = `data:image/png;base64,${'a'.repeat(12_000)}`
+  const design = {
+    ...buildDesign('mega-word', '4:5', 0),
+    slots: [
+      ...buildDesign('mega-word', '4:5', 0).slots,
+      {
+        id: 'photo',
+        role: 'image' as const,
+        cell: { c: 0, cs: 12, r: 0, rs: 8 },
+        content: dataUrl,
+        imageSrcOriginal: dataUrl,
+        z: 40,
+      },
+    ],
+  }
+
+  const saved = createSavedPoster(design, {
+    id: 'poster-with-image',
+    source: 'manual',
+    now: '2026-06-14T08:00:00.000Z',
+  })
+  const savedImage = saved.design.slots.find(slot => slot.id === 'photo')!
+  const originalImage = design.slots.find(slot => slot.id === 'photo')!
+
+  expect(savedImage.content).toBe('')
+  expect(savedImage.imageSrcOriginal).toBeUndefined()
+  expect(originalImage.content).toBe(dataUrl)
+  expect(originalImage.imageSrcOriginal).toBe(dataUrl)
+})
+
+test('writeSavedPosters returns success and round-trips a lightweight image poster', () => {
+  const dataUrl = `data:image/png;base64,${'b'.repeat(12_000)}`
+  const design = {
+    ...buildDesign('mega-word', '4:5', 0),
+    slots: [
+      ...buildDesign('mega-word', '4:5', 0).slots,
+      {
+        id: 'photo',
+        role: 'image' as const,
+        cell: { c: 0, cs: 12, r: 0, rs: 8 },
+        content: dataUrl,
+        imageSrcOriginal: dataUrl,
+        z: 40,
+      },
+    ],
+  }
+  const saved = createSavedPoster(design, {
+    id: 'poster-with-image',
+    source: 'manual',
+    now: '2026-06-14T08:00:00.000Z',
+  })
+
+  expect(writeSavedPosters([saved])).toBe(true)
+  expect(localStorage.getItem('raster:poster-mine')).not.toContain(dataUrl.slice(0, 256))
+  expect(readSavedPosters()[0].design.slots.find(slot => slot.id === 'photo')!.content).toBe('')
 })

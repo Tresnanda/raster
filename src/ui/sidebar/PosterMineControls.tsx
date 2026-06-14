@@ -4,6 +4,7 @@ import { useDesign } from '../../store/useDesign'
 
 export function PosterMineControls() {
   const savedCount = useDesign(s => s.savedPosters.length)
+  const posterMineError = useDesign(s => s.posterMineError)
   const saveCurrentPoster = useDesign(s => s.saveCurrentPoster)
   const openMine = useDesign(s => s.openMine)
 
@@ -32,6 +33,11 @@ export function PosterMineControls() {
       <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">
         Saved snapshots: {savedCount} poster{savedCount === 1 ? '' : 's'} archived to revive, branch, or compare.
       </p>
+      {posterMineError && (
+        <p className="font-sans text-[10px] leading-relaxed text-destructive" role="status">
+          {posterMineError}
+        </p>
+      )}
     </div>
   )
 }

@@ -152,7 +152,7 @@ function checkLegibility(d: Design): { pass: boolean; detail: string } {
 
 test('200 runs: all slot cells in-bounds', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       expect(cellInBounds(slot.cell), `run ${i} slot ${slot.role}: ${JSON.stringify(slot.cell)}`).toBe(true)
     }
@@ -161,7 +161,7 @@ test('200 runs: all slot cells in-bounds', () => {
 
 test('200 runs: zero text-on-text overlaps', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const overlaps = countTextOverlaps(d)
     expect(overlaps, `run ${i}: ${overlaps} overlap(s) in ${JSON.stringify(d.slots.filter(s => TEXT_ROLES.has(s.role)).map(s => ({ role: s.role, cell: s.cell })))}`).toBe(0)
   }
@@ -169,7 +169,7 @@ test('200 runs: zero text-on-text overlaps', () => {
 
 test('200 runs: legibility — non-full-bleed images never have text on them', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const { pass, detail } = checkLegibility(d)
     expect(pass, `run ${i}: ${detail}`).toBe(true)
   }
@@ -177,7 +177,7 @@ test('200 runs: legibility — non-full-bleed images never have text on them', (
 
 test('200 runs: exactly one dominant text element with size ≥ 2× second-largest', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const textSizes = getTextSlots(d)
       .map(s => s.text!.size)
       .sort((a, b) => b - a)
@@ -200,7 +200,7 @@ test('200 runs: exactly one dominant text element with size ≥ 2× second-large
 test('200 runs: whitespace ≤ 70% (≤134 distinct non-image occupied cells)', () => {
   const MAX = Math.floor(192 * 0.70) // 134
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     // Count distinct occupied cells from non-image, non-line slots
     // Scrims and text can overlap (same cell) — count as one unique cell
     const nonImageSlots = d.slots.filter(s => s.role !== 'image' && s.role !== 'line')
@@ -219,7 +219,7 @@ test('200 runs: whitespace ≤ 70% (≤134 distinct non-image occupied cells)', 
 test('200 runs: dominant anchor is not centered (≤40% centered across runs)', () => {
   let centeredCount = 0
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const dominantSlot = d.slots.find(s => s.typeClass === 'title')
     if (!dominantSlot) continue
     const cell = dominantSlot.cell
@@ -239,7 +239,7 @@ test('200 runs: dominant anchor is not centered (≤40% centered across runs)', 
 test('50 runs: image treatments vary (not always same treatment)', () => {
   const treatmentFingerprints = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const imgSlots = d.slots.filter(s => s.role === 'image')
     const key = imgSlots.length === 0 ? 'none' : `${imgSlots[0].cell.cs}x${imgSlots[0].cell.rs}@${imgSlots[0].cell.c},${imgSlots[0].cell.r}`
     treatmentFingerprints.add(key)
@@ -251,7 +251,7 @@ test('50 runs: image treatments vary (not always same treatment)', () => {
 test('50 runs: dominant anchor varies (not all in same position)', () => {
   const anchors = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const dom = d.slots.find(s => s.typeClass === 'title')
     if (dom) anchors.add(`${dom.cell.c},${dom.cell.r}`)
   }
@@ -261,7 +261,7 @@ test('50 runs: dominant anchor varies (not all in same position)', () => {
 test('50 runs: content phrases vary (low duplicate rate)', () => {
   const contentSets = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     contentSets.add(d.slots.map(s => s.content).join('|'))
   }
   // Very few duplicates expected from expanded pool
@@ -271,7 +271,7 @@ test('50 runs: content phrases vary (low duplicate rate)', () => {
 test('50 runs: palettes vary', () => {
   const paletteSets = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     paletteSets.add(JSON.stringify(d.palette))
   }
   expect(paletteSets.size).toBeGreaterThan(2)
@@ -283,7 +283,7 @@ test('50 runs: palettes vary', () => {
 
 test('50 runs: all in-bounds, title/headline present, valid palette, no crash', () => {
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     checkDesign(d)
   }
 })
@@ -291,7 +291,7 @@ test('50 runs: all in-bounds, title/headline present, valid palette, no crash', 
 test('line slots stay in bounds across runs', () => {
   let lineCount = 0
   for (let i = 0; i < 100; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'line') {
         lineCount++
@@ -305,7 +305,7 @@ test('line slots stay in bounds across runs', () => {
 
 test('block slots in bounds', () => {
   for (let i = 0; i < 100; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'block') {
         expect(cellInBounds(slot.cell)).toBe(true)
@@ -316,7 +316,7 @@ test('block slots in bounds', () => {
 
 test('image slots have empty content string', () => {
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'image') {
         expect(slot.content).toBe('')
@@ -462,7 +462,7 @@ test('cellsIntersect: non-overlapping cells return false', () => {
 
 test('200 runs: the dominant headline is never a single character', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const titles = d.slots.filter(s => s.typeClass === 'title' && s.text)
     for (const t of titles) {
       expect(t.content.trim().length, `run ${i}: dominant "${t.content}" too short`).toBeGreaterThan(1)

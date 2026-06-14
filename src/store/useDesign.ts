@@ -31,6 +31,7 @@ import { buildCampaignItems, parseSeriesItems, updateCampaignItemTitle, type Cam
 import { DEFAULT_MOTION_SEQUENCE, normalizeMotionSequence, type MotionSequence } from '../design/motion'
 
 const KEY = 'raster:design'
+const POSTER_MINE_STORAGE_ERROR = 'Poster Mine storage is full. Delete a few saved posters or use smaller uploads.'
 
 function persist(d: Design) {
   try { localStorage.setItem(KEY, JSON.stringify(d)) } catch { /* quota / private mode */ }
@@ -233,9 +234,10 @@ interface State {
   // Poster Mine
   mineOpen: boolean
   savedPosters: SavedPoster[]
+  posterMineError: string | null
   openMine: () => void
   closeMine: () => void
-  saveCurrentPoster: (source: PosterMineSource, parentId?: string) => SavedPoster
+  saveCurrentPoster: (source: PosterMineSource, parentId?: string) => SavedPoster | null
   loadSavedPoster: (id: string) => void
   deleteSavedPoster: (id: string) => void
   toggleSavedPosterFavorite: (id: string) => void
@@ -338,6 +340,7 @@ export const useDesign = create<State>((set, get) => {
     riffTree: { nodes: {}, rootId: null, currentId: null },
     mineOpen: false,
     savedPosters: readSavedPosters(),
+    posterMineError: null,
     dailyBrief: null,
     systemRecipes: readSystemRecipes(),
     campaignRaw: '',
@@ -1100,8 +1103,11 @@ export const useDesign = create<State>((set, get) => {
     saveCurrentPoster: (source, parentId) => {
       const saved = createSavedPoster(get().design, { source, parentId })
       const posters = [saved, ...get().savedPosters].slice(0, 80)
-      writeSavedPosters(posters)
-      set({ savedPosters: posters })
+      if (!writeSavedPosters(posters)) {
+        set({ posterMineError: POSTER_MINE_STORAGE_ERROR })
+        return null
+      }
+      set({ savedPosters: posters, posterMineError: null })
       return saved
     },
 
@@ -1123,20 +1129,29 @@ export const useDesign = create<State>((set, get) => {
 
     deleteSavedPoster: (id) => {
       const posters = deleteSavedPoster(get().savedPosters, id)
-      writeSavedPosters(posters)
-      set({ savedPosters: posters })
+      if (!writeSavedPosters(posters)) {
+        set({ posterMineError: POSTER_MINE_STORAGE_ERROR })
+        return
+      }
+      set({ savedPosters: posters, posterMineError: null })
     },
 
     toggleSavedPosterFavorite: (id) => {
       const posters = toggleSavedPosterFavorite(get().savedPosters, id)
-      writeSavedPosters(posters)
-      set({ savedPosters: posters })
+      if (!writeSavedPosters(posters)) {
+        set({ posterMineError: POSTER_MINE_STORAGE_ERROR })
+        return
+      }
+      set({ savedPosters: posters, posterMineError: null })
     },
 
     updateSavedPosterTags: (id, tags) => {
       const posters = updateSavedPosterTags(get().savedPosters, id, tags)
-      writeSavedPosters(posters)
-      set({ savedPosters: posters })
+      if (!writeSavedPosters(posters)) {
+        set({ posterMineError: POSTER_MINE_STORAGE_ERROR })
+        return
+      }
+      set({ savedPosters: posters, posterMineError: null })
     },
 
     // -------------------------------------------------------------------------
@@ -1152,10 +1167,11 @@ export const useDesign = create<State>((set, get) => {
         title: applied.brief.title,
       })
       const posters = [saved, ...get().savedPosters].slice(0, 80)
-      writeSavedPosters(posters)
+      const savedToMine = writeSavedPosters(posters)
       set({
         dailyBrief: { date: applied.date, brief: applied.brief },
-        savedPosters: posters,
+        savedPosters: savedToMine ? posters : get().savedPosters,
+        posterMineError: savedToMine ? null : POSTER_MINE_STORAGE_ERROR,
         selectedId: null,
         selectedIds: [],
       })

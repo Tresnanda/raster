@@ -105,7 +105,7 @@ describe('Section', () => {
 
   test('renders the title', () => {
     render(<Section id="s1" title="Typography">children</Section>)
-    expect(screen.getByText('Typography')).toBeTruthy()
+    expect(screen.getByText('TYPOGRAPHY')).toBeTruthy()
   })
 
   test('toggles open/closed on click', () => {
@@ -114,11 +114,11 @@ describe('Section', () => {
         <div>Inner content</div>
       </Section>
     )
-    const trigger = screen.getByText('Toggle')
+    const trigger = screen.getByText('TOGGLE')
     // Initially closed (defaultOpen=false) — content may be hidden
     fireEvent.click(trigger.closest('button')!)
     // After click, should be open — just verify no error thrown
-    expect(screen.getByText('Toggle')).toBeTruthy()
+    expect(screen.getByText('TOGGLE')).toBeTruthy()
   })
 })
 
@@ -181,10 +181,10 @@ describe('SegmentedControl', () => {
     expect(screen.getByText('R')).toBeTruthy()
   })
 
-  test('active option has bg-neutral-900 class', () => {
+  test('active option has bg-foreground class (ink brutalism inverted active)', () => {
     render(<SegmentedControl value="center" options={options} onValueChange={() => {}} />)
     const centerBtn = screen.getByText('C').closest('button')
-    expect(centerBtn?.className).toContain('bg-neutral-900')
+    expect(centerBtn?.className).toContain('bg-foreground')
   })
 
   test('calls onValueChange when option clicked', () => {

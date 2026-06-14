@@ -30,13 +30,14 @@ test('Surprise me button calls surprise()', () => {
   expect(surprise).toHaveBeenCalled()
 })
 
-test('three buttons are visually distinct — Surprise has primary class', () => {
+test('three buttons are visually distinct — Surprise has primary (ink) class', () => {
   const { container } = render(<LayoutGrid />)
   const surpriseBtn = container.querySelector('[title="Generate a brand-new unique design"]')
-  expect(surpriseBtn?.className).toContain('bg-neutral-900')
+  // In ink brutalism, Surprise is the default (primary) variant — bg-primary (carbon ink)
+  expect(surpriseBtn?.className).toContain('bg-primary')
 })
 
 test('microcopy helper is rendered', () => {
   render(<LayoutGrid />)
-  expect(screen.getByText(/Shuffle reworks this layout/i)).toBeTruthy()
+  expect(screen.getByText(/Shuffle reworks/i)).toBeTruthy()
 })

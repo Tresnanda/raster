@@ -115,7 +115,7 @@ export function CropModal() {
       role="dialog"
       aria-modal="true"
       aria-label="Crop image"
-      className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center"
+      className="fixed inset-0 z-[9999] bg-foreground/40 flex items-center justify-center"
       onClick={e => {
         if (e.target === e.currentTarget) cancelCrop()
       }}
@@ -124,21 +124,22 @@ export function CropModal() {
       <div
         ref={cardRef}
         role="document"
-        className="bg-background rounded-xl shadow-2xl w-[min(90vw,640px)] flex flex-col overflow-hidden"
+        className="bg-background rounded-none border-2 border-foreground shadow-brutal w-[min(90vw,640px)] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <span className="text-[13px] font-semibold tracking-[0.06em] uppercase text-foreground">
-            Crop Image
+        <div className="px-4 py-3 border-b-2 border-foreground flex items-center justify-between">
+          <span className="font-mono text-[11px] font-bold tracking-[0.12em] uppercase text-foreground">
+            [ Crop Image ]
           </span>
           <Button
             variant="ghost"
             size="icon-sm"
             aria-label="Close"
             onClick={cancelCrop}
+            className="border-transparent shadow-none"
           >
-            <X size={16} />
+            <X size={14} strokeWidth={2.5} />
           </Button>
         </div>
 
@@ -163,7 +164,7 @@ export function CropModal() {
         <div className="px-5 py-4 flex flex-col gap-4">
           {/* Zoom control */}
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted-foreground whitespace-nowrap w-10 shrink-0">
+            <span className="font-mono text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground whitespace-nowrap w-10 shrink-0">
               Zoom
             </span>
             <Slider
@@ -175,7 +176,7 @@ export function CropModal() {
               aria-label="Zoom"
               className="flex-1"
             />
-            <span className="text-xs tabular-nums text-muted-foreground w-9 text-right shrink-0">
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground w-9 text-right shrink-0">
               {zoom.toFixed(2)}x
             </span>
           </div>

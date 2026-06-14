@@ -310,8 +310,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     <div
       ref={stageRef}
       className="flex h-full items-center justify-center overflow-hidden"
-      style={{ background: '#E2E0D9', position: 'relative' as const }}
-      style={{ cursor }}
+      style={{ background: '#E2E0D9', position: 'relative' as const, cursor }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -322,8 +321,8 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
         <div
           ref={containerRef}
           className="relative"
-          style={{ boxShadow: '6px 6px 0 0 #0A0A0A' }}
           style={{
+            boxShadow: '6px 6px 0 0 #0A0A0A',
             aspectRatio: `${c.w}/${c.h}`,
             maxHeight: '100%',
             maxWidth: '100%',

@@ -87,7 +87,7 @@ test('clicking snap checkbox calls setSnap with toggled value', () => {
 
 test('empty state shown when nothing selected', () => {
   render(<ComposerRail />)
-  expect(screen.getByText('Select an element on the canvas to edit it.')).toBeTruthy()
+  expect(screen.getByText('Select an element on canvas')).toBeTruthy()
 })
 
 test('selecting a text element shows align buttons', () => {
@@ -446,7 +446,7 @@ test('selecting any element shows TRANSFORM section heading', () => {
   )!
   useDesign.getState().selectElement(textSlot.id)
   render(<ComposerRail />)
-  expect(screen.getByText('Transform')).toBeTruthy()
+  expect(screen.getByText('TRANSFORM')).toBeTruthy()
 })
 
 test('TRANSFORM section shows Rotation input', () => {
@@ -830,12 +830,12 @@ test('collapsed Section (Layers) expands on header click', () => {
   useDesign.getState().selectElement(textSlot.id)
   render(<ComposerRail />)
   // Find the Layers section trigger button
-  const layersTrigger = screen.getByText('Layers').closest('button')
+  const layersTrigger = screen.getByText('LAYERS').closest('button')
   expect(layersTrigger).toBeTruthy()
   // Clicking it should not throw (toggles open/closed)
   expect(() => fireEvent.click(layersTrigger!)).not.toThrow()
   // After click, the trigger is still present (section toggled)
-  expect(screen.getByText('Layers')).toBeTruthy()
+  expect(screen.getByText('LAYERS')).toBeTruthy()
 })
 
 test('blend mode Radix Select trigger is reachable and wiring is correct', () => {

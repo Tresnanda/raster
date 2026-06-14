@@ -50,8 +50,8 @@ export function Section({ id, title, children, defaultOpen = true, className }: 
           >
             {/* Industrial section label with bracket markers */}
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground/60 font-mono text-[11px]">▚</span>
-              {title.toUpperCase()}
+              <span aria-hidden="true" className="text-muted-foreground/60 font-mono text-[11px]">▚</span>
+              <span>{title.toUpperCase()}</span>
             </span>
             {/* +/− caret */}
             <span

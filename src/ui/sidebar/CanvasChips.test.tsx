@@ -16,10 +16,10 @@ test('renders all 7 format options', () => {
   }
 })
 
-test('active format segment has bg-neutral-900 class', () => {
+test('active format segment has bg-foreground class (ink brutalism inverted active)', () => {
   render(<CanvasChips />)
   const activeBtn = screen.getByText('4:5').closest('button')
-  expect(activeBtn?.className).toContain('bg-neutral-900')
+  expect(activeBtn?.className).toContain('bg-foreground')
 })
 
 test('clicking 1:1 sets format to 1:1', () => {

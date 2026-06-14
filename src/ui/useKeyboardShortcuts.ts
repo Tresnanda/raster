@@ -31,6 +31,9 @@ export function useKeyboardShortcuts() {
   const selectElement = useDesign(s => s.selectElement)
   const addElement = useDesign(s => s.addElement)
   const setBox = useDesign(s => s.setBox)
+  const setZoom = useDesign(s => s.setZoom)
+  const zoomToFit = useDesign(s => s.zoomToFit)
+  const zoomTo100 = useDesign(s => s.zoomTo100)
 
   // We read these inline via get() rather than subscribing so the listener
   // closure never becomes stale on design/selection changes.
@@ -153,6 +156,38 @@ export function useKeyboardShortcuts() {
           case 'l': addElement('line'); return
         }
       }
+
+      // ── Zoom shortcuts ────────────────────────────────────────────────────────
+      // Zoom in: Cmd/Ctrl + or Cmd/Ctrl =
+      if (mod && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        setZoom(getState().zoom * 1.25)
+        return
+      }
+      // Zoom out: Cmd/Ctrl -
+      if (mod && e.key === '-') {
+        e.preventDefault()
+        setZoom(getState().zoom / 1.25)
+        return
+      }
+      // Fit to screen: Cmd/Ctrl 0
+      if (mod && e.key === '0') {
+        e.preventDefault()
+        zoomToFit()
+        return
+      }
+      // 100% fit scale: Cmd/Ctrl 1
+      if (mod && e.key === '1') {
+        e.preventDefault()
+        zoomTo100()
+        return
+      }
+      // 100% fit scale: Shift+1 (produces '!' in most browsers)
+      if (!mod && e.shiftKey && e.key === '!') {
+        e.preventDefault()
+        zoomTo100()
+        return
+      }
     }
 
     window.addEventListener('keydown', onKey)
@@ -163,6 +198,7 @@ export function useKeyboardShortcuts() {
     duplicateElement, deleteElement,
     bringForward, sendBackward,
     selectElement, addElement, setBox,
+    setZoom, zoomToFit, zoomTo100,
     getState,
   ])
 }

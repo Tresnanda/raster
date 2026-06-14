@@ -344,6 +344,62 @@ function chooseSkeleton(): Skeleton {
 }
 
 // ---------------------------------------------------------------------------
+// Image placement — maps ImageTreatment to a concrete GridCell
+// ---------------------------------------------------------------------------
+
+/** Map an ImageTreatment to a concrete GridCell (clamped, valid). */
+function resolveImageCell(treatment: ImageTreatment): GridCell | null {
+  switch (treatment) {
+    case 'none': return null
+    case 'full-bleed':
+      return clampCell({ c: 0, cs: COLS, r: 0, rs: ROWS })
+    case 'framed-block': {
+      const cs = randInt(5, 10)
+      const rs = randInt(7, 12)
+      const c = randInt(0, COLS - cs)
+      const r = randInt(1, ROWS - rs - 1)
+      return clampCell({ c, cs, r, rs })
+    }
+    case 'half-split-left': {
+      const cs = randInt(5, 7)
+      return clampCell({ c: 0, cs, r: 0, rs: ROWS })
+    }
+    case 'half-split-right': {
+      const cs = randInt(5, 7)
+      return clampCell({ c: COLS - cs, cs, r: 0, rs: ROWS })
+    }
+    case 'h-band': {
+      const rs = randInt(4, 8)
+      const r = randInt(2, ROWS - rs - 2)
+      return clampCell({ c: 0, cs: COLS, r, rs })
+    }
+    case 'v-band': {
+      const cs = randInt(2, 4)
+      const c = randInt(2, COLS - cs - 2)
+      return clampCell({ c, cs, r: 0, rs: ROWS })
+    }
+  }
+}
+
+/** Place image slot, mark image region. Returns null for 'none'. */
+function placeImage(
+  treatment: ImageTreatment,
+  occ: OccupancyGrid,
+  imgRegions: ImageRegionSet,
+  id: () => string,
+): Slot | null {
+  const cell = resolveImageCell(treatment)
+  if (!cell) return null
+  // Images go at z:1 — always behind text
+  const slot: Slot = { id: id(), role: 'image', z: 1, cell, content: '' }
+  // Don't claim occupancy for images — text can intentionally overlap (with scrim)
+  // But DO mark image regions so scrim logic knows where images are
+  void occ
+  imgRegions.mark(cell)
+  return slot
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

@@ -13,14 +13,6 @@ const HEADLINES = [
   'MASS', 'CORE', 'NODE', 'ZONE', 'DEPTH', 'PITCH', 'SPAN',
   'ECHO', 'FOLD',
 ]
-const SUBHEADS = [
-  'Chasing Horizons', 'In Full Motion', 'At The Limit',
-  'New Perspectives', 'Against The Grain', 'Between Lines',
-  'Surface Tension', 'High Contrast', 'No Compromise',
-  'Open Field', 'Late Light', 'Hard Edge', 'Still Moving',
-  'Long Exposure', 'Raw Material', 'Soft Focus', 'Deep Cut',
-  'Close Reading', 'Wide Angle', 'Slow Burn',
-]
 const KICKERS = [
   'A Berlin Story', 'Field Season', 'Late Light Edition', 'Studio Notes',
   'After Hours', 'On Location', 'Special Report', 'The Long View',

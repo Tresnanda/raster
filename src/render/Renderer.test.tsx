@@ -168,3 +168,25 @@ test('slot.bw=true overrides global bwImage=false: image gets bw filter', () => 
   const img = container.querySelector(`[data-slot="${imgSlot.id}"] image`)!
   expect(img.getAttribute('filter')).toBe('url(#raster-bw)')
 })
+
+test('slot with opacity:0.5 renders <g data-slot> with opacity attribute', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  wordSlot.opacity = 0.5
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${wordSlot.id}"]`) as SVGElement
+  expect(group).toBeTruthy()
+  expect(group.getAttribute('opacity')).toBe('0.5')
+})
+
+test('slot with no opacity renders <g data-slot> with opacity 1 (default)', () => {
+  const d = buildDesign('mega-word', '1:1', 0)
+  const wordSlot = d.slots.find(s => s.id === 'word')!
+  delete wordSlot.opacity
+  const { container } = render(<Renderer design={d} measure={measure} />)
+  const group = container.querySelector(`[data-slot="${wordSlot.id}"]`) as SVGElement
+  expect(group).toBeTruthy()
+  // Either no attribute or "1" — both are equivalent
+  const opacityAttr = group.getAttribute('opacity')
+  expect(opacityAttr === null || opacityAttr === '1').toBe(true)
+})

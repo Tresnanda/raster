@@ -97,7 +97,7 @@ export function Renderer({ design, measure, svgRef }: {
 
           if (slot.role === 'image') {
             return (
-              <g key={slot.id} data-slot={slot.id}>
+              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
                 <SlotImage box={box} src={slot.content} bw={slot.bw ?? style.bwImage} />
               </g>
             )
@@ -107,7 +107,7 @@ export function Renderer({ design, measure, svgRef }: {
             const fill = slot.fill === 'accent' ? palette.accent
               : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
             return (
-              <g key={slot.id} data-slot={slot.id}>
+              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
                 <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
               </g>
             )
@@ -117,7 +117,7 @@ export function Renderer({ design, measure, svgRef }: {
             const fill = slot.fill === 'accent' ? palette.accent
               : slot.fill === 'text' ? palette.text : (slot.fill ?? palette.accent)
             return (
-              <g key={slot.id} data-slot={slot.id}>
+              <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
                 <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={fill} />
               </g>
             )
@@ -130,7 +130,7 @@ export function Renderer({ design, measure, svgRef }: {
             ((style.accentHeadline && cls === 'title') ? palette.accent : palette.text)
 
           return (
-            <g key={slot.id} data-slot={slot.id}>
+            <g key={slot.id} data-slot={slot.id} opacity={slot.opacity ?? 1}>
               <SlotText
                 id={slot.id}
                 box={box}

@@ -4,29 +4,77 @@ import { PRESET_PALETTES } from './palettes'
 import { DEFAULT_TYPOGRAPHY } from './typeclass'
 
 // ---------------------------------------------------------------------------
-// Editorial content pools
+// Editorial content pools (expanded for variety)
 // ---------------------------------------------------------------------------
 const HEADLINES = [
   'RUN', 'MAIN STAGE', 'NOW', 'FORM', 'FIELD', 'BLOC', 'OPEN',
   'SIGNAL', 'DRIFT', 'ZERO', 'EDGE', 'PULSE', 'GRID', 'LOOP',
+  'FRAME', 'AXIS', 'VOID', 'MARK', 'LINE', 'BASE', 'FLUX',
+  'MASS', 'CORE', 'NODE', 'ZONE', 'DEPTH', 'PITCH', 'SPAN',
+  'ECHO', 'FOLD',
 ]
 const SUBHEADS = [
   'Chasing Horizons', 'In Full Motion', 'At The Limit',
   'New Perspectives', 'Against The Grain', 'Between Lines',
   'Surface Tension', 'High Contrast', 'No Compromise',
+  'Open Field', 'Late Light', 'Hard Edge', 'Still Moving',
+  'Long Exposure', 'Raw Material', 'Soft Focus', 'Deep Cut',
+  'Close Reading', 'Wide Angle', 'Slow Burn',
 ]
-const DATES = ['15–26 June', '08–19 July', '01–12 Aug', '03–14 Sept', '20–31 Oct']
-const VOLUMES = ['Vol. 01', 'Vol. 02', 'Vol. 03', 'Vol. 04', 'Vol. 05', 'Issue 12', 'Issue 07']
-const YEARS = ['2024', '2025', '2026', '2027']
-const CITIES = ['Berlin', 'Tokyo', 'Lagos', 'London', 'Seoul', 'Melbourne', 'Lisbon', 'New York']
-const FOOTERS = ['raster.studio', 'studio & co.', 'form works', 'index press']
-const NUMERALS = ['01', '02', '07', '12', '24', '36', '48', '99']
+const KICKERS = [
+  'A Berlin Story', 'Field Season', 'Late Light Edition', 'Studio Notes',
+  'After Hours', 'On Location', 'Special Report', 'The Long View',
+  'Close Range', 'Open Session', 'From The Archive', 'Night Edition',
+  'The Early Work', 'Summer Issue', 'Winter Annual', 'Press Preview',
+  'Edition Zero', 'Series Three', 'The Monograph', 'Platform Edition',
+]
+const DATES = [
+  '15–26 June', '08–19 July', '01–12 Aug', '03–14 Sept', '20–31 Oct',
+  '10–21 Nov', '02–13 Dec', '05–16 Jan', '14–25 Feb', '07–18 Mar',
+  '22 Apr – 04 May', '28 Jun – 09 Jul', '17–28 Aug', '04–15 Sept',
+  '19–30 Oct', '06–17 Nov', '12 Dec – 02 Jan', '09–20 Feb',
+  '18–29 Mar', '24 Apr – 05 May',
+]
+const VOLUMES = [
+  'Vol. 01', 'Vol. 02', 'Vol. 03', 'Vol. 04', 'Vol. 05',
+  'Issue 12', 'Issue 07', 'Issue 03', 'Issue 18', 'Issue 24',
+  'No. 001', 'No. 007', 'No. 012', 'No. 033', 'No. 048',
+  'Ed. 01', 'Ed. 04', 'Ed. 09', 'Ed. 14', 'Annual 2026',
+]
+const YEARS = ['2024', '2025', '2026', '2027', '2028', '2029', '2019', '2020', '2021', '2022']
+const CITIES = [
+  'Berlin', 'Tokyo', 'Lagos', 'London', 'Seoul', 'Melbourne', 'Lisbon', 'New York',
+  'Milan', 'Shanghai', 'Nairobi', 'São Paulo', 'Oslo', 'Copenhagen', 'Vienna',
+  'Mexico City', 'Amsterdam', 'Taipei', 'Johannesburg', 'Buenos Aires',
+]
+const FOOTERS = [
+  'raster.studio', 'studio & co.', 'form works', 'index press',
+  'field office', 'base studio', 'signal press', 'grid works',
+  'loop studio', 'edge press', 'frame studio', 'bloc press',
+  'mark & co.', 'axis studio', 'core press',
+]
+const NUMERALS = [
+  '01', '02', '07', '12', '24', '36', '48', '99',
+  '03', '05', '09', '14', '17', '22', '28', '33',
+]
 const INDEX_LINES = [
   'Opening  ——  p.01',
   'Field Notes  ——  p.12',
   'Long Read  ——  p.24',
   'Portfolio  ——  p.36',
   'Archive  ——  p.48',
+  'Editorial  ——  p.06',
+  'Interview  ——  p.18',
+  'Review  ——  p.30',
+  'Profile  ——  p.42',
+  'Afterword  ——  p.54',
+]
+const CAPTIONS = [
+  'Photographed on location', 'All images © the studio', 'Printed on demand',
+  'Limited to 500 copies', 'First edition, 2026', 'Distributed worldwide',
+  'Shot on medium format', 'Archival pigment print', 'Open edition',
+  'Numbered and signed', 'Studio production', 'Field documentation',
+  'Season collection', 'Annual publication', 'Collector edition',
 ]
 
 // ---------------------------------------------------------------------------

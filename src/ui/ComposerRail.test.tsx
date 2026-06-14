@@ -614,3 +614,75 @@ test('changing Stroke width calls setStrokeWidth', () => {
   fireEvent.change(swInput, { target: { value: '4' } })
   expect(setStrokeWidth).toHaveBeenCalledWith(blockSlot.id, 4)
 })
+
+// ── Image effects inspector ───────────────────────────────────────────────────
+
+test('selecting an image slot shows the EFFECTS section', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByText(/effects/i)).toBeTruthy()
+})
+
+test('selecting an image slot shows the None chip', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByRole('button', { name: /none/i })).toBeTruthy()
+})
+
+test('selecting an image slot shows the Halftone chip', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByRole('button', { name: /halftone/i })).toBeTruthy()
+})
+
+test('clicking Halftone chip calls setImageEffect with kind halftone', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  const setImageEffect = vi.spyOn(useDesign.getState(), 'setImageEffect')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByRole('button', { name: /halftone/i }))
+  expect(setImageEffect).toHaveBeenCalledWith(
+    imgSlot.id,
+    expect.objectContaining({ kind: 'halftone' })
+  )
+})
+
+test('clicking Grayscale chip calls setImageEffect with kind grayscale', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  const setImageEffect = vi.spyOn(useDesign.getState(), 'setImageEffect')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByRole('button', { name: /b&w|grayscale/i }))
+  expect(setImageEffect).toHaveBeenCalledWith(
+    imgSlot.id,
+    expect.objectContaining({ kind: 'grayscale' })
+  )
+})
+
+test('when halftone is active, cell slider is visible', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().setImageEffect(imgSlot.id, { kind: 'halftone', params: { cell: 8, angle: 45, dark: '#000000', light: '#ffffff' } })
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText(/cell/i)).toBeTruthy()
+})
+
+test('selecting a non-image slot does NOT show the EFFECTS section', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  // EFFECTS section should not be present for text
+  const effectsHeadings = screen.queryAllByText(/^effects$/i)
+  expect(effectsHeadings.length).toBe(0)
+})

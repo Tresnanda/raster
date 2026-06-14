@@ -76,19 +76,20 @@ export function reshuffleSystem(design: Design, seed: number): Design {
   const queues = buildQueues(sourceText)
   const fresh = generate(design.format, { seed, candidateCount: 24 })
 
-  const slots = fresh.slots.map(slot => {
-    if (!slot.text) return slot
+  const slots = fresh.slots.flatMap(slot => {
+    if (!slot.text) return [slot]
     const source = takeByRole(queues, slot.role)
-    if (!source) return slot
-    return { ...slot, content: source.content }
+    if (!source) return []
+    return [{ ...slot, content: source.content }]
   })
 
   const remaining = [...queues.values()].flat()
+  const maxZ = slots.length ? Math.max(...slots.map(s => s.z ?? 0)) : 4
   const extras = remaining.map((slot, index) => ({
     ...clone(slot),
     id: `reshuffle-${seed}-${index}`,
     box: undefined,
-    z: Math.max(...slots.map(s => s.z ?? 0), 4) + index + 1,
+    z: maxZ + index + 1,
     typeClass: slot.typeClass === 'title' ? 'body' as const : slot.typeClass,
     cell: freeCell(slots, slot.cell, fresh.grid.cols, fresh.grid.rows),
   }))

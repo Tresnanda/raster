@@ -471,7 +471,12 @@ export const useDesign = create<State>((set, get) => {
         : scope === 'system'
           ? reshuffleSystem(current, seed)
           : current.archetype === 'generated'
-            ? generate(current.format, { seed })
+            ? {
+                ...reshuffleSystem(current, seed),
+                palette: { ...current.palette },
+                typography: { ...current.typography },
+                style: { ...current.style },
+              }
             : reShuffle(current)
       commit(d)
     },
@@ -533,13 +538,7 @@ export const useDesign = create<State>((set, get) => {
 
     surprise: () => {
       const current = get().design
-      const seed = ((current.seed ?? 0) + 1) >>> 0
-      const scope = get().shuffleScope
-      const d = scope === 'content'
-        ? reshuffleContent(current, seed)
-        : scope === 'system'
-          ? reshuffleSystem(current, seed)
-          : generate(current.format)
+      const d = generate(current.format)
       // surprise is a discrete action — commit then clear selection
       commit(d)
       set({ selectedId: null, selectedIds: [] })

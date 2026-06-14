@@ -77,16 +77,52 @@ test('content-scope shuffle keeps layout and changes at least one content string
   expect(textContents()).not.toEqual(beforeContent)
 })
 
-test('system-scope surprise keeps current text content and changes the layout', () => {
+test('system-scope shuffle keeps current text content and changes the layout', () => {
   useDesign.getState().loadDesign(generate('4:5', { seed: 16001, candidateCount: 18 }))
   const beforeLayout = layoutFingerprint()
   const beforeContent = textContents()
   useDesign.getState().setShuffleScope('system')
+  useDesign.getState().shuffle()
+
+  expect(textContents()).toEqual(beforeContent)
+  expect(layoutFingerprint()).not.toBe(beforeLayout)
+})
+
+test('surprise ignores shuffle scope and always invents a generated poster', () => {
+  useDesign.getState().setShuffleScope('content')
   useDesign.getState().surprise()
 
-  for (const content of beforeContent) {
-    expect(textContents()).toContain(content)
-  }
+  expect(useDesign.getState().design.archetype).toBe('generated')
+  expect(useDesign.getState().design.layout).toBe(0)
+  expect(useDesign.getState().design.generation).toBeDefined()
+
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setShuffleScope('system')
+  useDesign.getState().surprise()
+
+  expect(useDesign.getState().design.archetype).toBe('generated')
+  expect(useDesign.getState().design.layout).toBe(0)
+  expect(useDesign.getState().design.generation).toBeDefined()
+})
+
+test('all-scope shuffle remixes a generated poster without inventing new content or style', () => {
+  useDesign.getState().loadDesign(generate('4:5', { seed: 16002, candidateCount: 18 }))
+  const beforeLayout = layoutFingerprint()
+  const beforeContent = textContents()
+  const beforePalette = { ...useDesign.getState().design.palette }
+  const beforeTypography = { ...useDesign.getState().design.typography }
+  const beforeStyle = { ...useDesign.getState().design.style }
+
+  useDesign.getState().setShuffleScope('all')
+  useDesign.getState().shuffle()
+
+  const after = useDesign.getState().design
+  expect(after.archetype).toBe('generated')
+  expect(after.layout).toBe(0)
+  expect(textContents()).toEqual(beforeContent)
+  expect(after.palette).toEqual(beforePalette)
+  expect(after.typography).toEqual(beforeTypography)
+  expect(after.style).toEqual(beforeStyle)
   expect(layoutFingerprint()).not.toBe(beforeLayout)
 })
 

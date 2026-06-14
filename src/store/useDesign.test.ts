@@ -707,3 +707,52 @@ test('setBlend normal sets blend to normal', () => {
   useDesign.getState().setBlend(id, 'normal')
   expect(useDesign.getState().design.slots.find(s => s.id === id)!.blend).toBe('normal')
 })
+
+// ── Image effects ─────────────────────────────────────────────────────────────
+
+test('placeImage sets content and imageSrcOriginal to the same src', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().placeImage(imgSlot.id, 'data:image/png;base64,abc')
+  const slot = useDesign.getState().design.slots.find(s => s.id === imgSlot.id)!
+  expect(slot.content).toBe('data:image/png;base64,abc')
+  expect(slot.imageSrcOriginal).toBe('data:image/png;base64,abc')
+})
+
+test('placeImage is an undo step', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  const pastBefore = useDesign.getState().past.length
+  useDesign.getState().placeImage(imgSlot.id, 'data:image/png;base64,abc')
+  expect(useDesign.getState().past.length).toBe(pastBefore + 1)
+})
+
+test('setImageEffect sets imageEffect on the slot and is an undo step', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  const pastBefore = useDesign.getState().past.length
+  useDesign.getState().setImageEffect(imgSlot.id, { kind: 'grayscale', params: {} })
+  const slot = useDesign.getState().design.slots.find(s => s.id === imgSlot.id)!
+  expect(slot.imageEffect?.kind).toBe('grayscale')
+  expect(useDesign.getState().past.length).toBe(pastBefore + 1)
+})
+
+test('setImageEffect is undoable: undo restores prior imageEffect', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().setImageEffect(imgSlot.id, { kind: 'invert', params: {} })
+  useDesign.getState().setImageEffect(imgSlot.id, { kind: 'grayscale', params: {} })
+  useDesign.getState().undo()
+  const slot = useDesign.getState().design.slots.find(s => s.id === imgSlot.id)!
+  expect(slot.imageEffect?.kind).toBe('invert')
+})
+
+test('setProcessedImage updates content WITHOUT adding a history step', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  const pastBefore = useDesign.getState().past.length
+  useDesign.getState().setProcessedImage(imgSlot.id, 'data:image/png;base64,processed')
+  const slot = useDesign.getState().design.slots.find(s => s.id === imgSlot.id)!
+  expect(slot.content).toBe('data:image/png;base64,processed')
+  expect(useDesign.getState().past.length).toBe(pastBefore)
+})

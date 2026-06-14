@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Box, Design, Format, Palette, Shadow, Slot, StyleOptions, TextStyle, Typography } from '../types'
+import type { Box, Design, Format, ImageEffect, Palette, Shadow, Slot, StyleOptions, TextStyle, Typography } from '../types'
 import { buildDesign } from '../design/build'
 import { reShuffle, mergeContent } from '../design/shuffle'
 import { buildFromLayout } from '../design/layouts'
@@ -30,6 +30,8 @@ function load(): Design | null {
         typeClass: s.typeClass ?? (s.role !== 'image' && s.role !== 'block' && s.role !== 'line' ? classOf(s.role) : undefined),
         // Ensure every slot has a z (fallback to array index)
         z: s.z ?? i,
+        // Migration: imageSrcOriginal defaults to content for old image slots
+        imageSrcOriginal: s.imageSrcOriginal ?? (s.role === 'image' && s.content ? s.content : undefined),
       })),
     }
     return migrated
@@ -149,6 +151,11 @@ interface State {
   setStrokeWidth: (id: string, px: number) => void
   setShadow: (id: string, shadow: Shadow | null) => void
   setBlend: (id: string, mode: string) => void
+
+  // Image effects
+  placeImage: (slotId: string, src: string) => void
+  setImageEffect: (slotId: string, effect: ImageEffect) => void
+  setProcessedImage: (slotId: string, dataUrl: string) => void
 }
 
 import '../archetypes/index'
@@ -728,6 +735,46 @@ export const useDesign = create<State>((set, get) => {
 
     setBlend: (id, mode) => {
       get().updateSlot(id, { blend: mode })
+    },
+
+    // -------------------------------------------------------------------------
+    // Image effects
+    // -------------------------------------------------------------------------
+
+    placeImage: (slotId, src) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s =>
+          s.id === slotId
+            ? { ...s, content: src, imageSrcOriginal: src, imageEffect: undefined }
+            : s
+        ),
+      }
+      commit(d)
+    },
+
+    setImageEffect: (slotId, effect) => {
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s =>
+          s.id === slotId ? { ...s, imageEffect: effect } : s
+        ),
+      }
+      commit(d)
+    },
+
+    setProcessedImage: (slotId, dataUrl) => {
+      // Derived state -- update content directly WITHOUT going through commit().
+      // This keeps the processed output out of history so undo only targets
+      // the user's effect choices, not the derived pixel result.
+      const design = get().design
+      const nextSlots = design.slots.map(s =>
+        s.id === slotId ? { ...s, content: dataUrl } : s
+      )
+      const next = { ...design, slots: nextSlots }
+      // persist to localStorage so the result survives a refresh
+      persist(next)
+      set({ design: next })
     },
   }
 })

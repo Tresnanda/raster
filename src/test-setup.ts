@@ -20,6 +20,11 @@ if (typeof ResizeObserver === 'undefined') {
   }
 }
 
+// jsdom does not implement scrollIntoView; cmdk (command palette) calls it.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {}
+}
+
 // jsdom does not implement window.matchMedia; stub it for GSAP's gsap.matchMedia().
 if (typeof window !== 'undefined' && !window.matchMedia) {
   window.matchMedia = (query: string) =>

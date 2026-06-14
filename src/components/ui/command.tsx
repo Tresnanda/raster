@@ -53,7 +53,9 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <Command className="[&_[data-slot=command-input-wrapper]]:border-b-2 [&_[data-slot=command-input-wrapper]]:border-foreground">
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   )

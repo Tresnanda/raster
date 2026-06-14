@@ -15,9 +15,14 @@ test('setCommandOpen toggles the palette open flag', () => {
   expect(useDesign.getState().commandOpen).toBe(true)
 })
 
-// Note: cmdk's Radix-Dialog popup does not mount cleanly in jsdom (internal store
-// "subscribe" error) — its open-state rendering is verified via the production
-// build + manual testing, not here.
+test('renders command groups + items when open', () => {
+  const ref = createRef<SVGSVGElement>()
+  useDesign.getState().setCommandOpen(true)
+  render(<CommandPalette svgRef={ref} />)
+  expect(screen.getByText('Shuffle layout')).toBeInTheDocument()
+  expect(screen.getByText('Surprise — generate new')).toBeInTheDocument()
+  expect(screen.getByText('Copy share link')).toBeInTheDocument()
+})
 
 test('does not render the dialog content when closed', () => {
   const ref = createRef<SVGSVGElement>()

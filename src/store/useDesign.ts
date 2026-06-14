@@ -191,6 +191,8 @@ interface State {
   closeRiff: () => void
   commandOpen: boolean
   setCommandOpen: (v: boolean) => void
+  motionEffect: import('../design/motion').MotionEffect
+  setMotionEffect: (e: import('../design/motion').MotionEffect) => void
 
   /** Mutation strength 0..1. Default 0.5. */
   riffStrength: number
@@ -258,6 +260,7 @@ export const useDesign = create<State>((set, get) => {
     future: [],
     clipboard: null,
     commandOpen: false,
+    motionEffect: 'rise',
     zoom: 1,
     pan: { x: 0, y: 0 },
     riffOpen: false,
@@ -906,6 +909,10 @@ export const useDesign = create<State>((set, get) => {
 
     setCommandOpen: (v) => {
       set({ commandOpen: v })
+    },
+
+    setMotionEffect: (e) => {
+      set({ motionEffect: e })
     },
 
     closeRiff: () => {

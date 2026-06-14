@@ -9,6 +9,7 @@ import { CanvasChips } from './sidebar/CanvasChips'
 import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
+import { MotionControls } from './sidebar/MotionControls'
 import { ExportControls } from './sidebar/ExportControls'
 import { Section } from './controls/Section'
 
@@ -69,6 +70,13 @@ export function Sidebar({ svgRef }: SidebarProps) {
         <div className="sb-section border-t border-border/40">
           <Section id="sidebar-style" title="Style" defaultOpen>
             <StyleControls />
+          </Section>
+        </div>
+
+        {/* Motion — kinetic text (textmotion) */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-motion" title="Motion" defaultOpen={false}>
+            <MotionControls svgRef={svgRef} />
           </Section>
         </div>
 

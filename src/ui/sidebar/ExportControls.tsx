@@ -2,6 +2,7 @@
 import type React from 'react'
 import { useState } from 'react'
 import { Link2, Check } from 'lucide-react'
+import { SlotText } from 'slot-text/react'
 import { useDesign } from '../../store/useDesign'
 import { exportRaster, exportSvg } from '../../export/useExport'
 import { buildShareUrl } from '../../design/share'
@@ -67,7 +68,8 @@ export function ExportControls({ svgRef }: ExportControlsProps) {
         aria-label="Copy share link"
       >
         {copied ? <Check size={13} strokeWidth={2.5} /> : <Link2 size={13} strokeWidth={2} />}
-        {copied ? 'Link copied' : 'Copy share link'}
+        {/* slot-text (textmotion) rolls the label between states */}
+        <SlotText text={copied ? 'Link copied' : 'Copy share link'} />
       </Button>
 
       <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">

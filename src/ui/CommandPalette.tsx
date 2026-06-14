@@ -4,9 +4,11 @@ import {
   Shuffle, Grid2x2, Asterisk, GitBranch, Type, Image as ImageIcon, Square, Minus,
   Undo2, Redo2, Download, Link2, Maximize, Scan, Eye, Contrast, Sparkle, Grid3x3,
 } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { useDesign } from '../store/useDesign'
 import { exportRaster, exportSvg } from '../export/useExport'
 import { buildShareUrl } from '../design/share'
+import { playPosterMotion } from '../design/motion'
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from '../components/ui/command'
@@ -76,6 +78,7 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
         <CommandGroup heading="View">
           <CommandItem onSelect={run(() => { s().zoomToFit(); s().setPan({ x: 0, y: 0 }) })}><Maximize /> Zoom to fit</CommandItem>
           <CommandItem onSelect={run(() => { s().zoomTo100(); s().setPan({ x: 0, y: 0 }) })}><Scan /> Zoom 100%</CommandItem>
+          <CommandItem onSelect={run(() => playPosterMotion(svgRef.current, s().motionEffect))}><Play /> Play text motion</CommandItem>
         </CommandGroup>
 
         <CommandGroup heading="Export & share">

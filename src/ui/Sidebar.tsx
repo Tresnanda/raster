@@ -10,6 +10,7 @@ import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
 import { MotionControls } from './sidebar/MotionControls'
+import { SeriesControls } from './sidebar/SeriesControls'
 import { ExportControls } from './sidebar/ExportControls'
 import { Section } from './controls/Section'
 
@@ -84,6 +85,13 @@ export function Sidebar({ svgRef }: SidebarProps) {
         <div className="sb-section border-t border-border/40">
           <Section id="sidebar-content" title="Content" defaultOpen={false}>
             <ContentFields />
+          </Section>
+        </div>
+
+        {/* Series — list → matched poster set */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-series" title="Series" defaultOpen={false}>
+            <SeriesControls />
           </Section>
         </div>
 

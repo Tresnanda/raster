@@ -22,6 +22,21 @@ function injectFontCss(svgString: string, fontCss: string): string {
   return svgString.replace(/(<svg[^>]*>)/, `$1<defs><style>${fontCss}</style></defs>`)
 }
 
+/** Render a single Design to a high-res PNG Blob, headlessly (no on-screen DOM).
+ *  Shared by the kit and series exporters. */
+export async function renderDesignToPng(
+  design: Design,
+  fontCss: string,
+  measure: ReturnType<typeof defaultMeasurer>,
+  scale: number,
+): Promise<Blob> {
+  const svgString = renderToStaticMarkup(createElement(Renderer, { design, measure }))
+  const withFonts = injectFontCss(svgString, fontCss)
+  return rasterizeSvg(withFonts, rasterSize(canvasFor(design.format), scale), 'image/png')
+}
+
+export { buildEmbeddedFontCss } from './to-svg'
+
 /**
  * Export the current design across all KIT_FORMATS at once as a single .zip of
  * high-res PNGs. Each format is rendered headlessly via renderToStaticMarkup (the
@@ -34,10 +49,7 @@ export async function exportKit(design: Design, opts: { scale?: number } = {}): 
   const zip = new JSZip()
 
   for (const format of KIT_FORMATS) {
-    const d: Design = { ...design, format }
-    const svgString = renderToStaticMarkup(createElement(Renderer, { design: d, measure }))
-    const withFonts = injectFontCss(svgString, fontCss)
-    const blob = await rasterizeSvg(withFonts, rasterSize(canvasFor(format), scale), 'image/png')
+    const blob = await renderDesignToPng({ ...design, format }, fontCss, measure, scale)
     zip.file(`raster-${KIT_LABELS[format] ?? format.replace(':', 'x')}-${format.replace(':', 'x')}.png`, blob)
   }
 

@@ -4,11 +4,13 @@ import { useGSAP } from '@gsap/react'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import 'react-easy-crop/react-easy-crop.css'
+import { X } from 'lucide-react'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { getCroppedDataUrl } from '../lib/crop-image'
 import { Slider } from './controls/Slider'
+import { Button } from '../components/ui/button'
 
 /**
  * CropModal — mounted once in App.tsx, driven by store.cropRequest.
@@ -59,19 +61,15 @@ export function CropModal() {
   }, [])
 
   // ── Motion: modal entrance ────────────────────────────────────────────────
-  // Runs on mount (i.e., each time the modal becomes visible because CropModal
-  // returns null when cropRequest is null, so mount === open).
   useGSAP(() => {
     if (!backdropRef.current || !cardRef.current) return
     const mm = gsap.matchMedia()
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      // Backdrop fade in
       gsap.from(backdropRef.current!, {
         opacity: 0,
         duration: 0.15,
         ease: 'none',
       })
-      // Card scale from center
       gsap.from(cardRef.current!, {
         scale: 0.96,
         opacity: 0,
@@ -82,7 +80,6 @@ export function CropModal() {
       })
     })
     mm.add('(prefers-reduced-motion: reduce)', () => {
-      // Reduced motion: just fade, no scale
       gsap.from(backdropRef.current!, { opacity: 0, duration: 0.15, ease: 'none' })
     })
     return () => mm.revert()
@@ -98,9 +95,6 @@ export function CropModal() {
       const croppedUrl = await getCroppedDataUrl(cropRequest.src, pixels)
       placeImage(cropRequest.slotId, croppedUrl)
     } catch {
-      // CORS-blocked external URL (image load or tainted-canvas failure):
-      // fall back to placing the original image uncropped rather than
-      // silently dropping it.
       placeImage(cropRequest.slotId, cropRequest.src)
     } finally {
       setApplying(false)
@@ -110,30 +104,19 @@ export function CropModal() {
 
   if (!cropRequest) return null
 
-  // Derive target aspect ratio from the slot's rendered box
   const slot = design.slots.find(s => s.id === cropRequest.slotId)
   const canvas = canvasFor(design.format)
   const box = slot ? slotBox(canvas, design.grid, slot) : { w: 1, h: 1 }
   const aspect = box.w / box.h
 
   return (
-    // Backdrop
     <div
       ref={backdropRef}
       role="dialog"
       aria-modal="true"
       aria-label="Crop image"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(0, 0, 0, 0.60)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center"
       onClick={e => {
-        // Close on backdrop click (not on card click)
         if (e.target === e.currentTarget) cancelCrop()
       }}
     >
@@ -141,68 +124,28 @@ export function CropModal() {
       <div
         ref={cardRef}
         role="document"
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
-          width: 'min(90vw, 640px)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
+        className="bg-background rounded-xl shadow-2xl w-[min(90vw,640px)] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #e5e7eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: '#374151',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <span className="text-[13px] font-semibold tracking-[0.06em] uppercase text-foreground">
             Crop Image
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             aria-label="Close"
             onClick={cancelCrop}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              fontSize: 18,
-              lineHeight: 1,
-              padding: '2px 4px',
-              borderRadius: 4,
-            }}
           >
-            ✕
-          </button>
+            <X size={16} />
+          </Button>
         </div>
 
         {/* Cropper area */}
         <div
-          style={{
-            position: 'relative',
-            width: '100%',
-            // Height = width / aspect, clamped between reasonable bounds
-            aspectRatio: `${aspect}`,
-            minHeight: 200,
-            maxHeight: '55vh',
-            background: '#111',
-          }}
+          className="relative w-full bg-black min-h-[200px] max-h-[55vh]"
+          style={{ aspectRatio: `${aspect}` }}
         >
           <Cropper
             image={cropRequest.src}
@@ -217,35 +160,10 @@ export function CropModal() {
         </div>
 
         {/* Zoom slider + actions */}
-        <div
-          style={{
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-          }}
-        >
+        <div className="px-5 py-4 flex flex-col gap-4">
           {/* Zoom control */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: '#9ca3af',
-                fontFamily: "'Inter', sans-serif",
-                whiteSpace: 'nowrap',
-                width: 40,
-                flexShrink: 0,
-              }}
-            >
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted-foreground whitespace-nowrap w-10 shrink-0">
               Zoom
             </span>
             <Slider
@@ -255,63 +173,26 @@ export function CropModal() {
               value={zoom}
               onChange={setZoom}
               aria-label="Zoom"
+              className="flex-1"
             />
-            <span
-              style={{
-                fontSize: 12,
-                color: '#6b7280',
-                fontFamily: "'Inter', 'Space Mono', monospace",
-                fontVariantNumeric: 'tabular-nums',
-                width: 36,
-                textAlign: 'right',
-                flexShrink: 0,
-              }}
-            >
+            <span className="text-xs tabular-nums text-muted-foreground w-9 text-right shrink-0">
               {zoom.toFixed(2)}x
             </span>
           </div>
 
           {/* Action buttons */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 8,
-            }}
-          >
-            <button
-              onClick={cancelCrop}
-              style={{
-                padding: '8px 18px',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                background: '#fff',
-                color: '#374151',
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={cancelCrop}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
               onClick={handleApply}
               disabled={applying}
-              style={{
-                padding: '8px 18px',
-                border: 'none',
-                borderRadius: 6,
-                background: applying ? '#9ca3af' : '#111',
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: applying ? 'default' : 'pointer',
-                fontFamily: "'Inter', sans-serif",
-              }}
             >
               {applying ? 'Applying…' : 'Apply'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

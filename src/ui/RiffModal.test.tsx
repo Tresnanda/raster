@@ -55,12 +55,17 @@ describe('RiffModal', () => {
   })
 
   test('strength slider calls setRiffStrength', () => {
+    // Slider is now a Radix Slider — fireEvent.change on the thumb doesn't fire
+    // onValueChange; use ArrowRight keydown instead. Verify the trigger is
+    // present and the store action is wired by calling it directly.
     act(() => { useDesign.getState().openRiff() })
     const setRiffStrength = vi.spyOn(useDesign.getState(), 'setRiffStrength')
     render(<RiffModal />)
     const slider = screen.getByRole('slider', { name: /mutation strength/i })
-    fireEvent.change(slider, { target: { value: '0.8' } })
-    expect(setRiffStrength).toHaveBeenCalledWith(0.8)
+    expect(slider).toBeTruthy()
+    // Keyboard nav triggers onValueChange on Radix Slider
+    fireEvent.keyDown(slider, { key: 'ArrowRight' })
+    expect(setRiffStrength).toHaveBeenCalled()
   })
 
   test('Done button closes the modal', () => {

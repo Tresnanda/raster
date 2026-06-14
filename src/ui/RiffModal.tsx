@@ -16,6 +16,8 @@ import type { Design } from '../types'
 import { mutate } from '../design/mutate'
 import { Renderer } from '../render/Renderer'
 import { defaultMeasurer } from '../lib/measure'
+import { Slider } from './controls/Slider'
+import { Button } from '../components/ui/button'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,12 +74,12 @@ function VariantCard({
       disabled={!design || isLoading}
       title={label ?? 'Apply this variation'}
       className={[
-        'group relative overflow-hidden rounded-md border bg-neutral-100',
+        'group relative overflow-hidden rounded-md border bg-muted',
         'transition-all duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
         design && !isLoading
-          ? 'border-neutral-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-neutral-400 active:scale-[0.98] cursor-pointer'
-          : 'border-neutral-100 cursor-default',
+          ? 'border-border hover:-translate-y-0.5 hover:shadow-lg hover:border-foreground/30 active:scale-[0.98] cursor-pointer'
+          : 'border-muted cursor-default',
       ].join(' ')}
       style={{ aspectRatio: `4 / 5` }}
     >
@@ -88,14 +90,14 @@ function VariantCard({
           </div>
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-black/10 pointer-events-none">
-            <span className="bg-white/90 rounded px-2 py-1 text-[11px] font-semibold text-neutral-800 shadow-sm">
+            <span className="bg-background/90 rounded px-2 py-1 text-[11px] font-semibold text-foreground shadow-sm">
               Use
             </span>
           </div>
         </>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-border border-t-foreground/60 rounded-full animate-spin" />
         </div>
       )}
     </button>
@@ -133,8 +135,8 @@ function LineageStrip({
             className={[
               'relative flex-shrink-0 w-12 rounded overflow-hidden border transition-all duration-100',
               isCurrent
-                ? 'border-neutral-900 shadow-md ring-2 ring-neutral-900/20 scale-[1.05]'
-                : 'border-neutral-200 hover:border-neutral-500 hover:scale-105 cursor-pointer',
+                ? 'border-foreground shadow-md ring-2 ring-foreground/20 scale-[1.05]'
+                : 'border-border hover:border-foreground/50 hover:scale-105 cursor-pointer',
             ].join(' ')}
             style={{ aspectRatio: '4 / 5' }}
           >
@@ -227,74 +229,66 @@ export function RiffModal() {
       aria-label="Variation explorer"
     >
       {/* Modal card */}
-      <div className="relative flex flex-col flex-1 max-w-5xl w-full mx-auto my-6 rounded-xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative flex flex-col flex-1 max-w-5xl w-full mx-auto my-6 rounded-xl bg-background shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <div className="flex items-center gap-2">
-            <Wand2 size={16} className="text-neutral-700" />
-            <h2 className="text-sm font-semibold text-neutral-900">Riff — variation explorer</h2>
+            <Wand2 size={16} className="text-foreground/70" />
+            <h2 className="text-sm font-semibold text-foreground">Riff — variation explorer</h2>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Strength slider */}
             <div className="flex items-center gap-2 min-w-[180px]">
-              <span className="text-[11px] text-neutral-400 whitespace-nowrap">Subtle</span>
-              <input
-                type="range"
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">Subtle</span>
+              <Slider
                 min={0}
                 max={1}
                 step={0.05}
                 value={riffStrength}
-                onChange={(e) => setRiffStrength(parseFloat(e.target.value))}
+                onChange={setRiffStrength}
                 aria-label="Mutation strength"
-                className={[
-                  'flex-1 cursor-pointer appearance-none h-1 rounded-full bg-neutral-200',
-                  '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5',
-                  '[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white',
-                  '[&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-neutral-300',
-                  '[&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer',
-                  '[&::-webkit-slider-runnable-track]:rounded-full',
-                ].join(' ')}
+                className="flex-1"
               />
-              <span className="text-[11px] text-neutral-400 whitespace-nowrap">Wild</span>
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">Wild</span>
             </div>
 
             {/* Reroll */}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleReroll}
               title="Generate 9 new variations"
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium border border-neutral-200 text-neutral-700 hover:border-neutral-400 transition-colors duration-100 active:scale-[0.97]"
             >
               <RefreshCw size={12} />
               Reroll
-            </button>
+            </Button>
 
             {/* Done */}
-            <button
+            <Button
+              variant="default"
+              size="sm"
               onClick={closeRiff}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold bg-neutral-900 text-white hover:bg-neutral-800 transition-colors duration-100 active:scale-[0.97]"
             >
               Done
-            </button>
+            </Button>
 
             {/* Close icon */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={closeRiff}
               title="Close"
               aria-label="Close"
-              className="rounded-md p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors duration-100"
             >
               <X size={16} />
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Variant grid */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
-          >
+          <div className="grid grid-cols-3 gap-3">
             {variants.map((variant, i) => (
               <VariantCard
                 key={i}
@@ -308,8 +302,8 @@ export function RiffModal() {
 
         {/* Lineage strip */}
         {lineagePath.length > 1 && (
-          <div className="border-t border-neutral-100 px-4 pt-3 pb-2">
-            <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest mb-2">
+          <div className="border-t border-border px-4 pt-3 pb-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
               History — click to branch from any point
             </p>
             <LineageStrip

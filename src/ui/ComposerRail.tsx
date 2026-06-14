@@ -1,5 +1,5 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
@@ -255,6 +255,13 @@ export function ComposerRail() {
   const requestCrop = useDesign(s => s.requestCrop)
   const setOpacity = useDesign(s => s.setOpacity)
   const alignElement = useDesign(s => s.alignElement)
+  const setRotation = useDesign(s => s.setRotation)
+  const setFlip = useDesign(s => s.setFlip)
+  const setRadius = useDesign(s => s.setRadius)
+  const setStroke = useDesign(s => s.setStroke)
+  const setStrokeWidth = useDesign(s => s.setStrokeWidth)
+  const setShadow = useDesign(s => s.setShadow)
+  const setBlend = useDesign(s => s.setBlend)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
   const undo = useDesign(s => s.undo)
@@ -852,6 +859,227 @@ export function ComposerRail() {
                   </div>
                 </div>
               )}
+
+              {/* TRANSFORM */}
+              <div className="space-y-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                  Transform
+                </div>
+
+                {/* Rotation */}
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`insp-rotation-${selectedSlot.id}`}
+                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+                  >
+                    Rotation
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`insp-rotation-${selectedSlot.id}`}
+                      aria-label="Rotation"
+                      type="number"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      value={selectedSlot.rotation ?? 0}
+                      onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
+                      className={[
+                        'w-20 rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                    <span className="text-[11px] text-neutral-400">°</span>
+                    <input
+                      type="range"
+                      aria-label="Rotation slider"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      value={selectedSlot.rotation ?? 0}
+                      onChange={e => setRotation(selectedSlot.id, Number(e.target.value))}
+                      className="flex-1 accent-neutral-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Flip */}
+                <div className="flex gap-1">
+                  <button
+                    aria-label="Flip horizontal"
+                    onClick={() => setFlip(selectedSlot.id, 'H', !selectedSlot.flipH)}
+                    title="Flip horizontal"
+                    className={[
+                      'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
+                      'active:scale-[0.97] transition-transform duration-150',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                      selectedSlot.flipH
+                        ? 'border-neutral-900 bg-neutral-900 text-white'
+                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                    ].join(' ')}
+                  >
+                    <FlipHorizontal2 size={13} />
+                    H
+                  </button>
+                  <button
+                    aria-label="Flip vertical"
+                    onClick={() => setFlip(selectedSlot.id, 'V', !selectedSlot.flipV)}
+                    title="Flip vertical"
+                    className={[
+                      'flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-xs font-medium',
+                      'active:scale-[0.97] transition-transform duration-150',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                      selectedSlot.flipV
+                        ? 'border-neutral-900 bg-neutral-900 text-white'
+                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                    ].join(' ')}
+                  >
+                    <FlipVertical2 size={13} />
+                    V
+                  </button>
+                </div>
+
+                {/* Blend */}
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    htmlFor={`insp-blend-${selectedSlot.id}`}
+                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+                  >
+                    Blend
+                  </label>
+                  <select
+                    id={`insp-blend-${selectedSlot.id}`}
+                    aria-label="Blend mode"
+                    value={selectedSlot.blend ?? 'normal'}
+                    onChange={e => setBlend(selectedSlot.id, e.target.value)}
+                    className={[
+                      'w-full rounded border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800',
+                      'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                    ].join(' ')}
+                  >
+                    {[
+                      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+                      'difference', 'exclusion', 'soft-light', 'hard-light',
+                    ].map(mode => (
+                      <option key={mode} value={mode}>{mode}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Shadow */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                      Shadow
+                    </span>
+                    <button
+                      aria-label="Toggle shadow"
+                      onClick={() => {
+                        if (selectedSlot.shadow) {
+                          setShadow(selectedSlot.id, null)
+                        } else {
+                          setShadow(selectedSlot.id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+                        }
+                      }}
+                      className={[
+                        'h-5 w-9 rounded-full border transition-colors duration-150',
+                        selectedSlot.shadow
+                          ? 'border-neutral-900 bg-neutral-900'
+                          : 'border-neutral-300 bg-neutral-100',
+                      ].join(' ')}
+                    >
+                      <span
+                        className={[
+                          'block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-150',
+                          'mx-auto',
+                          selectedSlot.shadow ? 'translate-x-1.5' : '-translate-x-1.5',
+                        ].join(' ')}
+                      />
+                    </button>
+                  </div>
+                  {selectedSlot.shadow && (
+                    <div className="grid grid-cols-3 gap-1">
+                      <NumberField
+                        id={`insp-shadow-dx-${selectedSlot.id}`}
+                        label="X"
+                        value={selectedSlot.shadow.dx}
+                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dx: v })}
+                      />
+                      <NumberField
+                        id={`insp-shadow-dy-${selectedSlot.id}`}
+                        label="Y"
+                        value={selectedSlot.shadow.dy}
+                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, dy: v })}
+                      />
+                      <NumberField
+                        id={`insp-shadow-blur-${selectedSlot.id}`}
+                        label="Blur"
+                        value={selectedSlot.shadow.blur}
+                        min={0}
+                        onChange={v => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, blur: v })}
+                      />
+                      <div className="col-span-3 flex flex-col gap-0.5">
+                        <label
+                          htmlFor={`insp-shadow-color-${selectedSlot.id}`}
+                          className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+                        >
+                          Color
+                        </label>
+                        <input
+                          id={`insp-shadow-color-${selectedSlot.id}`}
+                          type="color"
+                          aria-label="Shadow colour"
+                          value={selectedSlot.shadow.color}
+                          onChange={e => setShadow(selectedSlot.id, { ...selectedSlot.shadow!, color: e.target.value })}
+                          className="h-7 w-10 cursor-pointer rounded border border-neutral-200 p-0.5"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Corner radius + stroke — block and image only */}
+                {(isShape || isImage) && (
+                  <div className="space-y-2">
+                    <NumberField
+                      id={`insp-radius-${selectedSlot.id}`}
+                      label="Corner radius"
+                      value={selectedSlot.radius ?? 0}
+                      min={0}
+                      onChange={v => setRadius(selectedSlot.id, v)}
+                    />
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div className="flex flex-col gap-0.5">
+                        <label
+                          htmlFor={`insp-stroke-${selectedSlot.id}`}
+                          className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400"
+                        >
+                          Stroke
+                        </label>
+                        <input
+                          id={`insp-stroke-${selectedSlot.id}`}
+                          type="color"
+                          aria-label="Stroke colour"
+                          value={
+                            selectedSlot.stroke && !['accent','text'].includes(selectedSlot.stroke)
+                              ? selectedSlot.stroke
+                              : design.palette.accent
+                          }
+                          onChange={e => setStroke(selectedSlot.id, e.target.value)}
+                          className="h-7 w-full cursor-pointer rounded border border-neutral-200 p-0.5"
+                        />
+                      </div>
+                      <NumberField
+                        id={`insp-strokewidth-${selectedSlot.id}`}
+                        label="Stroke width"
+                        value={selectedSlot.strokeWidth ?? 0}
+                        min={0}
+                        onChange={v => setStrokeWidth(selectedSlot.id, v)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )
         })()}

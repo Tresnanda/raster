@@ -427,3 +427,190 @@ test('ALIGN buttons appear for shape element too', () => {
   render(<ComposerRail />)
   expect(screen.getByLabelText('Canvas align left')).toBeTruthy()
 })
+
+// ── TRANSFORM section ─────────────────────────────────────────────────────────
+
+test('selecting any element shows TRANSFORM section heading', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByText('Transform')).toBeTruthy()
+})
+
+test('TRANSFORM section shows Rotation input', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Rotation')).toBeTruthy()
+})
+
+test('changing Rotation input calls setRotation', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setRotation = vi.spyOn(useDesign.getState(), 'setRotation')
+  render(<ComposerRail />)
+  const rotInput = screen.getByLabelText('Rotation') as HTMLInputElement
+  fireEvent.change(rotInput, { target: { value: '45' } })
+  expect(setRotation).toHaveBeenCalledWith(textSlot.id, 45)
+})
+
+test('TRANSFORM section shows Flip H button', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Flip horizontal')).toBeTruthy()
+})
+
+test('TRANSFORM section shows Flip V button', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Flip vertical')).toBeTruthy()
+})
+
+test('clicking Flip H calls setFlip with H', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setFlip = vi.spyOn(useDesign.getState(), 'setFlip')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Flip horizontal'))
+  expect(setFlip).toHaveBeenCalledWith(textSlot.id, 'H', true)
+})
+
+test('clicking Flip V calls setFlip with V', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setFlip = vi.spyOn(useDesign.getState(), 'setFlip')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Flip vertical'))
+  expect(setFlip).toHaveBeenCalledWith(textSlot.id, 'V', true)
+})
+
+test('TRANSFORM section shows Blend mode select', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Blend mode')).toBeTruthy()
+})
+
+test('changing Blend mode calls setBlend', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setBlend = vi.spyOn(useDesign.getState(), 'setBlend')
+  render(<ComposerRail />)
+  const blendSelect = screen.getByLabelText('Blend mode') as HTMLSelectElement
+  fireEvent.change(blendSelect, { target: { value: 'multiply' } })
+  expect(setBlend).toHaveBeenCalledWith(textSlot.id, 'multiply')
+})
+
+test('TRANSFORM section shows Shadow toggle', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Toggle shadow')).toBeTruthy()
+})
+
+test('enabling shadow calls setShadow with default params', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setShadow = vi.spyOn(useDesign.getState(), 'setShadow')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Toggle shadow'))
+  expect(setShadow).toHaveBeenCalledWith(textSlot.id, { dx: 0, dy: 8, blur: 16, color: '#000000' })
+})
+
+test('selecting a block element shows Corner radius input', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Corner radius')).toBeTruthy()
+})
+
+test('changing Corner radius calls setRadius', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  const setRadius = vi.spyOn(useDesign.getState(), 'setRadius')
+  render(<ComposerRail />)
+  const radiusInput = screen.getByLabelText('Corner radius') as HTMLInputElement
+  fireEvent.change(radiusInput, { target: { value: '20' } })
+  expect(setRadius).toHaveBeenCalledWith(blockSlot.id, 20)
+})
+
+test('selecting an image element shows Corner radius input', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Corner radius')).toBeTruthy()
+})
+
+test('selecting a text element does NOT show Corner radius input', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.queryByLabelText('Corner radius')).toBeNull()
+})
+
+test('selecting a block element shows Stroke colour input', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Stroke colour')).toBeTruthy()
+})
+
+test('changing Stroke colour calls setStroke', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  const setStroke = vi.spyOn(useDesign.getState(), 'setStroke')
+  render(<ComposerRail />)
+  const strokeInput = screen.getByLabelText('Stroke colour') as HTMLInputElement
+  fireEvent.change(strokeInput, { target: { value: '#ff0000' } })
+  expect(setStroke).toHaveBeenCalledWith(blockSlot.id, '#ff0000')
+})
+
+test('selecting a block element shows Stroke width input', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Stroke width')).toBeTruthy()
+})
+
+test('changing Stroke width calls setStrokeWidth', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  const setStrokeWidth = vi.spyOn(useDesign.getState(), 'setStrokeWidth')
+  render(<ComposerRail />)
+  const swInput = screen.getByLabelText('Stroke width') as HTMLInputElement
+  fireEvent.change(swInput, { target: { value: '4' } })
+  expect(setStrokeWidth).toHaveBeenCalledWith(blockSlot.id, 4)
+})

@@ -639,6 +639,83 @@ function placeSupportingClusters(
 }
 
 // ---------------------------------------------------------------------------
+// Accent placement
+// ---------------------------------------------------------------------------
+
+function placeAccent(
+  skeleton: Skeleton,
+  occ: OccupancyGrid,
+  id: () => string,
+): Slot | null {
+  if (skeleton.accentType === 'none') return null
+
+  switch (skeleton.accentType) {
+    case 'h-rule': {
+      // Thin horizontal line — place without occupancy claim (lines are decorative)
+      const candidates = [2, 3, ROWS - 3, ROWS - 2, randInt(4, 10)]
+      for (const r of candidates) {
+        const cell = clampCell({ c: 0, cs: COLS, r, rs: 1 })
+        return { id: id(), role: 'line', z: 2, cell, content: '', fill: 'accent' }
+      }
+      return null
+    }
+    case 'v-rule': {
+      const c = maybe(0.5) ? 0 : COLS - 1
+      const cell = clampCell({ c, cs: 1, r: 0, rs: ROWS })
+      return { id: id(), role: 'line', z: 2, cell, content: '', fill: 'accent' }
+    }
+    case 'accent-block': {
+      const candidates = [
+        clampCell({ c: 0,        cs: 2, r: 0,        rs: 2 }),
+        clampCell({ c: COLS - 2, cs: 2, r: 0,        rs: 2 }),
+        clampCell({ c: 0,        cs: 2, r: ROWS - 2,  rs: 2 }),
+        clampCell({ c: COLS - 2, cs: 2, r: ROWS - 2,  rs: 2 }),
+      ]
+      for (const cell of candidates) {
+        if (occ.isFree(cell)) {
+          occ.claim(cell)
+          return { id: id(), role: 'block', z: 3, cell, content: '', fill: 'accent' }
+        }
+      }
+      return null
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Whitespace enforcement — Swiss grid constraint: occupied ≤ 70% of grid
+// ---------------------------------------------------------------------------
+
+const MAX_OCCUPIED_FRACTION = 0.70
+const TOTAL_CELLS = COLS * ROWS  // 192
+
+/** Drop optional cluster slots until occupied fraction is ≤ 70%.
+ *  Never drops: image, dominant (z:5).
+ *  Drops: cluster text slots (z:4) from last to first. */
+function enforceWhitespace(slots: Slot[], occ: OccupancyGrid): Slot[] {
+  const maxCells = Math.floor(TOTAL_CELLS * MAX_OCCUPIED_FRACTION)
+  if (occ.occupiedCount() <= maxCells) return slots
+
+  const TEXT_ROLES_SET = new Set(['headline', 'subhead', 'caption', 'date', 'index', 'glyph', 'mark'])
+  const droppable = slots.filter(s => s.z === 4 && TEXT_ROLES_SET.has(s.role))
+
+  const result = [...slots]
+  for (let i = droppable.length - 1; i >= 0; i--) {
+    if (occ.occupiedCount() <= maxCells) break
+    const toDrop = droppable[i]
+    const idx = result.findIndex(s => s.id === toDrop.id)
+    if (idx !== -1) result.splice(idx, 1)
+    // Remove paired scrim: same cell position, role: 'block', z = toDrop.z - 1
+    const scrimIdx = result.findIndex(
+      s => s.role === 'block' && s.z === (toDrop.z! - 1) &&
+        s.cell.c === toDrop.cell.c && s.cell.r === toDrop.cell.r
+    )
+    if (scrimIdx !== -1) result.splice(scrimIdx, 1)
+  }
+  return result
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

@@ -1,4 +1,4 @@
-// src/ui/Sidebar.tsx — Global design pane with collapsible Sections
+// src/ui/Sidebar.tsx — Ink Brutalism global design pane
 import type React from 'react'
 import { useRef } from 'react'
 import gsap from 'gsap'
@@ -36,66 +36,58 @@ export function Sidebar({ svgRef }: SidebarProps) {
   return (
     <aside
       aria-label="Design"
-      className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r border-border bg-background overflow-y-auto"
+      className="w-[360px] shrink-0 min-h-0 overscroll-contain border-r-2 border-foreground bg-background overflow-y-auto"
     >
-      <div ref={sidebarRootRef} className="min-w-0 px-4 py-4 pb-10 space-y-0.5">
-        {/* Brand lockup — not a collapsible section */}
-        <div className="sb-section pb-4 border-b border-border mb-3">
+      <div ref={sidebarRootRef} className="min-w-0 px-4 py-4 pb-10 space-y-0">
+        {/* Brand masthead */}
+        <div className="sb-section pb-4 mb-0">
           <Header />
         </div>
 
-        {/* Layouts — open by default */}
-        <div className="sb-section">
+        {/* Layouts */}
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-layouts" title="Layouts" defaultOpen>
             <LayoutGrid />
           </Section>
         </div>
 
-        <div className="border-t border-border" />
-
         {/* Canvas format */}
-        <div className="sb-section">
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-canvas" title="Canvas" defaultOpen>
             <CanvasChips />
           </Section>
         </div>
 
-        <div className="border-t border-border" />
-
-        {/* Typography — collapsed by default (global defaults) */}
-        <div className="sb-section">
+        {/* Typography — collapsed by default */}
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-type" title="Type" defaultOpen={false}>
             <TypographyControls />
           </Section>
         </div>
 
-        <div className="border-t border-border" />
-
         {/* Style — open by default */}
-        <div className="sb-section">
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-style" title="Style" defaultOpen>
             <StyleControls />
           </Section>
         </div>
 
-        <div className="border-t border-border" />
-
-        {/* Content slots — open by default; on-canvas editing is primary but
-            the section is readily available without requiring a click */}
-        <div className="sb-section">
+        {/* Content slots */}
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-content" title="Content" defaultOpen>
             <ContentFields />
           </Section>
         </div>
 
-        <div className="border-t border-border" />
-
         {/* Export — collapsed */}
-        <div className="sb-section">
+        <div className="sb-section border-t-2 border-foreground">
           <Section id="sidebar-export" title="Export" defaultOpen={false}>
             <ExportControls svgRef={svgRef} />
           </Section>
         </div>
+
+        {/* Bottom border */}
+        <div className="border-t-2 border-foreground" />
       </div>
     </aside>
   )

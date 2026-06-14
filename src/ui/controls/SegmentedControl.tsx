@@ -1,5 +1,5 @@
 // src/ui/controls/SegmentedControl.tsx
-// Reusable segmented control — extracted from CanvasChips
+// Ink Brutalism segmented control — hard borders, inverted active
 import { type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -29,11 +29,11 @@ export function SegmentedControl<T extends string = string>({
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex flex-wrap gap-0.5 rounded-lg border border-neutral-200 bg-neutral-100 p-0.5',
+        'inline-flex flex-wrap gap-0 rounded-none border-2 border-foreground bg-background overflow-hidden',
         className,
       )}
     >
-      {options.map(opt => (
+      {options.map((opt, i) => (
         <button
           key={opt.value}
           role="radio"
@@ -41,13 +41,14 @@ export function SegmentedControl<T extends string = string>({
           aria-label={typeof opt.ariaLabel === 'string' ? opt.ariaLabel : undefined}
           onClick={() => onValueChange(opt.value)}
           className={cn(
-            'rounded-md px-2.5 py-1 text-xs font-semibold',
-            'transition-[background-color,color,box-shadow] duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20',
-            'active:scale-[0.97]',
+            'px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.08em]',
+            'transition-colors duration-100',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground focus-visible:z-10',
+            // Dividers between items
+            i > 0 && 'border-l-2 border-foreground',
             value === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'text-neutral-500 hover:text-neutral-800',
+              ? 'bg-foreground text-background'
+              : 'bg-background text-muted-foreground hover:text-foreground hover:bg-muted',
           )}
         >
           {opt.label}

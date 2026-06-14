@@ -1,4 +1,4 @@
-// src/ui/controls/Slider.tsx — Premium slider with simple {value, onChange} API
+// src/ui/controls/Slider.tsx — Ink Brutalism slider
 import * as SliderPrimitive from '@radix-ui/react-slider'
 import { cn } from '@/lib/utils'
 
@@ -33,18 +33,19 @@ export function Slider({
         className,
       )}
     >
-      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-muted">
-        <SliderPrimitive.Range className="absolute h-full bg-primary" />
+      <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-none border-2 border-foreground bg-muted">
+        <SliderPrimitive.Range className="absolute h-full bg-foreground" />
       </SliderPrimitive.Track>
       {/* aria-label on Thumb so role="slider" + name query works in tests */}
       <SliderPrimitive.Thumb
         aria-label={ariaLabel}
         className={cn(
-          'block h-3.5 w-3.5 rounded-full bg-background border border-border shadow-sm',
-          'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-          'hover:scale-110',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-1',
-          'disabled:pointer-events-none disabled:opacity-50',
+          'block h-4 w-4 rounded-none border-2 border-foreground bg-background',
+          'transition-colors duration-100',
+          'hover:bg-muted',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
+          'active:translate-x-px active:translate-y-px',
+          'disabled:pointer-events-none disabled:opacity-40',
         )}
       />
     </SliderPrimitive.Root>

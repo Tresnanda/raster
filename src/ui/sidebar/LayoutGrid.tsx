@@ -1,4 +1,4 @@
-// src/ui/sidebar/LayoutGrid.tsx
+// src/ui/sidebar/LayoutGrid.tsx — Ink Brutalism
 import { useRef } from 'react'
 import { Shuffle, Dices, Sparkles, Wand2 } from 'lucide-react'
 import gsap from 'gsap'
@@ -60,19 +60,24 @@ export function LayoutGrid() {
 
   return (
     <div className="sb-section space-y-3">
-      {/* Layout grid — 5 cols, cells aspect-[3/4], min-w-0 prevents overflow */}
-      <div className="grid grid-cols-5 gap-2 min-w-0">
-        {LAYOUTS.map(({ n }) => (
+      {/* Layout grid — 5 cols, cells aspect-[3/4] */}
+      <div className="grid grid-cols-5 gap-0 border-2 border-foreground min-w-0 overflow-hidden">
+        {LAYOUTS.map(({ n }, idx) => (
           <button
             key={n}
             onClick={() => setLayout(n)}
             className={cn(
-              'aspect-[3/4] rounded-md border text-sm flex items-center justify-center min-w-0',
-              'transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-              'active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+              'aspect-[3/4] flex items-center justify-center min-w-0',
+              'font-mono text-xs font-bold tabular-nums',
+              'transition-colors duration-100',
+              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground focus-visible:z-10',
+              // Right border for all but last in row — grid of 5, handle with nth logic
+              idx % 5 !== 4 ? 'border-r-2 border-foreground' : '',
+              // Bottom border for first row (indices 0-4)
+              idx < 5 ? 'border-b-2 border-foreground' : '',
               layout === n
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background border-border text-muted-foreground hover:border-foreground/40 hover:-translate-y-px hover:shadow-sm',
+                ? 'bg-foreground text-background'
+                : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             {n}
@@ -80,70 +85,66 @@ export function LayoutGrid() {
         ))}
       </div>
 
-      {/* Generation buttons */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex gap-1.5">
-          {/* Shuffle — outline */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShuffle}
-            title="Rearrange this layout"
-            className="flex-1"
-          >
-            <span ref={shuffleIconRef} style={{ display: 'contents' }}>
-              <Shuffle size={14} />
-            </span>
-            Shuffle
-          </Button>
+      {/* Generation buttons — 2x2 brutal grid */}
+      <div className="grid grid-cols-2 gap-0 border-2 border-foreground overflow-hidden">
+        {/* Shuffle — outline brutal */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleShuffle}
+          title="Rearrange this layout"
+          className="rounded-none border-0 border-r-2 border-b-2 border-foreground bg-background text-foreground shadow-none hover:bg-muted"
+        >
+          <span ref={shuffleIconRef} style={{ display: 'contents' }}>
+            <Shuffle size={12} />
+          </span>
+          Shuffle
+        </Button>
 
-          {/* Pick for me — outline */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={pickForMeAction}
-            title="Jump to a random preset layout"
-            className="flex-1"
-          >
-            <Dices size={14} />
-            Pick
-          </Button>
-        </div>
+        {/* Pick for me — outline brutal */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={pickForMeAction}
+          title="Jump to a random preset layout"
+          className="rounded-none border-0 border-b-2 border-foreground bg-background text-foreground shadow-none hover:bg-muted"
+        >
+          <Dices size={12} />
+          Pick
+        </Button>
 
-        <div className="flex gap-1.5">
-          {/* Surprise — primary filled */}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSurprise}
-            title="Generate a brand-new unique design"
-            className="flex-1 bg-neutral-900 hover:bg-neutral-800"
-          >
-            <span ref={surpriseIconRef} style={{ display: 'contents' }}>
-              <Sparkles size={14} />
-            </span>
-            Surprise
-          </Button>
+        {/* Surprise — solid ink block */}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleSurprise}
+          title="Generate a brand-new unique design"
+          className="rounded-none border-0 border-r-2 border-foreground shadow-none hover:opacity-80 active:translate-x-0 active:translate-y-0"
+        >
+          <span ref={surpriseIconRef} style={{ display: 'contents' }}>
+            <Sparkles size={12} />
+          </span>
+          Surprise
+        </Button>
 
-          {/* Riff — violet accent */}
-          <Button
-            size="sm"
-            onClick={handleRiff}
-            title="Open variation explorer — mutate and evolve the current design"
-            data-testid="riff-button"
-            className="flex-1 border border-violet-600 bg-violet-600 text-white hover:bg-violet-700 hover:border-violet-700"
-          >
-            <span ref={riffIconRef} style={{ display: 'contents' }}>
-              <Wand2 size={14} />
-            </span>
-            Riff
-          </Button>
-        </div>
+        {/* Riff — hazard red accent */}
+        <Button
+          size="sm"
+          onClick={handleRiff}
+          title="Open variation explorer — mutate and evolve the current design"
+          data-testid="riff-button"
+          className="rounded-none border-0 shadow-none bg-accent text-accent-foreground hover:opacity-80 active:translate-x-0 active:translate-y-0"
+        >
+          <span ref={riffIconRef} style={{ display: 'contents' }}>
+            <Wand2 size={12} />
+          </span>
+          Riff
+        </Button>
       </div>
 
       {/* Microcopy */}
-      <p className="text-[11px] text-muted-foreground leading-relaxed">
-        Shuffle reworks this layout · Pick jumps to a preset · Surprise invents a new one · Riff mutates and evolves.
+      <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground leading-relaxed">
+        Shuffle reworks · Pick jumps preset · Surprise invents · Riff mutates.
       </p>
     </div>
   )

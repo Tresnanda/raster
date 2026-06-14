@@ -1,8 +1,7 @@
 // src/ui/controls/Section.tsx
-// Premium collapsible section using Radix Accordion, with localStorage persistence
+// Ink Brutalism collapsible section using Radix Accordion, with localStorage persistence
 import { useState, type ReactNode } from 'react'
 import * as AccordionPrimitive from '@radix-ui/react-accordion'
-import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SectionProps {
@@ -43,19 +42,30 @@ export function Section({ id, title, children, defaultOpen = true, className }: 
         <AccordionPrimitive.Header asChild>
           <AccordionPrimitive.Trigger
             className={cn(
-              'flex w-full items-center gap-1.5 px-0 py-1',
-              'text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500',
-              'transition-colors duration-150 hover:text-neutral-700',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10 rounded',
-              '[&[data-state=open]>svg]:rotate-90',
+              'group flex w-full items-center justify-between gap-2 px-0 py-2',
+              'font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground',
+              'transition-colors duration-100 hover:text-foreground',
+              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
             )}
           >
-            <ChevronRight
-              size={12}
-              strokeWidth={2.5}
-              className="shrink-0 text-neutral-400 transition-transform duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
-            />
-            {title}
+            {/* Industrial section label with bracket markers */}
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground/60 font-mono text-[11px]">▚</span>
+              {title.toUpperCase()}
+            </span>
+            {/* +/− caret */}
+            <span
+              aria-hidden="true"
+              className="font-mono text-[14px] font-bold text-muted-foreground group-data-[state=open]:hidden leading-none"
+            >
+              +
+            </span>
+            <span
+              aria-hidden="true"
+              className="hidden font-mono text-[14px] font-bold text-muted-foreground group-data-[state=open]:inline leading-none"
+            >
+              −
+            </span>
           </AccordionPrimitive.Trigger>
         </AccordionPrimitive.Header>
 
@@ -79,5 +89,5 @@ interface AccordionProps {
 }
 
 export function Accordion({ children, className }: AccordionProps) {
-  return <div className={cn('space-y-0.5', className)}>{children}</div>
+  return <div className={cn('space-y-0', className)}>{children}</div>
 }

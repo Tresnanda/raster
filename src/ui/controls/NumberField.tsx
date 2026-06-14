@@ -1,5 +1,5 @@
 // src/ui/controls/NumberField.tsx
-// Premium number field with Figma-style drag-to-scrub on the label
+// Ink Brutalism number field with Figma-style drag-to-scrub on the label
 import { useRef, useCallback } from 'react'
 import type { PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
@@ -75,12 +75,12 @@ export function NumberField({
   const inputId = id ?? `ni-${label.toLowerCase().replace(/\s+/g, '-')}`
 
   return (
-    <div className={cn('flex flex-col gap-0.5', className)}>
+    <div className={cn('flex flex-col gap-1', className)}>
       <span
         role="presentation"
         className={cn(
-          'cursor-ew-resize select-none text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400',
-          'hover:text-neutral-600 transition-colors duration-100',
+          'cursor-ew-resize select-none font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground',
+          'hover:text-foreground transition-colors duration-100',
         )}
         title={`Drag to change ${label}`}
         onPointerDown={handleLabelPointerDown}
@@ -103,10 +103,9 @@ export function NumberField({
           if (!isNaN(v)) onChange(clamp(v))
         }}
         className={cn(
-          'w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs tabular-nums text-neutral-800',
-          'transition-[border-color,box-shadow] duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-          'hover:border-neutral-300',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+          'w-full rounded-none border-2 border-foreground bg-background px-2.5 py-1.5 font-mono text-xs tabular-nums text-foreground',
+          'transition-[border-color] duration-100',
+          'focus:border-accent focus:outline-none',
           // Hide native spinners
           '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
         )}

@@ -1,4 +1,4 @@
-// src/ui/controls/Select.tsx — Premium Radix Select replacing native <select>
+// src/ui/controls/Select.tsx — Ink Brutalism Radix Select replacing native <select>
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -34,11 +34,12 @@ export function Select({
         aria-label={ariaLabel}
         className={cn(
           'inline-flex w-full items-center justify-between gap-2',
-          'rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800',
-          'transition-[border-color,box-shadow] duration-150 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
-          'hover:border-neutral-300',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
-          'disabled:cursor-not-allowed disabled:opacity-50',
+          'rounded-none border-2 border-foreground bg-background px-2.5 py-1.5',
+          'font-mono text-xs font-bold uppercase tracking-[0.08em] text-foreground',
+          'shadow-brutal-sm',
+          'transition-[border-color] duration-100',
+          'focus-visible:border-accent focus-visible:outline-none',
+          'disabled:cursor-not-allowed disabled:opacity-40',
           '[&>span]:line-clamp-1 [&>span]:text-left',
           className,
         )}
@@ -46,9 +47,9 @@ export function Select({
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon asChild>
           <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className="shrink-0 text-neutral-400 transition-transform duration-150 group-data-[state=open]:rotate-180"
+            size={12}
+            strokeWidth={2.5}
+            className="shrink-0 text-muted-foreground"
           />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
@@ -56,11 +57,11 @@ export function Select({
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
           position="popper"
-          sideOffset={4}
+          sideOffset={2}
           className={cn(
             'z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden',
-            'rounded-lg border border-neutral-200 bg-white shadow-lg',
-            'p-1',
+            'rounded-none border-2 border-foreground bg-background shadow-brutal',
+            'p-0',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
             'data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
@@ -75,17 +76,18 @@ export function Select({
                 value={opt.value}
                 className={cn(
                   'relative flex w-full cursor-pointer select-none items-center',
-                  'rounded-md py-1.5 pl-2 pr-8 text-sm text-neutral-800 outline-none',
+                  'rounded-none py-1.5 pl-2.5 pr-8',
+                  'font-mono text-xs font-bold uppercase tracking-[0.08em] text-foreground outline-none',
                   'transition-colors duration-100',
-                  'data-[highlighted]:bg-neutral-100',
-                  'data-[state=checked]:font-medium',
+                  'data-[highlighted]:bg-foreground data-[highlighted]:text-background',
+                  'data-[state=checked]:text-accent',
                   'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
                 )}
               >
                 <SelectPrimitive.ItemText>{opt.label}</SelectPrimitive.ItemText>
                 <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
                   <SelectPrimitive.ItemIndicator>
-                    <Check size={12} strokeWidth={2.5} className="text-neutral-900" />
+                    <Check size={10} strokeWidth={3} />
                   </SelectPrimitive.ItemIndicator>
                 </span>
               </SelectPrimitive.Item>

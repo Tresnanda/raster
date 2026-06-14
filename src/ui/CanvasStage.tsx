@@ -7,6 +7,7 @@ import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { ComposerOverlay } from './ComposerOverlay'
 import { GrainAnimator } from './GrainAnimator'
+import { useImageEffectProcessor } from './useImageEffectProcessor'
 
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
@@ -29,6 +30,9 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     ro.observe(el)
     return () => ro.disconnect()
   }, [c.w])
+
+  // Run image effect processor -- watches image slots and re-derives content
+  useImageEffectProcessor()
 
   // ── Tracks for add-element pop and surprise detection ─────────────────────
   const prevSlotsLenRef = useRef(design.slots.length)

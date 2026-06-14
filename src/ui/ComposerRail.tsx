@@ -1,5 +1,5 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
@@ -253,6 +253,8 @@ export function ComposerRail() {
   const setImageFill = useDesign(s => s.setImageFill)
   const clearImageFill = useDesign(s => s.clearImageFill)
   const requestCrop = useDesign(s => s.requestCrop)
+  const setOpacity = useDesign(s => s.setOpacity)
+  const alignElement = useDesign(s => s.alignElement)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
   const undo = useDesign(s => s.undo)
@@ -789,6 +791,64 @@ export function ComposerRail() {
                       min={1}
                       onChange={v => setBox(selectedSlot.id, { ...resolvedBox, h: v })}
                     />
+                  </div>
+                </div>
+              )}
+
+              {/* OPACITY */}
+              {resolvedBox && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                      Opacity
+                    </span>
+                    <span className="text-[10px] tabular-nums text-neutral-500 font-medium">
+                      {Math.round((selectedSlot.opacity ?? 1) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    aria-label="Opacity"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round((selectedSlot.opacity ?? 1) * 100)}
+                    onChange={e => setOpacity(selectedSlot.id, Number(e.target.value) / 100)}
+                    className="w-full accent-neutral-900"
+                  />
+                </div>
+              )}
+
+              {/* ALIGN */}
+              {resolvedBox && (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                    Align
+                  </div>
+                  <div className="flex gap-1">
+                    {[
+                      { edge: 'left' as const,    label: 'Canvas align left',              Icon: AlignStartVertical },
+                      { edge: 'centerH' as const, label: 'Canvas align center horizontal', Icon: AlignCenterVertical },
+                      { edge: 'right' as const,   label: 'Canvas align right',             Icon: AlignEndVertical },
+                      { edge: 'top' as const,     label: 'Canvas align top',               Icon: AlignStartHorizontal },
+                      { edge: 'centerV' as const, label: 'Canvas align center vertical',   Icon: AlignCenterHorizontal },
+                      { edge: 'bottom' as const,  label: 'Canvas align bottom',            Icon: AlignEndHorizontal },
+                    ].map(({ edge, label, Icon }) => (
+                      <button
+                        key={edge}
+                        aria-label={label}
+                        onClick={() => alignElement(selectedSlot.id, edge)}
+                        className={[
+                          'flex-1 flex items-center justify-center rounded border border-neutral-200 py-1.5',
+                          'text-neutral-500 hover:border-neutral-400 hover:text-neutral-900',
+                          'active:scale-[0.97] transition-transform duration-150',
+                          '[transition-timing-function:cubic-bezier(0.23,1,0.32,1)]',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/10',
+                        ].join(' ')}
+                      >
+                        <Icon size={13} />
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

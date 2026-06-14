@@ -276,3 +276,154 @@ test('when imageFill is set, shows "Image set" text and no upload button', () =>
   expect(screen.getByText('Image set')).toBeTruthy()
   expect(screen.queryByLabelText('Upload image fill')).toBeNull()
 })
+
+// ── Opacity slider ─────────────────────────────────────────────────────────────
+
+test('selecting any element shows the OPACITY slider', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Opacity')).toBeTruthy()
+})
+
+test('OPACITY slider reflects current slot opacity (default 100)', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  const slider = screen.getByLabelText('Opacity') as HTMLInputElement
+  // Default is 1 (unset), so 100%
+  expect(Number(slider.value)).toBe(100)
+})
+
+test('moving OPACITY slider calls setOpacity with value/100', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const setOpacity = vi.spyOn(useDesign.getState(), 'setOpacity')
+  render(<ComposerRail />)
+  const slider = screen.getByLabelText('Opacity') as HTMLInputElement
+  fireEvent.change(slider, { target: { value: '50' } })
+  expect(setOpacity).toHaveBeenCalledWith(textSlot.id, 0.5)
+})
+
+test('OPACITY slider works for image elements too', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Opacity')).toBeTruthy()
+})
+
+test('OPACITY display shows rounded percentage value', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().setOpacity(textSlot.id, 0.75)
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  // Should show "75%" somewhere
+  expect(screen.getByText('75%')).toBeTruthy()
+})
+
+// ── Alignment buttons ──────────────────────────────────────────────────────────
+
+test('selecting any element shows the 6 ALIGN buttons', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Canvas align left')).toBeTruthy()
+  expect(screen.getByLabelText('Canvas align center horizontal')).toBeTruthy()
+  expect(screen.getByLabelText('Canvas align right')).toBeTruthy()
+  expect(screen.getByLabelText('Canvas align top')).toBeTruthy()
+  expect(screen.getByLabelText('Canvas align center vertical')).toBeTruthy()
+  expect(screen.getByLabelText('Canvas align bottom')).toBeTruthy()
+})
+
+test('clicking Align left calls alignElement with edge:left', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align left'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'left')
+})
+
+test('clicking Align center horizontal calls alignElement with edge:centerH', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align center horizontal'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'centerH')
+})
+
+test('clicking Align right calls alignElement with edge:right', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align right'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'right')
+})
+
+test('clicking Align top calls alignElement with edge:top', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align top'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'top')
+})
+
+test('clicking Align center vertical calls alignElement with edge:centerV', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align center vertical'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'centerV')
+})
+
+test('clicking Align bottom calls alignElement with edge:bottom', () => {
+  const textSlot = useDesign.getState().design.slots.find(
+    s => s.role !== 'image' && s.role !== 'block' && s.role !== 'line'
+  )!
+  useDesign.getState().selectElement(textSlot.id)
+  const alignElement = vi.spyOn(useDesign.getState(), 'alignElement')
+  render(<ComposerRail />)
+  fireEvent.click(screen.getByLabelText('Canvas align bottom'))
+  expect(alignElement).toHaveBeenCalledWith(textSlot.id, 'bottom')
+})
+
+test('ALIGN buttons appear for image element too', () => {
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  useDesign.getState().selectElement(imgSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Canvas align left')).toBeTruthy()
+})
+
+test('ALIGN buttons appear for shape element too', () => {
+  useDesign.getState().addElement('block')
+  const blockSlot = useDesign.getState().design.slots.find(s => s.role === 'block')!
+  useDesign.getState().selectElement(blockSlot.id)
+  render(<ComposerRail />)
+  expect(screen.getByLabelText('Canvas align left')).toBeTruthy()
+})

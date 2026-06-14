@@ -115,6 +115,20 @@ export interface Slot {
   imageSrcOriginal?: string
   /** Current image effect descriptor. Source of truth for re-processing. */
   imageEffect?: ImageEffect
+
+  // ── Type pack ──────────────────────────────────────────────────────────────
+  /** Text case transform applied before measuring and rendering. */
+  textTransform?: 'none' | 'upper' | 'lower' | 'title'
+  /**
+   * Hanging indent in px. When > 0, wrapped CONTINUATION lines of each
+   * hard-line entry are shifted right by this amount (left-aligned only).
+   */
+  indent?: number
+  /**
+   * List prefix style. 'bullet' prefixes each hard line with "•  ";
+   * 'number' prefixes "1.  ", "2.  " etc. 'none' (default) = no prefix.
+   */
+  listStyle?: 'none' | 'bullet' | 'number'
 }
 
 export interface Palette { bg: string; text: string; accent: string }

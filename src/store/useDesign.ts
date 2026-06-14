@@ -163,6 +163,11 @@ interface State {
   setImageEffect: (slotId: string, effect: ImageEffect) => void
   setProcessedImage: (slotId: string, dataUrl: string) => void
 
+  // Type pack
+  setTextTransform: (id: string, v: Slot['textTransform']) => void
+  setIndent: (id: string, px: number) => void
+  setListStyle: (id: string, v: Slot['listStyle']) => void
+
   // -------------------------------------------------------------------------
   // Viewport state (zoom / pan) — not in undo history
   // -------------------------------------------------------------------------
@@ -816,6 +821,22 @@ export const useDesign = create<State>((set, get) => {
 
     setBlend: (id, mode) => {
       get().updateSlot(id, { blend: mode })
+    },
+
+    // -------------------------------------------------------------------------
+    // Type pack
+    // -------------------------------------------------------------------------
+
+    setTextTransform: (id, v) => {
+      get().updateSlot(id, { textTransform: v }, `textTransform:${id}`)
+    },
+
+    setIndent: (id, px) => {
+      get().updateSlot(id, { indent: px }, `indent:${id}`)
+    },
+
+    setListStyle: (id, v) => {
+      get().updateSlot(id, { listStyle: v }, `listStyle:${id}`)
     },
 
     // -------------------------------------------------------------------------

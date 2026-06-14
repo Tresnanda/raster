@@ -2,6 +2,20 @@ import type { Box, TextStyle } from '../types'
 import { fitText } from '../lib/fit-text'
 import { FONT_STACK, type Measure } from '../lib/measure'
 
+// ── Text transform ────────────────────────────────────────────────────────────
+
+/** Apply a textTransform to a string. */
+export function applyTextTransform(
+  text: string,
+  transform: 'none' | 'upper' | 'lower' | 'title' | undefined,
+): string {
+  if (!transform || transform === 'none') return text
+  if (transform === 'upper') return text.toUpperCase()
+  if (transform === 'lower') return text.toLowerCase()
+  // title: capitalize first letter of every word
+  return text.replace(/\b\w/g, c => c.toUpperCase())
+}
+
 /**
  * Hangable leading characters: punctuation that should optically hang
  * outside the left margin for left-aligned text.
@@ -43,7 +57,7 @@ export function opticalHang(line: string, align: TextStyle['align'], size: numbe
  */
 const BODY_MEASURE_FACTOR = 34
 
-export function SlotText({ id, box, text, content, color, measure, imageFill, typeClass, baseline }: {
+export function SlotText({ id, box, text, content, color, measure, imageFill, typeClass, baseline, textTransform, indent, listStyle }: {
   id: string
   box: Box
   /** Pre-resolved effective TextStyle (use resolveTextStyle before rendering). */
@@ -56,10 +70,28 @@ export function SlotText({ id, box, text, content, color, measure, imageFill, ty
   typeClass?: 'title' | 'headline' | 'body'
   /** Baseline grid unit in px (from baselineUnit(typography)). Snaps line advance. */
   baseline?: number
+  /** Text case transform applied before measuring. */
+  textTransform?: 'none' | 'upper' | 'lower' | 'title'
+  /** Hanging indent in px for soft-wrapped continuation lines (left-aligned only). */
+  indent?: number
+  /** List prefix style. */
+  listStyle?: 'none' | 'bullet' | 'number'
 }) {
   const m = (t: string, size: number) => measure(t, size, text.family, text.weight)
   // 'auto' shrinks from text.size down to 9 to fit the box; 'fixed' pins at text.size
   const minSize = text.fit === 'fixed' ? text.size : 9
+
+  // --- Step 1: Apply textTransform per hard-line segment, then rejoin with \n ---
+  const transformedContent = content.split('\n').map(seg => applyTextTransform(seg, textTransform)).join('\n')
+
+  // --- Step 2: Apply list prefixes per hard-line segment, then rejoin ---
+  const prefixedContent = (() => {
+    if (!listStyle || listStyle === 'none') return transformedContent
+    return transformedContent.split('\n').map((seg, i) => {
+      if (listStyle === 'bullet') return `•  ${seg}`
+      return `${i + 1}.  ${seg}`
+    }).join('\n')
+  })()
 
   // Body-class: cap the effective wrap width so long lines don't exceed ~34em.
   // Title/headline: always wrap against full box.w.
@@ -67,8 +99,8 @@ export function SlotText({ id, box, text, content, color, measure, imageFill, ty
   const maxW = isBody ? Math.min(box.w, BODY_MEASURE_FACTOR * text.size) : box.w
   const fitBox = maxW < box.w ? { ...box, w: maxW } : box
 
-  const { size, lines, lineAdvance } = fitText(
-    content,
+  const { size, lines, lineAdvance, lineIsHardStart } = fitText(
+    prefixedContent,
     fitBox,
     { maxSize: text.size, minSize, leading: text.leading, baseline },
     m,
@@ -81,12 +113,17 @@ export function SlotText({ id, box, text, content, color, measure, imageFill, ty
   // vertical-center within box
   const y = box.y + (box.h - blockH) / 2 + size * 0.8
 
+  // Effective hanging indent: only for left-aligned text
+  const hangIndent = (indent && indent > 0 && text.align === 'left') ? indent : 0
+
   // Shared tspan children — identical geometry for both clip and visible copies,
   // ensuring the clipPath text and rendered text never drift.
   const tspans = lines.map((line, i) => {
     const hangOffset = opticalHang(line, text.align, size)
+    // Continuation lines (soft-wrapped) get shifted right by indent px
+    const indentOffset = (hangIndent > 0 && !lineIsHardStart[i]) ? hangIndent : 0
     return (
-      <tspan key={i} x={ax + hangOffset} y={y + i * lineAdvance}>{line}</tspan>
+      <tspan key={i} x={ax + hangOffset + indentOffset} y={y + i * lineAdvance}>{line}</tspan>
     )
   })
 

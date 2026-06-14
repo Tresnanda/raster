@@ -232,6 +232,9 @@ export function Renderer({ design, measure, svgRef }: {
                 imageFill={slot.imageFill}
                 typeClass={cls}
                 baseline={baselineUnit(typography)}
+                textTransform={slot.textTransform}
+                indent={slot.indent}
+                listStyle={slot.listStyle}
               />
             </g>
           )

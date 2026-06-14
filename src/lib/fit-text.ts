@@ -17,24 +17,53 @@ export interface FitResult {
   lines: string[]
   /** Per-line vertical advance in px. Use this for tspan y-positions and block height. */
   lineAdvance: number
+  /**
+   * Per-line boolean: true when the line is the FIRST line of its \n-separated
+   * hard segment; false for soft-wrapped continuation lines.
+   * Default (unset): undefined (back-compat for callers that don't need it).
+   */
+  lineIsHardStart: boolean[]
 }
 
-function wrap(text: string, size: number, maxW: number, measure: Measurer): string[] {
+interface WrapResult {
+  lines: string[]
+  lineIsHardStart: boolean[]
+}
+
+function wrap(text: string, size: number, maxW: number, measure: Measurer): WrapResult {
   const lines: string[] = []
+  const lineIsHardStart: boolean[] = []
   // Honor explicit line breaks first: each \n is a HARD break the user intended.
   // Then word-wrap each segment independently so only genuinely-too-wide lines wrap.
   for (const segment of text.split('\n')) {
     const words = segment.split(/[ \t]+/).filter(Boolean)
-    if (words.length === 0) { lines.push(''); continue }  // preserve blank lines
+    if (words.length === 0) {
+      lines.push('')
+      lineIsHardStart.push(true)  // blank hard line
+      continue
+    }
     let cur = ''
+    let firstOfSegment = true
     for (const word of words) {
       const trial = cur ? cur + ' ' + word : word
-      if (measure(trial, size) <= maxW || !cur) cur = trial
-      else { lines.push(cur); cur = word }
+      if (measure(trial, size) <= maxW || !cur) {
+        cur = trial
+      } else {
+        lines.push(cur)
+        lineIsHardStart.push(firstOfSegment)
+        firstOfSegment = false
+        cur = word
+      }
     }
-    if (cur) lines.push(cur)
+    if (cur) {
+      lines.push(cur)
+      lineIsHardStart.push(firstOfSegment)
+    }
   }
-  return lines.length ? lines : ['']
+  if (lines.length === 0) {
+    return { lines: [''], lineIsHardStart: [true] }
+  }
+  return { lines, lineIsHardStart }
 }
 
 /** Compute the per-line vertical advance, optionally snapped to a baseline grid. */
@@ -55,11 +84,11 @@ function fits(lines: string[], size: number, box: { w: number; h: number }, lead
 
 export function fitText(text: string, box: { w: number; h: number }, opts: FitOpts, measure: Measurer): FitResult {
   for (let size = opts.maxSize; size >= opts.minSize; size -= 1) {
-    const lines = wrap(text, size, box.w, measure)
+    const { lines, lineIsHardStart } = wrap(text, size, box.w, measure)
     if (fits(lines, size, box, opts.leading, measure, opts.baseline)) {
-      return { size, lines, lineAdvance: computeLineAdvance(size, opts.leading, opts.baseline) }
+      return { size, lines, lineIsHardStart, lineAdvance: computeLineAdvance(size, opts.leading, opts.baseline) }
     }
   }
-  const lines = wrap(text, opts.minSize, box.w, measure)
-  return { size: opts.minSize, lines, lineAdvance: computeLineAdvance(opts.minSize, opts.leading, opts.baseline) }
+  const { lines, lineIsHardStart } = wrap(text, opts.minSize, box.w, measure)
+  return { size: opts.minSize, lines, lineIsHardStart, lineAdvance: computeLineAdvance(opts.minSize, opts.leading, opts.baseline) }
 }

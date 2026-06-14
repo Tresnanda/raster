@@ -1,5 +1,5 @@
 // src/ui/ComposerRail.tsx
-import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2 } from 'lucide-react'
+import { Type, Image, Square, Minus, ChevronUp, ChevronDown, Copy, Trash2, AlignLeft, AlignCenter, AlignRight, Check, Undo2, Redo2, ImageIcon, X, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FlipHorizontal2, FlipVertical2, List, ListOrdered, CaseUpper, CaseLower, CaseSensitive } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useDesign } from '../store/useDesign'
 import { orderedSlots } from '../design/order'
@@ -570,6 +570,9 @@ export function ComposerRail() {
   const setShadow = useDesign(s => s.setShadow)
   const setBlend = useDesign(s => s.setBlend)
   const setImageEffect = useDesign(s => s.setImageEffect)
+  const setTextTransform = useDesign(s => s.setTextTransform)
+  const setIndent = useDesign(s => s.setIndent)
+  const setListStyle = useDesign(s => s.setListStyle)
   const snap = useDesign(s => s.snap)
   const setSnap = useDesign(s => s.setSnap)
   const undo = useDesign(s => s.undo)
@@ -1000,6 +1003,81 @@ export function ComposerRail() {
                     onSet={src => setImageFill(selectedSlot.id, src)}
                     onClear={() => clearImageFill(selectedSlot.id)}
                   />
+
+                  {/* Case / transform */}
+                  <InspectorRow label="Case">
+                    <div className="flex gap-1" data-case-controls>
+                      {([
+                        { value: 'none',  label: 'Aa', icon: <CaseSensitive size={13} />, title: 'None' },
+                        { value: 'upper', label: 'AA', icon: <CaseUpper size={13} />,    title: 'UPPER' },
+                        { value: 'lower', label: 'aa', icon: <CaseLower size={13} />,    title: 'lower' },
+                        { value: 'title', label: 'Tt', icon: <Type size={13} />,         title: 'Title' },
+                      ] as const).map(({ value, icon, title }) => (
+                        <button
+                          key={value}
+                          onClick={() => setTextTransform(selectedSlot.id, value)}
+                          aria-label={`Case ${title}`}
+                          title={title}
+                          data-case={value}
+                          className={[
+                            'flex-1 flex items-center justify-center rounded border py-1.5',
+                            'transition-colors duration-100',
+                            (selectedSlot.textTransform ?? 'none') === value
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 text-neutral-500 hover:border-neutral-400',
+                          ].join(' ')}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+                  </InspectorRow>
+
+                  {/* List style */}
+                  <InspectorRow label="List">
+                    <div className="flex gap-1" data-list-controls>
+                      {([
+                        { value: 'none',   label: 'None',     icon: null },
+                        { value: 'bullet', label: 'Bullet',   icon: <List size={13} /> },
+                        { value: 'number', label: 'Numbered', icon: <ListOrdered size={13} /> },
+                      ] as const).map(({ value, label, icon }) => (
+                        <button
+                          key={value}
+                          onClick={() => setListStyle(selectedSlot.id, value)}
+                          aria-label={label}
+                          title={label}
+                          data-liststyle={value}
+                          className={[
+                            'flex-1 flex items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium',
+                            'transition-colors duration-100',
+                            (selectedSlot.listStyle ?? 'none') === value
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-400',
+                          ].join(' ')}
+                        >
+                          {icon ?? label}
+                        </button>
+                      ))}
+                    </div>
+                  </InspectorRow>
+
+                  {/* Hanging indent */}
+                  <InspectorRow label="Indent">
+                    <input
+                      id={`insp-indent-${selectedSlot.id}`}
+                      aria-label="Hanging indent"
+                      type="number"
+                      min={0}
+                      max={200}
+                      step={1}
+                      value={selectedSlot.indent ?? 0}
+                      onChange={e => setIndent(selectedSlot.id, Number(e.target.value))}
+                      className={[
+                        'w-full rounded border border-neutral-200 px-2 py-1 text-xs tabular-nums text-neutral-800',
+                        'focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                      ].join(' ')}
+                    />
+                  </InspectorRow>
                 </div>
               )}
 

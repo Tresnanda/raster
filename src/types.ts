@@ -73,6 +73,8 @@ export interface Slot {
   bw?: boolean
   /** Image src (dataURL or URL) to clip into the text glyphs (image fill effect). */
   imageFill?: string
+  /** Per-element opacity (0..1). Default is 1 when unset. */
+  opacity?: number
 }
 
 export interface Palette { bg: string; text: string; accent: string }

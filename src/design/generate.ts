@@ -400,6 +400,120 @@ function placeImage(
 }
 
 // ---------------------------------------------------------------------------
+// Dominant text placement
+// ---------------------------------------------------------------------------
+
+/** Map a DominantAnchor to a concrete cell for the dominant element.
+ *  Biases toward edges and corners — never the exact center. */
+function resolveDominantCell(anchor: DominantAnchor, dominantType: DominantType): GridCell {
+  // Row/col spans vary by type:
+  //   mega-word / oversized-glyph: wide & tall
+  //   giant-numeral: wide & medium
+  //   headline-stack: medium width, taller
+  const cs = dominantType === 'headline-stack' ? randInt(6, 10) : randInt(8, 12)
+  const rs = dominantType === 'headline-stack' ? randInt(4, 7) : randInt(3, 5)
+
+  switch (anchor) {
+    case 'top-left':    return clampCell({ c: 0, cs, r: 0, rs })
+    case 'top-right':   return clampCell({ c: COLS - cs, cs, r: 0, rs })
+    case 'bottom-left': return clampCell({ c: 0, cs, r: ROWS - rs, rs })
+    case 'bottom-right':return clampCell({ c: COLS - cs, cs, r: ROWS - rs, rs })
+    case 'left-band':   return clampCell({ c: 0, cs, r: randInt(2, ROWS - rs - 2), rs })
+    case 'right-band':  return clampCell({ c: COLS - cs, cs, r: randInt(2, ROWS - rs - 2), rs })
+    case 'top-band':    return clampCell({ c: randInt(0, COLS - cs), cs, r: 0, rs })
+    case 'bottom-band': return clampCell({ c: randInt(0, COLS - cs), cs, r: ROWS - rs, rs })
+    case 'mid-left':    return clampCell({ c: 0, cs, r: randInt(4, 9), rs })
+    case 'mid-right':   return clampCell({ c: COLS - cs, cs, r: randInt(4, 9), rs })
+  }
+}
+
+/** Determine text alignment from anchor position. */
+function anchorAlign(anchor: DominantAnchor): 'left' | 'right' {
+  if (anchor === 'top-right' || anchor === 'bottom-right' || anchor === 'right-band' || anchor === 'mid-right') {
+    return 'right'
+  }
+  return 'left'
+}
+
+/** Create a scrim block slot behind a text cell. z is textZ - 1. */
+function makeScrim(textCell: GridCell, textZ: number, bgColor: string, id: () => string): Slot {
+  return {
+    id: id(),
+    role: 'block',
+    z: textZ - 1,
+    cell: { ...textCell },
+    content: '',
+    fill: bgColor,
+    opacity: 0.88,
+  }
+}
+
+/** Place the dominant text element. Returns [dominantSlot, ...scrimSlots]. */
+function placeDominant(
+  skeleton: Skeleton,
+  occ: OccupancyGrid,
+  imgRegions: ImageRegionSet,
+  bgColor: string,
+  id: () => string,
+): Slot[] {
+  const cell = resolveDominantCell(skeleton.dominantAnchor, skeleton.dominantType)
+  const z = 5 // dominant is always in front of everything else
+  const align = anchorAlign(skeleton.dominantAnchor)
+
+  let slot: Slot
+  switch (skeleton.dominantType) {
+    case 'mega-word':
+      slot = {
+        id: id(), role: 'headline', z,
+        cell,
+        content: pick(HEADLINES),
+        text: titleText(skeleton.dominantSize, align),
+        typeClass: 'title',
+      }
+      break
+    case 'headline-stack':
+      slot = {
+        id: id(), role: 'headline', z,
+        cell,
+        content: pick(HEADLINES),
+        text: headlineText(skeleton.dominantSize, align),
+        typeClass: 'title',
+      }
+      break
+    case 'giant-numeral':
+      slot = {
+        id: id(), role: 'date', z,
+        cell,
+        content: maybe(0.6) ? pick(YEARS) : pick(NUMERALS),
+        text: headlineText(skeleton.dominantSize, align),
+        typeClass: 'title',
+      }
+      break
+    case 'oversized-glyph':
+      slot = {
+        id: id(), role: 'glyph', z,
+        cell,
+        content: pick(HEADLINES).slice(0, 1), // single letter
+        text: titleText(skeleton.dominantSize, align),
+        typeClass: 'title',
+      }
+      break
+  }
+
+  // Claim occupancy with the dominant element
+  occ.claim(cell)
+
+  const result: Slot[] = [slot!]
+
+  // Legibility: if dominant overlaps image region, add a scrim behind it
+  if (imgRegions.overlapsImage(cell)) {
+    result.unshift(makeScrim(cell, z, bgColor, id))
+  }
+
+  return result
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

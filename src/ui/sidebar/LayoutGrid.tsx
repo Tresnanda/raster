@@ -1,6 +1,6 @@
 // src/ui/sidebar/LayoutGrid.tsx — Neo-brutalist
 import { useRef } from 'react'
-import { Shuffle, Dices, Sparkles, Wand2 } from 'lucide-react'
+import { Shuffle, Grid2x2, Asterisk, GitBranch } from 'lucide-react'
 import gsap from 'gsap'
 import { useDesign } from '../../store/useDesign'
 import { LAYOUTS } from '../../design/layouts'
@@ -104,7 +104,7 @@ export function LayoutGrid() {
           onClick={pickForMeAction}
           title="Jump to a random preset layout"
         >
-          <Dices size={12} />
+          <Grid2x2 size={12} strokeWidth={2} />
           Pick
         </Button>
 
@@ -116,7 +116,7 @@ export function LayoutGrid() {
           title="Generate a brand-new unique design"
         >
           <span ref={surpriseIconRef} style={{ display: 'contents' }}>
-            <Sparkles size={12} />
+            <Asterisk size={13} strokeWidth={2.25} />
           </span>
           Surprise
         </Button>
@@ -130,7 +130,7 @@ export function LayoutGrid() {
           className="bg-accent text-accent-foreground border-accent shadow-brutal hover:shadow-brutal-lg hover:-translate-y-px active:shadow-none"
         >
           <span ref={riffIconRef} style={{ display: 'contents' }}>
-            <Wand2 size={12} />
+            <GitBranch size={12} strokeWidth={2} />
           </span>
           Riff
         </Button>

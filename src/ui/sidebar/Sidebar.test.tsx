@@ -34,6 +34,9 @@ test('clicking layout cell 3 changes design.layout to 3', () => {
 test('content textarea edits slot content', () => {
   useDesign.getState().setLayout(3) // mega-word has a 'word' slot
   render(<Sidebar svgRef={svgRef} />)
+  // The Content section is collapsed by default — expand it first.
+  const trigger = screen.getByRole('button', { name: /content/i })
+  fireEvent.click(trigger)
   // Look for any textarea (content field)
   const textareas = document.querySelectorAll('textarea')
   expect(textareas.length).toBeGreaterThan(0)

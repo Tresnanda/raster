@@ -141,6 +141,30 @@ export interface Slot {
 
 export interface Palette { bg: string; text: string; accent: string }
 
+export type SwissGrammar =
+  | 'split-field'
+  | 'asymmetric-headline'
+  | 'modular-catalog'
+  | 'typographic-monument'
+  | 'image-diptych'
+  | 'index-rail'
+
+export interface GenerationReadability {
+  textOverlapCount: number
+  nonFullBleedTextImageOverlaps: number
+  titleCount: number
+  supportingTextCount: number
+  dominantRatio: number
+  occupiedFraction: number
+}
+
+export interface GenerationMeta {
+  grammar: SwissGrammar
+  score: number
+  candidateCount: number
+  readability: GenerationReadability
+}
+
 export interface Design {
   format: Format
   grid: Grid
@@ -154,4 +178,6 @@ export interface Design {
   style: StyleOptions
   /** Layout number 1–19, or `0` for a procedurally generated design. */
   layout: number
+  /** Diagnostics for procedurally generated Surprise posters. */
+  generation?: GenerationMeta
 }

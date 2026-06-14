@@ -122,6 +122,12 @@ test('surprise clears selectedId', () => {
   expect(useDesign.getState().selectedId).toBeNull()
 })
 
+test('surprise clears multi-selection state', () => {
+  useDesign.getState().setSelection(['word', 'caption'])
+  useDesign.getState().surprise()
+  expect(useDesign.getState().selectedIds).toEqual([])
+})
+
 test('reset populates typography and style with defaults', () => {
   const d = useDesign.getState().design
   expect(d.typography).toBeDefined()

@@ -5,6 +5,14 @@ import type { Design, GridCell } from '../types'
 const COLS = 12
 const ROWS = 16
 const VALID_HEX = /^#[0-9a-fA-F]{6}$/
+const SWISS_GRAMMARS = new Set([
+  'split-field',
+  'asymmetric-headline',
+  'modular-catalog',
+  'typographic-monument',
+  'image-diptych',
+  'index-rail',
+])
 
 function cellInBounds(cell: GridCell): boolean {
   return (
@@ -92,6 +100,24 @@ function countTextOverlaps(d: Design): number {
     }
   }
   return overlaps
+}
+
+function designFingerprint(d: Design): string {
+  return JSON.stringify({
+    palette: d.palette,
+    style: d.style,
+    typography: d.typography,
+    generation: d.generation,
+    slots: d.slots.map(s => ({
+      role: s.role,
+      cell: s.cell,
+      content: s.content,
+      text: s.text,
+      fill: s.fill,
+      typeClass: s.typeClass,
+      z: s.z,
+    })),
+  })
 }
 
 /** Legibility / "text respects the image" invariant:
@@ -304,6 +330,39 @@ test('generate returns fresh seed each call', () => {
     seeds.add(generate('3:4').seed)
   }
   expect(seeds.size).toBeGreaterThan(5)
+})
+
+test('generate is reproducible when given an explicit seed', () => {
+  const a = generate('4:5', { seed: 123456, candidateCount: 12 })
+  const b = generate('4:5', { seed: 123456, candidateCount: 12 })
+  const c = generate('4:5', { seed: 654321, candidateCount: 12 })
+
+  expect(a.seed).toBe(123456)
+  expect(b.seed).toBe(123456)
+  expect(designFingerprint(a)).toBe(designFingerprint(b))
+  expect(designFingerprint(a)).not.toBe(designFingerprint(c))
+})
+
+test('generate records a scored Swiss grammar candidate', () => {
+  const d = generate('3:4', { seed: 314159, candidateCount: 16 })
+
+  expect(d.generation?.grammar).toBeDefined()
+  expect(SWISS_GRAMMARS.has(d.generation!.grammar)).toBe(true)
+  expect(d.generation?.candidateCount).toBeGreaterThanOrEqual(12)
+  expect(d.generation?.score).toBeGreaterThanOrEqual(78)
+  expect(d.generation?.readability.textOverlapCount).toBe(0)
+  expect(d.generation?.readability.nonFullBleedTextImageOverlaps).toBe(0)
+  expect(d.generation?.readability.titleCount).toBe(1)
+  expect(d.generation?.readability.supportingTextCount).toBeGreaterThanOrEqual(1)
+})
+
+test('80 seeded runs: Surprise uses several explicit Swiss grammars', () => {
+  const grammars = new Set<string>()
+  for (let i = 0; i < 80; i++) {
+    grammars.add(generate('3:4', { seed: 5000 + i, candidateCount: 10 }).generation!.grammar)
+  }
+
+  expect(grammars.size).toBeGreaterThanOrEqual(4)
 })
 
 // ---------------------------------------------------------------------------

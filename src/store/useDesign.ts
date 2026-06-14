@@ -411,7 +411,7 @@ export const useDesign = create<State>((set, get) => {
       const d = generate(current.format)
       // surprise is a discrete action — commit then clear selection
       commit(d)
-      set({ selectedId: null })
+      set({ selectedId: null, selectedIds: [] })
     },
 
     // ---------------------------------------------------------------------------

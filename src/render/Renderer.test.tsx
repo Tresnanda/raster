@@ -302,3 +302,29 @@ test('block slot with radius:20 renders rect with rx="20"', () => {
   const rect = container.querySelector(`[data-slot="${blockSlot.id}"] rect`) as SVGRectElement
   expect(rect?.getAttribute('rx')).toBe('20')
 })
+// ── Image radius + stroke ─────────────────────────────────────────────────────
+
+test('image slot with radius clips via clipPath with rounded rect', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  imgSlot.content = 'data:image/png;base64,xx'
+  imgSlot.radius = 24
+  const { container } = render(<Renderer design={useDesign.getState().design} measure={measure} />)
+  const clip = container.querySelector(`[data-slot="${imgSlot.id}"] clipPath rect`)
+  expect(clip?.getAttribute('rx')).toBe('24')
+})
+
+test('image slot with stroke renders stroke rect on top of image', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().addElement('image')
+  const imgSlot = useDesign.getState().design.slots.find(s => s.role === 'image')!
+  imgSlot.content = 'data:image/png;base64,xx'
+  imgSlot.stroke = '#ff0000'
+  imgSlot.strokeWidth = 3
+  const { container } = render(<Renderer design={useDesign.getState().design} measure={measure} />)
+  // Should have a rect with stroke but no fill (fill="none")
+  const strokeRect = container.querySelector(`[data-slot="${imgSlot.id}"] rect[data-stroke-overlay]`)
+  expect(strokeRect).toBeTruthy()
+  expect(strokeRect!.getAttribute('stroke')).toBe('#ff0000')
+})

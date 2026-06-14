@@ -15,7 +15,7 @@ import { useImageEffectProcessor } from './useImageEffectProcessor'
 const hudBtnStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: '3px 6px', border: 'none', background: 'transparent',
-  cursor: 'pointer', color: '#0A0A0A',
+  cursor: 'pointer', color: '#18181B',
 }
 
 function ZoomHUD() {
@@ -30,17 +30,18 @@ function ZoomHUD() {
     <div data-zoom-hud style={{
       position: 'absolute', bottom: 16, left: 16,
       display: 'flex', alignItems: 'center', gap: 0,
-      background: '#F4F4F0', border: '2px solid #0A0A0A',
-      borderRadius: 0, padding: '0',
-      boxShadow: '3px 3px 0 0 #0A0A0A',
+      background: '#FFFFFF', border: '2px solid #18181B',
+      borderRadius: '6px', padding: '0',
+      boxShadow: '2px 2px 0 0 #18181B',
       fontFamily: "'Space Mono', ui-monospace, monospace",
-      fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
       userSelect: 'none', zIndex: 50,
+      overflow: 'hidden',
     }}>
       <button aria-label="Zoom out" onClick={() => setZoom(zoom / 1.25)} style={hudBtnStyle}>
         <Minus size={11} strokeWidth={2.5} />
       </button>
-      <div style={{ width: 2, background: '#0A0A0A', alignSelf: 'stretch' }} />
+      <div style={{ width: 1, background: '#18181B', alignSelf: 'stretch', opacity: 0.3 }} />
       <button
         aria-label="Reset to fit"
         data-zoom-pct
@@ -49,15 +50,15 @@ function ZoomHUD() {
       >
         {pct}%
       </button>
-      <div style={{ width: 2, background: '#0A0A0A', alignSelf: 'stretch' }} />
+      <div style={{ width: 1, background: '#18181B', alignSelf: 'stretch', opacity: 0.3 }} />
       <button aria-label="Zoom in" onClick={() => setZoom(zoom * 1.25)} style={hudBtnStyle}>
         <Plus size={11} strokeWidth={2.5} />
       </button>
-      <div style={{ width: 2, background: '#0A0A0A', alignSelf: 'stretch' }} />
+      <div style={{ width: 1, background: '#18181B', alignSelf: 'stretch', opacity: 0.3 }} />
       <button aria-label="Fit" title="Fit to screen" onClick={() => { zoomToFit(); setPan({ x: 0, y: 0 }) }} style={hudBtnStyle}>
         <Maximize size={11} strokeWidth={2.5} />
       </button>
-      <div style={{ width: 2, background: '#0A0A0A', alignSelf: 'stretch' }} />
+      <div style={{ width: 1, background: '#18181B', alignSelf: 'stretch', opacity: 0.3 }} />
       <button aria-label="100%" title="100%" onClick={() => { useDesign.getState().zoomTo100(); setPan({ x: 0, y: 0 }) }} style={hudBtnStyle}>
         <Scan size={11} strokeWidth={2.5} />
       </button>
@@ -310,7 +311,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     <div
       ref={stageRef}
       className="flex h-full items-center justify-center overflow-hidden"
-      style={{ background: '#E2E0D9', position: 'relative' as const, cursor }}
+      style={{ background: '#EEECEA', position: 'relative' as const, cursor }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -322,7 +323,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
           ref={containerRef}
           className="relative"
           style={{
-            boxShadow: '6px 6px 0 0 #0A0A0A',
+            boxShadow: '4px 4px 0 0 #18181B',
             aspectRatio: `${c.w}/${c.h}`,
             maxHeight: '100%',
             maxWidth: '100%',

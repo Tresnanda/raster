@@ -292,7 +292,6 @@ test('slot with no blend has no mix-blend-mode style', () => {
 // ── Transform: block radius ───────────────────────────────────────────────────
 
 test('block slot with radius:20 renders rect with rx="20"', () => {
-  const d = buildDesign('mega-word', '1:1', 0)
   // Add a block slot
   useDesign.getState().reset('mega-word', '1:1')
   useDesign.getState().addElement('block')

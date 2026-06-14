@@ -152,6 +152,12 @@ export type SwissGrammar =
 
 export type ExpressiveMove = 'none' | 'controlled-occlusion'
 
+export interface GenerationBrief {
+  density: 'quiet' | 'balanced' | 'dense'
+  imageMode: 'none' | 'optional' | 'required'
+  accentMode: 'none' | 'optional' | 'required'
+}
+
 export interface GenerationReadability {
   textOverlapCount: number
   nonFullBleedTextImageOverlaps: number
@@ -166,6 +172,7 @@ export interface GenerationReadability {
 export interface GenerationMeta {
   grammar: SwissGrammar
   expressiveMove: ExpressiveMove
+  brief: GenerationBrief
   score: number
   candidateCount: number
   readability: GenerationReadability

@@ -1,4 +1,4 @@
-import type { Design, ExpressiveMove, Format, GenerationReadability, GridCell, Slot, SwissGrammar, TextStyle } from '../types'
+import type { Design, ExpressiveMove, Format, GenerationBrief, GenerationReadability, GridCell, Slot, SwissGrammar, TextStyle } from '../types'
 import { defaultGrid } from './formats'
 import { PRESET_PALETTES } from './palettes'
 import { DEFAULT_TYPOGRAPHY } from './typeclass'
@@ -350,6 +350,24 @@ const SWISS_GRAMMARS: SwissGrammar[] = [
   'occlusion-bar',
 ]
 
+function chooseGenerationBrief(grammar: SwissGrammar): GenerationBrief {
+  const density = grammar === 'modular-catalog' || grammar === 'index-rail'
+    ? pick(['balanced', 'dense', 'dense'] as GenerationBrief['density'][])
+    : grammar === 'typographic-monument'
+      ? pick(['quiet', 'quiet', 'balanced'] as GenerationBrief['density'][])
+      : pick(['quiet', 'balanced', 'balanced', 'dense'] as GenerationBrief['density'][])
+
+  const imageMode = density === 'dense'
+    ? pick(['none', 'optional', 'required'] as GenerationBrief['imageMode'][])
+    : pick(['none', 'optional', 'required', 'required'] as GenerationBrief['imageMode'][])
+
+  const accentMode = grammar === 'occlusion-bar'
+    ? 'required'
+    : pick(['none', 'none', 'optional', 'required'] as GenerationBrief['accentMode'][])
+
+  return { density, imageMode, accentMode }
+}
+
 function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'expressiveMove' | 'imageTreatment' | 'dominantType' | 'dominantAnchor' | 'clusterKinds' | 'accentType'> {
   switch (grammar) {
     case 'split-field':
@@ -418,7 +436,95 @@ function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'expressiveMove'
   }
 }
 
-function chooseSkeleton(grammar: SwissGrammar): Skeleton {
+function clusterPoolForGrammar(grammar: SwissGrammar): ClusterKind[] {
+  switch (grammar) {
+    case 'split-field':
+      return ['meta', 'date', 'footer-mark', 'caption', 'kicker']
+    case 'asymmetric-headline':
+      return ['kicker', 'date', 'caption', 'footer-mark', 'meta']
+    case 'modular-catalog':
+      return ['index', 'meta', 'caption', 'date', 'footer-mark']
+    case 'typographic-monument':
+      return ['date', 'footer-mark', 'meta', 'caption']
+    case 'image-diptych':
+      return ['caption', 'date', 'meta', 'footer-mark']
+    case 'index-rail':
+      return ['index', 'footer-mark', 'date', 'meta', 'caption']
+    case 'occlusion-bar':
+      return ['meta', 'date', 'footer-mark', 'caption']
+  }
+}
+
+function targetClusterCount(density: GenerationBrief['density']): number {
+  switch (density) {
+    case 'quiet': return 1
+    case 'balanced': return 2
+    case 'dense': return 3
+  }
+}
+
+function fitClusterKinds(
+  grammar: SwissGrammar,
+  clusterKinds: ClusterKind[],
+  density: GenerationBrief['density'],
+): ClusterKind[] {
+  const target = targetClusterCount(density)
+  const result = [...clusterKinds]
+
+  for (const kind of shuffle(clusterPoolForGrammar(grammar))) {
+    if (result.length >= target) break
+    if (!result.includes(kind)) result.push(kind)
+  }
+
+  return result.slice(0, target)
+}
+
+function imageTreatmentsForGrammar(grammar: SwissGrammar, density: GenerationBrief['density']): ImageTreatment[] {
+  const spatialTreatments: ImageTreatment[] = ['framed-block', 'half-split-left', 'half-split-right', 'h-band']
+  switch (grammar) {
+    case 'typographic-monument':
+      return density === 'dense' ? ['framed-block', 'h-band'] : ['full-bleed', 'framed-block']
+    case 'image-diptych':
+    case 'split-field':
+      return ['half-split-left', 'half-split-right', 'framed-block']
+    case 'modular-catalog':
+    case 'index-rail':
+      return ['framed-block', 'h-band']
+    case 'asymmetric-headline':
+    case 'occlusion-bar':
+      return density === 'dense' ? ['framed-block', 'h-band'] : spatialTreatments
+  }
+}
+
+function fitImageTreatment(
+  grammar: SwissGrammar,
+  treatment: ImageTreatment,
+  brief: GenerationBrief,
+): ImageTreatment {
+  if (brief.imageMode === 'none') return 'none'
+  if (brief.imageMode === 'required' && treatment === 'none') {
+    return pick(imageTreatmentsForGrammar(grammar, brief.density))
+  }
+  if (brief.density === 'dense' && treatment === 'full-bleed') {
+    return pick(imageTreatmentsForGrammar(grammar, brief.density))
+  }
+  return treatment
+}
+
+function fitAccentType(
+  grammar: SwissGrammar,
+  accentType: AccentType,
+  brief: GenerationBrief,
+): AccentType {
+  if (grammar === 'occlusion-bar') return 'none'
+  if (brief.accentMode === 'none') return 'none'
+  if (brief.accentMode === 'required' && accentType === 'none') {
+    return pick(['h-rule', 'v-rule', 'accent-block'] as AccentType[])
+  }
+  return accentType
+}
+
+function chooseSkeleton(grammar: SwissGrammar, brief: GenerationBrief): Skeleton {
   const grammarDefaults = grammarSkeleton(grammar)
   const dominantType = grammarDefaults.dominantType
   // Size range varies by type
@@ -428,18 +534,18 @@ function chooseSkeleton(grammar: SwissGrammar): Skeleton {
       ? randInt(280, 400)
       : randInt(120, 220) // headline-stack
 
-  const clusterKinds = grammarDefaults.clusterKinds
+  const clusterKinds = fitClusterKinds(grammar, grammarDefaults.clusterKinds, brief.density)
 
   return {
     grammar,
     expressiveMove: grammarDefaults.expressiveMove,
-    imageTreatment: grammarDefaults.imageTreatment,
+    imageTreatment: fitImageTreatment(grammar, grammarDefaults.imageTreatment, brief),
     dominantType,
     dominantAnchor: grammarDefaults.dominantAnchor,
     dominantSize,
     clusterCount: clusterKinds.length,
     clusterKinds,
-    accentType: grammarDefaults.accentType,
+    accentType: fitAccentType(grammar, grammarDefaults.accentType, brief),
   }
 }
 
@@ -973,7 +1079,49 @@ function edgeTensionScore(slots: Slot[]): number {
   return touchesEdge ? 8 : centered ? -6 : 3
 }
 
-function scoreCandidate(slots: Slot[], skeleton: Skeleton): { score: number; readability: GenerationReadability } {
+function countImageSlots(slots: Slot[]): number {
+  return slots.filter(s => s.role === 'image').length
+}
+
+function countAccentSlots(slots: Slot[]): number {
+  return slots.filter(s => s.role === 'line' || s.role === 'block').length
+}
+
+function densityScore(readability: GenerationReadability, slotCount: number, density: GenerationBrief['density']): number {
+  switch (density) {
+    case 'quiet': {
+      const supportDelta = Math.abs(readability.supportingTextCount - 1)
+      const slotPenalty = slotCount > 4 ? (slotCount - 4) * 3 : 0
+      return 8 - supportDelta * 5 - slotPenalty
+    }
+    case 'balanced': {
+      const supportDelta = Math.abs(readability.supportingTextCount - 2)
+      const slotPenalty = slotCount < 4 || slotCount > 5 ? 4 : 0
+      return 8 - supportDelta * 5 - slotPenalty
+    }
+    case 'dense': {
+      const supportDelta = Math.max(0, 3 - readability.supportingTextCount)
+      const slotPenalty = slotCount < 5 ? (5 - slotCount) * 4 : 0
+      return 9 - supportDelta * 6 - slotPenalty
+    }
+  }
+}
+
+function briefScore(slots: Slot[], readability: GenerationReadability, brief: GenerationBrief): number {
+  const imageCount = countImageSlots(slots)
+  const accentCount = countAccentSlots(slots)
+  let score = densityScore(readability, slots.length, brief.density)
+
+  if (brief.imageMode === 'none') score += imageCount === 0 ? 6 : -18
+  if (brief.imageMode === 'required') score += imageCount > 0 ? 6 : -18
+
+  if (brief.accentMode === 'none') score += accentCount === 0 ? 7 : -20
+  if (brief.accentMode === 'required') score += accentCount > 0 ? 6 : -16
+
+  return score
+}
+
+function scoreCandidate(slots: Slot[], skeleton: Skeleton, brief: GenerationBrief): { score: number; readability: GenerationReadability } {
   const readability = analyzeReadability(slots)
   let score = 86
 
@@ -994,8 +1142,8 @@ function scoreCandidate(slots: Slot[], skeleton: Skeleton): { score: number; rea
   } else if (readability.occludedTitleFraction > 0) {
     score -= 24
   }
+  score += briefScore(slots, readability, brief)
   score += edgeTensionScore(slots)
-  if (slots.some(s => s.role === 'line' || s.role === 'block')) score += 2
   if (skeleton.grammar === 'modular-catalog' || skeleton.grammar === 'index-rail') {
     if (slots.some(s => s.role === 'index')) score += 5
   }
@@ -1020,6 +1168,7 @@ function buildCandidate(
   candidateIndex: number,
   candidateCount: number,
   grammar: SwissGrammar,
+  brief: GenerationBrief,
 ): Design {
   const id = makeIdGen(seed, candidateIndex)
 
@@ -1035,7 +1184,7 @@ function buildCandidate(
     gridOverlay: maybe(0.25),
   }
 
-  const skeleton = chooseSkeleton(grammar)
+  const skeleton = chooseSkeleton(grammar, brief)
 
   // Compose slots via the occupancy-grid procedural composer
   const rawSlots = compose(id, palette, skeleton)
@@ -1054,7 +1203,7 @@ function buildCandidate(
     typeface: maybe(0.6) ? 'display' as const : 'sans' as const,
   }
 
-  const generation = scoreCandidate(slots, skeleton)
+  const generation = scoreCandidate(slots, skeleton, brief)
 
   return {
     format,
@@ -1070,6 +1219,7 @@ function buildCandidate(
     generation: {
       grammar,
       expressiveMove: skeleton.expressiveMove,
+      brief,
       score: generation.score,
       candidateCount,
       readability: generation.readability,
@@ -1089,10 +1239,11 @@ export function generate(format: Format, opts: GenerateOptions = {}): Design {
 
   try {
     const grammar = opts.grammar ?? pick(SWISS_GRAMMARS)
+    const brief = chooseGenerationBrief(grammar)
     let best: Design | null = null
 
     for (let i = 0; i < candidateCount; i++) {
-      const candidate = buildCandidate(format, seed, i, candidateCount, grammar)
+      const candidate = buildCandidate(format, seed, i, candidateCount, grammar, brief)
       if (!best || (candidate.generation?.score ?? 0) > (best.generation?.score ?? 0)) {
         best = candidate
       }

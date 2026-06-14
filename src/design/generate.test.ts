@@ -366,6 +366,48 @@ test('80 seeded runs: Surprise uses several explicit Swiss grammars', () => {
   expect(grammars.size).toBeGreaterThanOrEqual(4)
 })
 
+test('120 seeded runs: Surprise does not collapse into one visible structure recipe', () => {
+  const sample = Array.from({ length: 120 }, (_, i) =>
+    generate('4:5', { seed: 20000 + i, candidateCount: 18 })
+  )
+  const recipeCounts = new Map<string, number>()
+
+  for (const design of sample) {
+    const imageCount = design.slots.filter(s => s.role === 'image').length
+    const textCount = design.slots.filter(s => s.text).length
+    const supportingTextCount = design.generation?.readability.supportingTextCount ?? 0
+    const accentCount = design.slots.filter(s => s.role === 'line' || s.role === 'block').length
+    const recipe = `img${imageCount}/text${textCount}/support${supportingTextCount}/accent${accentCount}/slots${design.slots.length}`
+    recipeCounts.set(recipe, (recipeCounts.get(recipe) ?? 0) + 1)
+  }
+
+  const mostCommonRecipeCount = Math.max(...recipeCounts.values())
+  const accentFreeCount = sample.filter(d =>
+    d.slots.every(s => s.role !== 'line' && s.role !== 'block')
+  ).length
+  const imageFreeCount = sample.filter(d =>
+    d.slots.every(s => s.role !== 'image')
+  ).length
+  const denseCount = sample.filter(d =>
+    (d.generation?.readability.supportingTextCount ?? 0) >= 3
+  ).length
+
+  expect(mostCommonRecipeCount).toBeLessThanOrEqual(42)
+  expect(accentFreeCount).toBeGreaterThanOrEqual(20)
+  expect(imageFreeCount).toBeGreaterThanOrEqual(20)
+  expect(denseCount).toBeGreaterThanOrEqual(18)
+})
+
+test('generate records the creative brief used to select candidates', () => {
+  const d = generate('4:5', { seed: 6142026, candidateCount: 12 })
+
+  expect(d.generation?.brief).toEqual({
+    density: expect.stringMatching(/^(quiet|balanced|dense)$/),
+    imageMode: expect.stringMatching(/^(none|optional|required)$/),
+    accentMode: expect.stringMatching(/^(none|optional|required)$/),
+  })
+})
+
 test('occlusion-bar grammar creates one controlled readable title occlusion', () => {
   const d = generate('4:5', {
     seed: 240614,

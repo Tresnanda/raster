@@ -2,13 +2,13 @@
 // Component tests for the premium UI primitives
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { Slider } from './slider'
-import { Select } from './select'
-import { NumberInput } from './NumberInput'
-import { Section } from './Section'
-import { Switch } from './Switch'
-import { Checkbox } from './Checkbox'
-import { SegmentedControl } from './SegmentedControl'
+import { Slider } from '../controls/Slider'
+import { Select } from '../controls/Select'
+import { NumberField as NumberInput } from '../controls/NumberField'
+import { Section } from '../controls/Section'
+import { Switch } from '../../components/ui/switch'
+import { Checkbox } from '../controls/Checkbox'
+import { SegmentedControl } from '../controls/SegmentedControl'
 
 // ── Slider ─────────────────────────────────────────────────────────────────
 describe('Slider', () => {

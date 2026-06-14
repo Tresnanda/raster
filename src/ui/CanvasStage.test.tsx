@@ -54,3 +54,50 @@ test('surprise entrance amplification: surprise() does not throw (motion reflow 
   })
   unmount()
 })
+
+// ── ZoomHUD tests ──────────────────────────────────────────────────────────────
+
+test('ZoomHUD renders with default zoom percentage', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().zoomToFit() // ensure zoom is 1
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { container } = render(<CanvasStage svgRef={svgRef} />)
+  const hud = container.querySelector('[data-zoom-hud]')
+  expect(hud).toBeTruthy()
+  expect(hud!.textContent).toContain('100%')
+})
+
+test('clicking + in ZoomHUD increases zoom', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().zoomToFit()
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { getByLabelText, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  act(() => {
+    getByLabelText('Zoom in').click()
+  })
+  expect(useDesign.getState().zoom).toBeGreaterThan(1)
+  unmount()
+})
+
+test('clicking Fit resets zoom to 1', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  act(() => { useDesign.getState().setZoom(3) })
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { getByLabelText, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  act(() => {
+    getByLabelText('Fit').click()
+  })
+  expect(useDesign.getState().zoom).toBe(1)
+  unmount()
+})
+
+test('ComposerOverlay still renders at non-1 zoom', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  act(() => { useDesign.getState().setZoom(2) })
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { container, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  // ComposerOverlay renders with data-composer-overlay attribute
+  const overlay = container.querySelector('[data-composer-overlay]')
+  expect(overlay).toBeTruthy()
+  unmount()
+})

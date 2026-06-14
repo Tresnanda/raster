@@ -830,3 +830,59 @@ test('openRiff and closeRiff toggle riffOpen', () => {
   useDesign.getState().closeRiff()
   expect(useDesign.getState().riffOpen).toBe(false)
 })
+
+// ── Viewport zoom/pan state ────────────────────────────────────────────────────
+
+test('setZoom clamps to min 0.1', () => {
+  useDesign.getState().setZoom(0)
+  expect(useDesign.getState().zoom).toBe(0.1)
+})
+
+test('setZoom clamps to max 8', () => {
+  useDesign.getState().setZoom(100)
+  expect(useDesign.getState().zoom).toBe(8)
+})
+
+test('setZoom sets a valid zoom within range', () => {
+  useDesign.getState().setZoom(2.5)
+  expect(useDesign.getState().zoom).toBe(2.5)
+})
+
+test('zoomToFit resets zoom and pan', () => {
+  useDesign.getState().setZoom(3)
+  useDesign.getState().setPan({ x: 100, y: 50 })
+  useDesign.getState().zoomToFit()
+  expect(useDesign.getState().zoom).toBe(1)
+  expect(useDesign.getState().pan).toEqual({ x: 0, y: 0 })
+})
+
+test('setPan sets pan', () => {
+  useDesign.getState().setPan({ x: 50, y: -30 })
+  expect(useDesign.getState().pan).toEqual({ x: 50, y: -30 })
+})
+
+test('zoom not in undo history: setZoom does not grow past array', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const beforeLen = useDesign.getState().past.length
+  useDesign.getState().setZoom(2)
+  expect(useDesign.getState().past.length).toBe(beforeLen)
+})
+
+test('pan not in undo history: setPan does not grow past array', () => {
+  useDesign.getState().reset('mega-word', '4:5')
+  const beforeLen = useDesign.getState().past.length
+  useDesign.getState().setPan({ x: 100, y: 200 })
+  expect(useDesign.getState().past.length).toBe(beforeLen)
+})
+
+test('zoomBy multiplies current zoom', () => {
+  useDesign.getState().setZoom(2)
+  useDesign.getState().zoomBy(1.5)
+  expect(useDesign.getState().zoom).toBeCloseTo(3)
+})
+
+test('zoomTo100 sets zoom to 1', () => {
+  useDesign.getState().setZoom(3)
+  useDesign.getState().zoomTo100()
+  expect(useDesign.getState().zoom).toBe(1)
+})

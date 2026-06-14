@@ -472,3 +472,114 @@ test('setImageFill does not affect other slots', () => {
   const other = useDesign.getState().design.slots.filter(s => s.id !== 'word')
   expect(other.every(s => s.imageFill === undefined)).toBe(true)
 })
+
+// ── setOpacity ────────────────────────────────────────────────────────────────
+
+test('setOpacity sets opacity on a slot (clamped 0..1)', () => {
+  useDesign.getState().setOpacity('word', 0.5)
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.opacity).toBe(0.5)
+})
+
+test('setOpacity clamps below 0 to 0', () => {
+  useDesign.getState().setOpacity('word', -0.1)
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.opacity).toBe(0)
+})
+
+test('setOpacity clamps above 1 to 1', () => {
+  useDesign.getState().setOpacity('word', 1.5)
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.opacity).toBe(1)
+})
+
+test('setOpacity coalesces consecutive calls into one undo step', () => {
+  useDesign.getState().setOpacity('word', 0.3)
+  useDesign.getState().setOpacity('word', 0.6)
+  useDesign.getState().setOpacity('word', 0.9)
+  // Only one past entry (the state BEFORE the first setOpacity)
+  expect(useDesign.getState().past.length).toBe(1)
+})
+
+test('setOpacity is undoable', () => {
+  useDesign.getState().setOpacity('word', 0.3)
+  useDesign.getState().undo()
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.opacity).toBeUndefined()
+})
+
+// ── alignElement ──────────────────────────────────────────────────────────────
+
+test('alignElement left: sets x to margin', () => {
+  // mega-word '4:5' canvas: 1080x1350, default margin: 64
+  // word slot has no box, so we give it one
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'left')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.box!.x).toBe(64) // margin
+  expect(slot.box!.y).toBe(200) // unchanged
+  expect(slot.box!.w).toBe(400)
+  expect(slot.box!.h).toBe(150)
+})
+
+test('alignElement right: sets x to C.w - margin - box.w', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'right')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  // 1080 - 64 - 400 = 616
+  expect(slot.box!.x).toBe(616)
+  expect(slot.box!.y).toBe(200) // unchanged
+})
+
+test('alignElement centerH: centers box horizontally', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'centerH')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  // (1080 - 400) / 2 = 340
+  expect(slot.box!.x).toBe(340)
+  expect(slot.box!.y).toBe(200) // unchanged
+})
+
+test('alignElement top: sets y to margin', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'top')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.box!.y).toBe(64) // margin
+  expect(slot.box!.x).toBe(300) // unchanged
+})
+
+test('alignElement bottom: sets y to C.h - margin - box.h', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'bottom')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  // 1350 - 64 - 150 = 1136
+  expect(slot.box!.y).toBe(1136)
+  expect(slot.box!.x).toBe(300) // unchanged
+})
+
+test('alignElement centerV: centers box vertically', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  useDesign.getState().alignElement('word', 'centerV')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  // (1350 - 150) / 2 = 600
+  expect(slot.box!.y).toBe(600)
+  expect(slot.box!.x).toBe(300) // unchanged
+})
+
+test('alignElement is undoable', () => {
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 400, h: 150 })
+  const beforeX = useDesign.getState().design.slots.find(s => s.id === 'word')!.box!.x
+  useDesign.getState().alignElement('word', 'left')
+  useDesign.getState().undo()
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  expect(slot.box!.x).toBe(beforeX)
+})
+
+test('alignElement result values are rounded to integers', () => {
+  // Use a w that produces fractional center
+  useDesign.getState().setBox('word', { x: 300, y: 200, w: 401, h: 151 })
+  useDesign.getState().alignElement('word', 'centerH')
+  const slot = useDesign.getState().design.slots.find(s => s.id === 'word')!
+  // (1080 - 401) / 2 = 339.5 → rounded to 340
+  expect(Number.isInteger(slot.box!.x)).toBe(true)
+})

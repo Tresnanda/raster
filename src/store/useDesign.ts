@@ -5,6 +5,7 @@ import { reShuffle, mergeContent } from '../design/shuffle'
 import { buildFromLayout } from '../design/layouts'
 import { DEFAULT_TYPOGRAPHY, DEFAULT_STYLE, classOf } from '../design/typeclass'
 import { canvasFor } from '../design/formats'
+import { slotBox } from '../lib/grid'
 import { generate } from '../design/generate'
 
 const KEY = 'raster:design'
@@ -130,6 +131,12 @@ interface State {
   setColor: (slotId: string, hex: string) => void
   setBw: (slotId: string, bw: boolean) => void
   resetElement: (slotId: string) => void
+
+  // Opacity
+  setOpacity: (slotId: string, value: number) => void
+
+  // Alignment
+  alignElement: (slotId: string, edge: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
 }
 
 import '../archetypes/index'
@@ -626,6 +633,51 @@ export const useDesign = create<State>((set, get) => {
           const { overridden: _o, color: _c, bw: _b, ...rest } = s
           return rest
         }),
+      }
+      commit(d)
+    },
+
+    setOpacity: (slotId, value) => {
+      const clamped = Math.min(1, Math.max(0, value))
+      const d = {
+        ...get().design,
+        slots: get().design.slots.map(s =>
+          s.id === slotId ? { ...s, opacity: clamped } : s
+        ),
+      }
+      commit(d, { coalesceKey: `opacity:${slotId}` })
+    },
+
+    alignElement: (slotId, edge) => {
+      const design = get().design
+      const slot = design.slots.find(s => s.id === slotId)
+      if (!slot) return
+      const canvas = canvasFor(design.format)
+      const M = design.grid.margin
+      const box = slotBox(canvas, design.grid, slot)
+
+      let newX = box.x
+      let newY = box.y
+
+      switch (edge) {
+        case 'left':    newX = M; break
+        case 'right':   newX = canvas.w - M - box.w; break
+        case 'centerH': newX = (canvas.w - box.w) / 2; break
+        case 'top':     newY = M; break
+        case 'bottom':  newY = canvas.h - M - box.h; break
+        case 'centerV': newY = (canvas.h - box.h) / 2; break
+      }
+
+      const newBox = {
+        x: Math.round(newX),
+        y: Math.round(newY),
+        w: Math.round(box.w),
+        h: Math.round(box.h),
+      }
+
+      const d = {
+        ...design,
+        slots: design.slots.map(s => s.id === slotId ? { ...s, box: newBox } : s),
       }
       commit(d)
     },

@@ -189,6 +189,8 @@ interface State {
   riffOpen: boolean
   openRiff: () => void
   closeRiff: () => void
+  commandOpen: boolean
+  setCommandOpen: (v: boolean) => void
 
   /** Mutation strength 0..1. Default 0.5. */
   riffStrength: number
@@ -255,6 +257,7 @@ export const useDesign = create<State>((set, get) => {
     past: [],
     future: [],
     clipboard: null,
+    commandOpen: false,
     zoom: 1,
     pan: { x: 0, y: 0 },
     riffOpen: false,
@@ -899,6 +902,10 @@ export const useDesign = create<State>((set, get) => {
 
     openRiff: () => {
       set({ riffOpen: true })
+    },
+
+    setCommandOpen: (v) => {
+      set({ commandOpen: v })
     },
 
     closeRiff: () => {

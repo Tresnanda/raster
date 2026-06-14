@@ -41,6 +41,15 @@ export function useKeyboardShortcuts() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘K / Ctrl+K — command palette. Works even while typing (toggle), so it's
+      // checked before the editable-target guard.
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        const s = getState()
+        s.setCommandOpen(!s.commandOpen)
+        return
+      }
+
       // Let native input fields handle their own keys — no global shortcuts while typing.
       if (isEditableTarget(e)) return
 

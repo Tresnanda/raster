@@ -5,6 +5,7 @@ import { CanvasStage } from './CanvasStage'
 import { CropModal } from './CropModal'
 import { ComposerRail } from './ComposerRail'
 import { RiffModal } from './RiffModal'
+import { CommandPalette } from './CommandPalette'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { TooltipProvider } from '../components/ui/tooltip'
 import { useDesign } from '../store/useDesign'
@@ -39,6 +40,7 @@ export default function App() {
         </div>
         <CropModal />
         <RiffModal />
+        <CommandPalette svgRef={svgRef} />
       </div>
     </TooltipProvider>
   )

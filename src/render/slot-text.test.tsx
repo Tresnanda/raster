@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { render } from '@testing-library/react'
-import { SlotText } from './slot-text'
+import { SlotText, opticalHang } from './slot-text'
 import type { Box, TextStyle } from '../types'
 
 // fake measurer: width = chars * size * 0.5 (so text easily overflows a small box)
@@ -132,4 +132,101 @@ test('two slots with different ids produce different clipPath ids', () => {
   expect(ids).toContain('fill-slot-a')
   expect(ids).toContain('fill-slot-b')
   expect(new Set(ids).size).toBe(2)
+})
+
+// ── opticalHang ───────────────────────────────────────────────────────────────
+
+test('opticalHang: left-aligned line starting with " returns negative offset', () => {
+  const offset = opticalHang('"Hello world"', 'left', 100)
+  expect(offset).toBeLessThan(0)
+  expect(offset).toBeCloseTo(-6)  // 100 * 0.06
+})
+
+test('opticalHang: left-aligned line starting with ‘ (curly open-quote) returns negative offset', () => {
+  const offset = opticalHang('‘Hello’', 'left', 50)
+  expect(offset).toBeLessThan(0)
+  expect(offset).toBeCloseTo(-3)  // 50 * 0.06
+})
+
+test('opticalHang: left-aligned line NOT starting with hangable char returns 0', () => {
+  expect(opticalHang('Hello world', 'left', 100)).toBe(0)
+  expect(opticalHang('Abc', 'left', 100)).toBe(0)
+})
+
+test('opticalHang: right-aligned line ending with . returns positive offset', () => {
+  const offset = opticalHang('The end.', 'right', 100)
+  expect(offset).toBeGreaterThan(0)
+  expect(offset).toBeCloseTo(6)  // 100 * 0.06
+})
+
+test('opticalHang: right-aligned line ending with , returns positive offset', () => {
+  expect(opticalHang('one, two,', 'right', 100)).toBeCloseTo(6)
+})
+
+test('opticalHang: right-aligned line NOT ending with hangable char returns 0', () => {
+  expect(opticalHang('Hello world', 'right', 100)).toBe(0)
+})
+
+test('opticalHang: center-aligned always returns 0', () => {
+  expect(opticalHang('"center start', 'center', 100)).toBe(0)
+  expect(opticalHang('end.', 'center', 100)).toBe(0)
+})
+
+test('opticalHang: left-aligned line starting with ( or [ returns negative offset', () => {
+  expect(opticalHang('(note)', 'left', 100)).toBeCloseTo(-6)
+  expect(opticalHang('[ref]', 'left', 100)).toBeCloseTo(-6)
+})
+
+test('opticalHang: left-aligned line starting with em dash returns negative offset', () => {
+  expect(opticalHang('— thought', 'left', 100)).toBeCloseTo(-6)
+})
+
+// ── Body measure cap ──────────────────────────────────────────────────────────
+
+// fake measurer that returns chars * size * 0.6 (slightly wider than the test one above)
+const wideMeasure = (text: string, size: number) => text.length * size * 0.6
+
+test('body-class text in a very wide box wraps at ~34*size, not full box width', () => {
+  // size=18, cap = 34*18 = 612. Box is 2000px wide.
+  // With the wide measurer, a 40-char string at size 18 = 40 * 18 * 0.6 = 432 < 612 — fits.
+  // A 60-char string at size 18 = 60 * 18 * 0.6 = 648 > 612 — should wrap.
+  const longText = 'ABCDE FGHIJ KLMNO PQRST UVWXY ZABCD EFGHI JKLMN OPQRS TUVWX YZ' // ~60 chars
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="body-cap"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 18, tracking: 0, leading: 1.4, align: 'left', fit: 'fixed' }}
+        content={longText}
+        color="#000"
+        measure={wideMeasure}
+        typeClass="body"
+      />
+    </svg>,
+  )
+  // Should have multiple tspan elements (wrapped)
+  const tspans = container.querySelectorAll('tspan')
+  expect(tspans.length).toBeGreaterThan(1)
+})
+
+test('title-class text in the same wide box does NOT cap wrap width', () => {
+  // With size=18 and a title class, cap does NOT apply — wraps against 2000px
+  // A 60-char string at size 18 = 648 < 2000, so it fits on ONE line
+  const longText = 'ABCDE FGHIJ KLMNO PQRST UVWXY ZABCD EFGHI JKLMN OPQRS TUVWX YZ'
+  const { container } = render(
+    <svg>
+      <SlotText
+        id="title-cap"
+        box={{ x: 0, y: 0, w: 2000, h: 2000 }}
+        text={{ family: 'sans', weight: 400, size: 18, tracking: 0, leading: 1.4, align: 'left', fit: 'fixed' }}
+        content={longText}
+        color="#000"
+        measure={wideMeasure}
+        typeClass="title"
+      />
+    </svg>,
+  )
+  // With title class, wraps against 2000px — 648 < 2000 so single line
+  const tspans = container.querySelectorAll('tspan')
+  expect(tspans.length).toBe(1)
 })

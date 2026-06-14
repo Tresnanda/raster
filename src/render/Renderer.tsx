@@ -4,7 +4,7 @@ import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { defaultMeasurer, type Measure } from '../lib/measure'
 import { classOf } from '../design/typeclass'
-import { resolveTextStyle } from './resolve-style'
+import { resolveTextStyle, baselineUnit } from './resolve-style'
 import { SlotImage } from './slot-image'
 import { SlotText } from './slot-text'
 import { orderedSlots } from '../design/order'
@@ -139,6 +139,8 @@ export function Renderer({ design, measure, svgRef }: {
                 color={color}
                 measure={m}
                 imageFill={slot.imageFill}
+                typeClass={cls}
+                baseline={baselineUnit(typography)}
               />
             </g>
           )

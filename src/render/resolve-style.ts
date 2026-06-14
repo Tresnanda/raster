@@ -2,6 +2,17 @@ import type { Slot, TextStyle, Typography } from '../types'
 import { classOf } from '../design/typeclass'
 
 /**
+ * Compute the baseline grid unit from global typography.
+ * All text blocks snap their per-line advance to multiples of this value,
+ * so display and body elements share a common vertical rhythm.
+ *
+ * Formula: round(body * 1.4) — with body=18 this gives 25 px.
+ */
+export function baselineUnit(typography: Typography): number {
+  return Math.round(typography.body * 1.4)
+}
+
+/**
  * Compute the effective TextStyle for a text slot by applying typography
  * class overrides from the design's Typography settings.
  *

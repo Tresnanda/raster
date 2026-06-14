@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { resolveTextStyle } from './resolve-style'
+import { resolveTextStyle, baselineUnit } from './resolve-style'
 import { DEFAULT_TYPOGRAPHY } from '../design/typeclass'
 import type { Slot, Typography } from '../types'
 
@@ -172,4 +172,16 @@ test('weight and align are never globally governed; not affected by overridden',
   const result = resolveTextStyle(slot, typography)
   expect(result.weight).toBe(300)
   expect(result.align).toBe('right')
+})
+
+// ── baselineUnit ─────────────────────────────────────────────────────────────
+
+test('baselineUnit returns round(body * 1.4)', () => {
+  expect(baselineUnit({ ...DEFAULT_TYPOGRAPHY, body: 18 })).toBe(25)  // round(18 * 1.4) = round(25.2) = 25
+  expect(baselineUnit({ ...DEFAULT_TYPOGRAPHY, body: 16 })).toBe(22)  // round(16 * 1.4) = round(22.4) = 22
+  expect(baselineUnit({ ...DEFAULT_TYPOGRAPHY, body: 20 })).toBe(28)  // round(20 * 1.4) = round(28.0) = 28
+})
+
+test('baselineUnit with default typography is 25', () => {
+  expect(baselineUnit(DEFAULT_TYPOGRAPHY)).toBe(25)
 })

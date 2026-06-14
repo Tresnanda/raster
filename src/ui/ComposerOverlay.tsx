@@ -18,6 +18,9 @@ const MIN_SIZE = 24
 /** Snap threshold in canvas units */
 const SNAP_THRESHOLD = 12
 
+/** Center-snap threshold in screen pixels — converted to canvas units on use */
+const CENTER_SNAP_PX = 8
+
 /** Handle visual size in screen px (we undo the canvas scale to keep them constant) */
 const HANDLE_PX = 8
 
@@ -105,6 +108,8 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   // Per-image drag-over tracking
   const [imageDragOverId, setImageDragOverId] = useState<string | null>(null)
+  // Center-snap guide state
+  const [centerGuides, setCenterGuides] = useState<{ x: boolean; y: boolean }>({ x: false, y: false })
 
   const slots = orderedSlots(design)
   const boundaries = gridBoundaries(canvas, design.grid)
@@ -148,6 +153,7 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
     const startBox = slotBox(canvas, design.grid, slot)
     const startX = e.clientX
     const startY = e.clientY
+    const centerSnapThreshold = CENTER_SNAP_PX / safeScale
 
     const move = (ev: PointerEvent) => {
       const rawDx = (ev.clientX - startX) / safeScale
@@ -170,12 +176,33 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
         newY = snapToNearest(newY, boundaries.ys, SNAP_THRESHOLD)
       }
 
+      // Center-snap: check dragged element center vs canvas center
+      const elCenterX = newX + startBox.w / 2
+      const elCenterY = newY + startBox.h / 2
+      const canvasCenterX = canvas.w / 2
+      const canvasCenterY = canvas.h / 2
+
+      let snapX = false
+      let snapY = false
+
+      if (Math.abs(elCenterX - canvasCenterX) < centerSnapThreshold) {
+        newX = canvasCenterX - startBox.w / 2
+        snapX = true
+      }
+
+      if (Math.abs(elCenterY - canvasCenterY) < centerSnapThreshold) {
+        newY = canvasCenterY - startBox.h / 2
+        snapY = true
+      }
+
+      setCenterGuides({ x: snapX, y: snapY })
       setBox(slot.id, { ...startBox, x: newX, y: newY })
     }
 
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      setCenterGuides({ x: false, y: false })
     }
 
     window.addEventListener('pointermove', move)
@@ -275,6 +302,40 @@ export function ComposerOverlay({ scale, snap = true }: ComposerOverlayProps) {
         selectElement(null)
       }}
     >
+      {/* Center-snap guide lines — only visible during active snapped drag */}
+      {centerGuides.x && (
+        <div
+          data-center-guide-x
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: canvas.w / 2,
+            top: 0,
+            width: 1 / safeScale,
+            height: canvas.h,
+            background: '#3b82f6',
+            opacity: 0.6,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      {centerGuides.y && (
+        <div
+          data-center-guide-y
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: canvas.h / 2,
+            width: canvas.w,
+            height: 1 / safeScale,
+            background: '#3b82f6',
+            opacity: 0.6,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {slots.map(slot => {
         const b = slotBox(canvas, design.grid, slot)
         const isSelected = selectedId === slot.id

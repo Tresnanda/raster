@@ -347,3 +347,17 @@ test('selection outline motion: selecting an element does not throw (GSAP useGSA
 
   unmount()
 })
+
+// ── Center-snap guides ─────────────────────────────────────────────────────────
+
+test('center-snap guide elements are not visible before any drag', () => {
+  const { container } = render(<ComposerOverlay scale={1} />)
+  expect(container.querySelector('[data-center-guide-x]')).toBeNull()
+  expect(container.querySelector('[data-center-guide-y]')).toBeNull()
+})
+
+test('ComposerOverlay renders without crash when center-snap code is present', () => {
+  const { container } = render(<ComposerOverlay scale={1} />)
+  const overlay = container.querySelector('[data-composer-overlay]')
+  expect(overlay).toBeTruthy()
+})

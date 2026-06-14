@@ -29,7 +29,7 @@ import { EFFECT_DEFAULTS } from '../lib/image-effects'
 // ── Micro label ──────────────────────────────────────────────────────────────
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-0.5">
+    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-0.5">
       {children}
     </div>
   )
@@ -58,7 +58,7 @@ function InspectorRow({ label, children, overridden }: { label: string; children
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
         </span>
         {overridden && (
@@ -497,12 +497,12 @@ export function ComposerRail() {
 
   return (
     <aside
-      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-neutral-100 bg-white overflow-y-auto flex flex-col"
+      className="w-[248px] shrink-0 min-h-0 overscroll-contain border-l border-border bg-background overflow-y-auto flex flex-col"
       aria-label="Element"
     >
       {/* Header: ELEMENT label + Undo/Redo */}
-      <div className="px-4 pt-4 pb-2.5 flex items-center justify-between border-b border-neutral-100">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-900">
+      <div className="px-4 pt-4 pb-2.5 flex items-center justify-between border-b border-border">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground">
           Element
         </div>
         <div className="flex items-center gap-0.5">
@@ -540,7 +540,7 @@ export function ComposerRail() {
       </div>
 
       {/* Compact Add row — always visible */}
-      <div className="grid grid-cols-4 gap-1 px-4 py-2.5 border-b border-neutral-100">
+      <div className="grid grid-cols-4 gap-1 px-4 py-2.5 border-b border-border">
         <button onClick={() => addElement('text')} className={addBtnCls} aria-label="Add text element" data-add-element="text">
           <Type size={14} strokeWidth={1.5} />
           <span className="text-[10px]">Text</span>
@@ -575,11 +575,11 @@ export function ComposerRail() {
             </div>
           </div>
 
-          <div className="border-t border-neutral-100" />
+          <div className="border-t border-border" />
 
           {/* Layers in empty state */}
           <div className="px-4 pt-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
               Layers
             </div>
           </div>
@@ -640,8 +640,8 @@ export function ComposerRail() {
         return (
           <div className="flex flex-col flex-1">
             {/* Element header: type + deselect + actions */}
-            <div className="flex items-center gap-1 px-4 py-2 border-b border-neutral-100">
-              <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-700">
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-border">
+              <span className="flex-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-foreground/70">
                 {typeLabel}
               </span>
               <button
@@ -732,7 +732,7 @@ export function ComposerRail() {
 
               {/* ── POSITION (all elements) ───────────────────────────────────── */}
               {resolvedBox && (
-                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <div className="px-4 pt-1 pb-1 border-t border-border">
                   <Section id="rail-position" title="Position" defaultOpen>
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -818,7 +818,7 @@ export function ComposerRail() {
 
               {/* ── TRANSFORM (all elements, collapsed) ──────────────────────── */}
               {selectedSlot && (
-                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <div className="px-4 pt-1 pb-1 border-t border-border">
                   <Section id="rail-transform" title="Transform" defaultOpen>
                     <div className="space-y-2.5">
                       {/* Rotation */}
@@ -992,7 +992,7 @@ export function ComposerRail() {
 
               {/* ── TYPE (text only, collapsed) ───────────────────────────────── */}
               {isText && selectedSlot.text && resolvedText && (
-                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <div className="px-4 pt-1 pb-1 border-t border-border">
                   <Section id="rail-type" title="Type" defaultOpen>
                     <div className="space-y-2.5">
                       {/* Typeface — Radix Select */}
@@ -1204,7 +1204,7 @@ export function ComposerRail() {
 
               {/* ── EFFECTS (image only, open) ────────────────────────────────── */}
               {isImage && (
-                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <div className="px-4 pt-1 pb-1 border-t border-border">
                   <Section id="rail-effects" title="Effects" defaultOpen>
                     <div className="space-y-2.5">
                       <ImageInput slotId={selectedSlot.id} />
@@ -1240,7 +1240,7 @@ export function ComposerRail() {
 
               {/* ── FILL (shape / line only, open) ───────────────────────────── */}
               {isShape && (
-                <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+                <div className="px-4 pt-1 pb-1 border-t border-border">
                   <Section id="rail-fill" title="Fill" defaultOpen>
                     <div className="flex gap-1 flex-wrap">
                       {(['accent', 'text'] as const).map(f => (
@@ -1276,7 +1276,7 @@ export function ComposerRail() {
               )}
 
               {/* ── LAYERS (always, collapsed) ────────────────────────────────── */}
-              <div className="px-4 pt-1 pb-1 border-t border-neutral-100">
+              <div className="px-4 pt-1 pb-1 border-t border-border">
                 <Section id="rail-layers" title="Layers" defaultOpen={false}>
                   <div className="flex flex-col" data-layers-list>
                     {layers.length === 0 && (
@@ -1338,7 +1338,7 @@ export function ComposerRail() {
             </div>
 
             {/* Snap to grid — pinned bottom */}
-            <div className="mt-auto border-t border-neutral-100 px-4 py-3">
+            <div className="mt-auto border-t border-border px-4 py-3">
               <Checkbox
                 id="rail-snap"
                 label="Snap to grid"
@@ -1353,7 +1353,7 @@ export function ComposerRail() {
 
       {/* Snap to grid for empty state */}
       {!selectedSlot && (
-        <div className="mt-auto border-t border-neutral-100 px-4 py-3">
+        <div className="mt-auto border-t border-border px-4 py-3">
           <Checkbox
             id="rail-snap"
             label="Snap to grid"

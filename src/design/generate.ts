@@ -514,6 +514,131 @@ function placeDominant(
 }
 
 // ---------------------------------------------------------------------------
+// Supporting cluster placement
+// ---------------------------------------------------------------------------
+
+/** Pool of candidate cells for cluster placement — corners and edge bands.
+ *  These are evaluated in random order and the first free one wins. */
+function clusterCandidates(): GridCell[] {
+  const candidates: GridCell[] = [
+    // Corners — small blocks
+    clampCell({ c: 0,        cs: 4, r: 0,        rs: 2 }),
+    clampCell({ c: COLS - 4, cs: 4, r: 0,        rs: 2 }),
+    clampCell({ c: 0,        cs: 4, r: ROWS - 2,  rs: 2 }),
+    clampCell({ c: COLS - 4, cs: 4, r: ROWS - 2,  rs: 2 }),
+    // Single-row corners
+    clampCell({ c: 0,        cs: 4, r: 0,        rs: 1 }),
+    clampCell({ c: COLS - 4, cs: 4, r: 0,        rs: 1 }),
+    clampCell({ c: 0,        cs: 4, r: ROWS - 1,  rs: 1 }),
+    clampCell({ c: COLS - 4, cs: 4, r: ROWS - 1,  rs: 1 }),
+    // Mid-edge clusters
+    clampCell({ c: 0,        cs: 3, r: randInt(5, 9), rs: 3 }),
+    clampCell({ c: COLS - 3, cs: 3, r: randInt(5, 9), rs: 3 }),
+    clampCell({ c: 0,        cs: 5, r: randInt(3, 6), rs: 2 }),
+    clampCell({ c: COLS - 5, cs: 5, r: randInt(3, 6), rs: 2 }),
+    // Near-top strips
+    clampCell({ c: 0,        cs: 6, r: 1, rs: 2 }),
+    clampCell({ c: COLS - 6, cs: 6, r: 1, rs: 2 }),
+    // Near-bottom strips
+    clampCell({ c: 0,        cs: 6, r: ROWS - 3, rs: 2 }),
+    clampCell({ c: COLS - 6, cs: 6, r: ROWS - 3, rs: 2 }),
+  ]
+  // Shuffle order so clusters don't always land in the same priority corner
+  return candidates.sort(() => Math.random() - 0.5)
+}
+
+/** Create a cluster slot for the given kind and cell. */
+function clusterSlot(kind: ClusterKind, cell: GridCell, z: number, id: () => string): Slot {
+  const cRight = cell.c + cell.cs > COLS / 2
+  const align = cRight ? 'right' : 'left'
+
+  switch (kind) {
+    case 'meta':
+      return {
+        id: id(), role: 'caption', z, cell,
+        content: `${pick(CITIES)} — ${pick(VOLUMES)}`,
+        text: captionText(16, align),
+        typeClass: 'body',
+      }
+    case 'caption':
+      return {
+        id: id(), role: 'caption', z, cell,
+        content: pick(CAPTIONS),
+        text: captionText(18, align),
+        typeClass: 'body',
+      }
+    case 'index': {
+      const indexCell = { ...cell, rs: Math.max(cell.rs, 3) }
+      return {
+        id: id(), role: 'index', z,
+        cell: indexCell,
+        content: INDEX_LINES.slice(0, Math.min(indexCell.rs, INDEX_LINES.length)).join('\n'),
+        text: bodyText(18, 'left'),
+        typeClass: 'body',
+      }
+    }
+    case 'date':
+      return {
+        id: id(), role: 'date', z, cell,
+        content: `${pick(DATES)}, ${pick(YEARS)}`,
+        text: captionText(18, align),
+        typeClass: 'body',
+      }
+    case 'kicker':
+      return {
+        id: id(), role: 'subhead', z, cell,
+        content: pick(KICKERS),
+        text: bodyText(20, align),
+        typeClass: 'body',
+      }
+    case 'footer-mark':
+      return {
+        id: id(), role: 'mark', z, cell,
+        content: pick(FOOTERS),
+        text: captionText(16, align),
+        typeClass: 'body',
+      }
+  }
+}
+
+/** Place 0..n supporting clusters in free occupancy slots.
+ *  Each cluster gets a scrim if it lands on an image region. */
+function placeSupportingClusters(
+  skeleton: Skeleton,
+  occ: OccupancyGrid,
+  imgRegions: ImageRegionSet,
+  bgColor: string,
+  id: () => string,
+): Slot[] {
+  const result: Slot[] = []
+  const zBase = 4 // clusters are below dominant (z:5) but above image (z:1)
+
+  for (const kind of skeleton.clusterKinds) {
+    const candidates = clusterCandidates()
+    let placed = false
+    for (const cell of candidates) {
+      // index needs rs:3 minimum
+      const effectiveCell = kind === 'index' ? { ...cell, rs: Math.max(cell.rs, 3) } : cell
+      const clamped = clampCell(effectiveCell)
+      if (occ.isFree(clamped)) {
+        occ.claim(clamped)
+        const slot = clusterSlot(kind, clamped, zBase, id)
+        // Scrim if overlaps image
+        if (imgRegions.overlapsImage(clamped)) {
+          result.push(makeScrim(clamped, zBase, bgColor, id))
+        }
+        result.push(slot)
+        placed = true
+        break
+      }
+    }
+    void placed
+  }
+
+  return result
+}
+
+// ---------------------------------------------------------------------------
 // Strategy 1: big-word
 // Huge headline spanning most width at a random vertical band; optional
 // full-bleed image; 1–2 small caption clusters in corners; optional mark.

@@ -120,9 +120,9 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        {/* Series — list → matched poster set */}
+        {/* Studio — list → matched poster set */}
         <div className="sb-section border-t border-border/40">
-          <Section id="sidebar-series" title="Series" defaultOpen={false}>
+          <Section id="sidebar-series" title="Studio" defaultOpen={false}>
             <SeriesControls />
           </Section>
         </div>

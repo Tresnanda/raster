@@ -35,6 +35,7 @@ beforeEach(() => {
 
 test('PosterMineControls saves the current design and opens the mine', () => {
   render(<PosterMineControls />)
+  expect(screen.getByText(/saved snapshots/i)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /save to mine/i }))
   expect(useDesign.getState().savedPosters).toHaveLength(1)
   fireEvent.click(screen.getByRole('button', { name: /open mine/i }))
@@ -67,6 +68,7 @@ test('GridCoachControls exposes a score and one-click contrast fix', () => {
 
 test('SeriesControls builds an editable campaign board', () => {
   render(<SeriesControls />)
+  expect(screen.getByText(/campaign board/i)).toBeInTheDocument()
   fireEvent.change(screen.getByPlaceholderText(/One per line/i), { target: { value: 'One\nTwo' } })
   fireEvent.click(screen.getByRole('button', { name: /build campaign/i }))
   expect(useDesign.getState().campaignItems).toHaveLength(2)

@@ -80,7 +80,7 @@ export function SeriesControls() {
         </div>
       )}
       <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">
-        Build makes an editable campaign board. Export downloads the current list as a matched zip.
+        Campaign board: one visual system, many editable posters. Export downloads the current list as a matched zip.
       </p>
     </div>
   )

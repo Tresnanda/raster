@@ -30,7 +30,7 @@ export function PosterMineControls() {
         </Button>
       </div>
       <p className="font-sans text-[10px] text-muted-foreground leading-relaxed">
-        {savedCount} saved poster{savedCount === 1 ? '' : 's'} ready to branch, compare, or revive.
+        Saved snapshots: {savedCount} poster{savedCount === 1 ? '' : 's'} archived to revive, branch, or compare.
       </p>
     </div>
   )

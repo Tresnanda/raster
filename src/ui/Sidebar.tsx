@@ -6,6 +6,10 @@ import { useGSAP } from '@gsap/react'
 import { Header } from './sidebar/Header'
 import { LayoutGrid } from './sidebar/LayoutGrid'
 import { CanvasChips } from './sidebar/CanvasChips'
+import { PosterMineControls } from './sidebar/PosterMineControls'
+import { DailyBriefControls } from './sidebar/DailyBriefControls'
+import { SystemRecipeControls } from './sidebar/SystemRecipeControls'
+import { GridCoachControls } from './sidebar/GridCoachControls'
 import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
@@ -57,6 +61,34 @@ export function Sidebar({ svgRef }: SidebarProps) {
         <div className="sb-section border-t border-border/40">
           <Section id="sidebar-canvas" title="Canvas" defaultOpen>
             <CanvasChips />
+          </Section>
+        </div>
+
+        {/* Poster Mine — persistent local archive */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-mine" title="Mine" defaultOpen>
+            <PosterMineControls />
+          </Section>
+        </div>
+
+        {/* Daily brief */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-daily" title="Daily" defaultOpen={false}>
+            <DailyBriefControls />
+          </Section>
+        </div>
+
+        {/* Swiss Grid Coach */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-coach" title="Coach" defaultOpen={false}>
+            <GridCoachControls />
+          </Section>
+        </div>
+
+        {/* System recipes */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-recipes" title="Systems" defaultOpen={false}>
+            <SystemRecipeControls />
           </Section>
         </div>
 

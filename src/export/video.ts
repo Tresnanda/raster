@@ -1,7 +1,7 @@
 import { canvasFor } from '../design/formats'
 import type { Design } from '../types'
-import type { MotionEffect } from '../design/motion'
-import { playPosterMotion } from '../design/motion'
+import type { MotionEffect, MotionSequence } from '../design/motion'
+import { motionSequenceDurationMs, normalizeMotionSequence, playPosterMotion } from '../design/motion'
 import { buildEmbeddedFontCss, serializeSvg, downloadBlob } from './to-svg'
 import { EXPORT_FACES } from './useExport'
 
@@ -13,6 +13,7 @@ export interface VideoOpts {
   holdMs?: number
   /** resolution scale (1 = native canvas px; 0.5 = half for speed). */
   scale?: number
+  sequence?: Partial<MotionSequence>
 }
 
 export function isVideoExportSupported(): boolean {
@@ -45,8 +46,9 @@ export async function exportVideo(
 ): Promise<void> {
   if (!svg || !isVideoExportSupported()) return
 
+  const sequence = normalizeMotionSequence({ ...opts.sequence, effect })
   const fps = opts.fps ?? 30
-  const motionMs = opts.motionMs ?? 1600
+  const motionMs = opts.motionMs ?? motionSequenceDurationMs(sequence, design.slots.length)
   const holdMs = opts.holdMs ?? 1200
   const scale = opts.scale ?? 1
   const c = canvasFor(design.format)
@@ -69,7 +71,7 @@ export async function exportVideo(
   const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
 
   // Build the motion paused so we can scrub it frame-accurately.
-  const tl = playPosterMotion(svg, effect, { paused: true })
+  const tl = playPosterMotion(svg, effect, { paused: true, sequence })
   const motionDur = tl ? tl.duration() : 0 // seconds
 
   const drawFrame = async (timelineSec: number) => {

@@ -3,7 +3,25 @@ import { useDesign } from './useDesign'
 import { classOf, DEFAULT_TYPOGRAPHY, DEFAULT_STYLE } from '../design/typeclass'
 import '../archetypes/index'
 
-beforeEach(() => { localStorage.clear(); useDesign.getState().reset('mega-word', '4:5') })
+beforeEach(() => {
+  localStorage.clear()
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.setState({
+    mineOpen: false,
+    savedPosters: [],
+    systemRecipes: [],
+    campaignRaw: '',
+    campaignItems: [],
+    activeCampaignId: null,
+    motionSequence: {
+      effect: 'rise',
+      tempo: 100,
+      delayMs: 0,
+      staggerMs: 80,
+      loop: false,
+    },
+  } as any)
+})
 
 test('reset builds a design for the archetype/format', () => {
   expect(useDesign.getState().design.archetype).toBe('mega-word')
@@ -958,4 +976,67 @@ test('setListStyle coalesces repeated calls', () => {
   useDesign.getState().setListStyle(id, 'none')
   expect(useDesign.getState().past.length).toBe(before + 1)
   expect(useDesign.getState().design.slots.find(s => s.id === id)!.listStyle).toBe('none')
+})
+
+// ── Addictive feature loops ───────────────────────────────────────────────────
+
+test('saveCurrentPoster stores a design snapshot in Poster Mine', () => {
+  useDesign.getState().setContent('word', 'MINE THIS')
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+  expect(saved.title).toBe('MINE THIS')
+  expect(useDesign.getState().savedPosters).toHaveLength(1)
+  expect(localStorage.getItem('raster:poster-mine')).toContain('MINE THIS')
+})
+
+test('loadSavedPoster loads a poster without deleting the mine', () => {
+  useDesign.getState().setContent('word', 'ARCHIVED')
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+  useDesign.getState().setContent('word', 'CURRENT')
+  useDesign.getState().loadSavedPoster(saved.id)
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('ARCHIVED')
+  expect(useDesign.getState().savedPosters).toHaveLength(1)
+})
+
+test('applyDailyBrief creates a deterministic generated poster and saves it to the mine', () => {
+  useDesign.getState().applyDailyBrief('2026-06-14')
+  const d = useDesign.getState().design
+  expect(d.archetype).toBe('generated')
+  expect(useDesign.getState().dailyBrief?.date).toBe('2026-06-14')
+  expect(useDesign.getState().savedPosters[0].source).toBe('daily')
+})
+
+test('saveCurrentRecipe and applyRecipe reuse a visual system while preserving content', () => {
+  useDesign.getState().setContent('word', 'FIRST')
+  const recipe = useDesign.getState().saveCurrentRecipe('Sprint System')
+  useDesign.getState().setLayout(2)
+  const before = useDesign.getState().design.slots.filter(s => s.text).map(s => s.content)
+  useDesign.getState().applyRecipe(recipe.id)
+  const after = useDesign.getState().design.slots.filter(s => s.text).map(s => s.content).slice(0, before.length)
+  expect(after).toEqual(before)
+  expect(useDesign.getState().design.palette).toEqual(recipe.palette)
+})
+
+test('applyCoachFix updates the current design through the Swiss Grid Coach', () => {
+  useDesign.getState().setPalette({ bg: '#111111', text: '#181818', accent: '#222222' })
+  useDesign.getState().applyCoachFix('increase-contrast')
+  expect(useDesign.getState().design.palette.text).toBe('#ffffff')
+})
+
+test('setCampaignRaw builds a campaign board and loadCampaignItem loads one poster', () => {
+  useDesign.getState().setCampaignRaw('One\nTwo')
+  expect(useDesign.getState().campaignItems.map(item => item.title)).toEqual(['One', 'Two'])
+  useDesign.getState().loadCampaignItem('campaign-2')
+  expect(useDesign.getState().activeCampaignId).toBe('campaign-2')
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('Two')
+})
+
+test('setMotionSequence normalizes Motion Lab sequence state', () => {
+  useDesign.getState().setMotionSequence({ tempo: 250, delayMs: -10, staggerMs: 999, loop: true })
+  expect(useDesign.getState().motionSequence).toEqual({
+    effect: 'rise',
+    tempo: 200,
+    delayMs: 0,
+    staggerMs: 300,
+    loop: true,
+  })
 })

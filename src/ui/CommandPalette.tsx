@@ -3,6 +3,7 @@ import type React from 'react'
 import {
   Shuffle, Grid2x2, Asterisk, GitBranch, Type, Image as ImageIcon, Square, Minus,
   Undo2, Redo2, Download, Link2, Maximize, Scan, Eye, Contrast, Sparkle, Grid3x3,
+  Archive, CalendarDays, Activity, Library,
 } from 'lucide-react'
 import { Play } from 'lucide-react'
 import { useDesign } from '../store/useDesign'
@@ -42,6 +43,15 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
           <CommandItem onSelect={run(() => s().pickForMe())}><Grid2x2 /> Pick a preset</CommandItem>
           <CommandItem onSelect={run(() => s().surprise())}><Asterisk /> Surprise — generate new</CommandItem>
           <CommandItem onSelect={run(() => s().openRiff())}><GitBranch /> Open Riff explorer</CommandItem>
+          <CommandItem onSelect={run(() => s().applyDailyBrief())}><CalendarDays /> Start daily Swiss brief</CommandItem>
+        </CommandGroup>
+
+        <CommandGroup heading="Creative loop">
+          <CommandItem onSelect={run(() => s().saveCurrentPoster('manual'))}><Archive /> Save to Poster Mine</CommandItem>
+          <CommandItem onSelect={run(() => s().openMine())}><Archive /> Open Poster Mine</CommandItem>
+          <CommandItem onSelect={run(() => s().saveCurrentRecipe())}><Library /> Save system recipe</CommandItem>
+          <CommandItem onSelect={run(() => s().applyCoachFix('increase-contrast'))}><Activity /> Coach — increase contrast</CommandItem>
+          <CommandItem onSelect={run(() => s().applyCoachFix('left-align-type'))}><Activity /> Coach — left align type</CommandItem>
         </CommandGroup>
 
         <CommandGroup heading="Add element">
@@ -80,7 +90,7 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
         <CommandGroup heading="View">
           <CommandItem onSelect={run(() => { s().zoomToFit(); s().setPan({ x: 0, y: 0 }) })}><Maximize /> Zoom to fit</CommandItem>
           <CommandItem onSelect={run(() => { s().zoomTo100(); s().setPan({ x: 0, y: 0 }) })}><Scan /> Zoom 100%</CommandItem>
-          <CommandItem onSelect={run(() => playPosterMotion(svgRef.current, s().motionEffect))}><Play /> Play text motion</CommandItem>
+          <CommandItem onSelect={run(() => playPosterMotion(svgRef.current, s().motionSequence.effect, { sequence: s().motionSequence }))}><Play /> Play text motion</CommandItem>
         </CommandGroup>
 
         <CommandGroup heading="Export & share">
@@ -90,7 +100,7 @@ export function CommandPalette({ svgRef }: { svgRef: React.RefObject<SVGSVGEleme
           <CommandItem onSelect={run(() => { void exportKit(s().design) })}><Download /> Export kit (all formats)</CommandItem>
           <CommandItem onSelect={run(() => { navigator.clipboard?.writeText(buildShareUrl(s().design)) })}><Link2 /> Copy share link</CommandItem>
           {isVideoExportSupported() && (
-            <CommandItem onSelect={run(() => { void exportVideo(svgRef.current, s().design, s().motionEffect) })}><Play /> Export animated video</CommandItem>
+            <CommandItem onSelect={run(() => { void exportVideo(svgRef.current, s().design, s().motionSequence.effect, { sequence: s().motionSequence }) })}><Play /> Export animated video</CommandItem>
           )}
         </CommandGroup>
       </CommandList>

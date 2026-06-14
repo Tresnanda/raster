@@ -7,6 +7,28 @@ import { DEFAULT_TYPOGRAPHY, DEFAULT_STYLE, classOf } from '../design/typeclass'
 import { canvasFor } from '../design/formats'
 import { slotBox } from '../lib/grid'
 import { generate } from '../design/generate'
+import {
+  createSavedPoster,
+  deleteSavedPoster,
+  readSavedPosters,
+  toggleSavedPosterFavorite,
+  updateSavedPosterTags,
+  writeSavedPosters,
+  type PosterMineSource,
+  type SavedPoster,
+} from '../design/poster-mine'
+import { buildDailyBriefDesign, type DailySwissBrief } from '../design/daily-briefs'
+import {
+  applySystemRecipe,
+  createSystemRecipe,
+  deleteSystemRecipe,
+  readSystemRecipes,
+  writeSystemRecipes,
+  type SystemRecipe,
+} from '../design/system-recipes'
+import { applyCoachFix as applyCoachFixToDesign, type CoachFixId } from '../design/grid-coach'
+import { buildCampaignItems, parseSeriesItems, updateCampaignItemTitle, type CampaignItem } from '../design/series'
+import { DEFAULT_MOTION_SEQUENCE, normalizeMotionSequence, type MotionSequence } from '../design/motion'
 
 const KEY = 'raster:design'
 
@@ -205,6 +227,40 @@ interface State {
   setCommandOpen: (v: boolean) => void
   motionEffect: import('../design/motion').MotionEffect
   setMotionEffect: (e: import('../design/motion').MotionEffect) => void
+  motionSequence: MotionSequence
+  setMotionSequence: (patch: Partial<MotionSequence>) => void
+
+  // Poster Mine
+  mineOpen: boolean
+  savedPosters: SavedPoster[]
+  openMine: () => void
+  closeMine: () => void
+  saveCurrentPoster: (source: PosterMineSource, parentId?: string) => SavedPoster
+  loadSavedPoster: (id: string) => void
+  deleteSavedPoster: (id: string) => void
+  toggleSavedPosterFavorite: (id: string) => void
+  updateSavedPosterTags: (id: string, tags: string[]) => void
+
+  // Daily Swiss Briefs
+  dailyBrief: { date: string; brief: DailySwissBrief } | null
+  applyDailyBrief: (date?: string) => void
+
+  // System Recipes
+  systemRecipes: SystemRecipe[]
+  saveCurrentRecipe: (name?: string) => SystemRecipe
+  applyRecipe: (id: string) => void
+  deleteRecipe: (id: string) => void
+
+  // Swiss Grid Coach
+  applyCoachFix: (fixId: CoachFixId) => void
+
+  // Campaign Studio
+  campaignRaw: string
+  campaignItems: CampaignItem[]
+  activeCampaignId: string | null
+  setCampaignRaw: (raw: string) => void
+  loadCampaignItem: (id: string) => void
+  updateCampaignTitle: (id: string, title: string) => void
 
   /** Mutation strength 0..1. Default 0.5. */
   riffStrength: number
@@ -274,11 +330,19 @@ export const useDesign = create<State>((set, get) => {
     clipboard: null,
     commandOpen: false,
     motionEffect: 'rise',
+    motionSequence: DEFAULT_MOTION_SEQUENCE,
     zoom: 1,
     pan: { x: 0, y: 0 },
     riffOpen: false,
     riffStrength: 0.5,
     riffTree: { nodes: {}, rootId: null, currentId: null },
+    mineOpen: false,
+    savedPosters: readSavedPosters(),
+    dailyBrief: null,
+    systemRecipes: readSystemRecipes(),
+    campaignRaw: '',
+    campaignItems: [],
+    activeCampaignId: null,
 
     setSnap: (snap) => {
       set({ snap })
@@ -1013,7 +1077,151 @@ export const useDesign = create<State>((set, get) => {
     },
 
     setMotionEffect: (e) => {
-      set({ motionEffect: e })
+      set({ motionEffect: e, motionSequence: normalizeMotionSequence({ ...get().motionSequence, effect: e }) })
+    },
+
+    setMotionSequence: (patch) => {
+      const next = normalizeMotionSequence({ ...get().motionSequence, ...patch })
+      set({ motionSequence: next, motionEffect: next.effect })
+    },
+
+    // -------------------------------------------------------------------------
+    // Poster Mine
+    // -------------------------------------------------------------------------
+
+    openMine: () => {
+      set({ mineOpen: true })
+    },
+
+    closeMine: () => {
+      set({ mineOpen: false })
+    },
+
+    saveCurrentPoster: (source, parentId) => {
+      const saved = createSavedPoster(get().design, { source, parentId })
+      const posters = [saved, ...get().savedPosters].slice(0, 80)
+      writeSavedPosters(posters)
+      set({ savedPosters: posters })
+      return saved
+    },
+
+    loadSavedPoster: (id) => {
+      const saved = get().savedPosters.find(poster => poster.id === id)
+      if (!saved) return
+      lastCoalesceKey = null
+      const next = JSON.parse(JSON.stringify(saved.design)) as Design
+      persist(next)
+      set({
+        design: next,
+        selectedId: null,
+        selectedIds: [],
+        past: [],
+        future: [],
+        mineOpen: false,
+      })
+    },
+
+    deleteSavedPoster: (id) => {
+      const posters = deleteSavedPoster(get().savedPosters, id)
+      writeSavedPosters(posters)
+      set({ savedPosters: posters })
+    },
+
+    toggleSavedPosterFavorite: (id) => {
+      const posters = toggleSavedPosterFavorite(get().savedPosters, id)
+      writeSavedPosters(posters)
+      set({ savedPosters: posters })
+    },
+
+    updateSavedPosterTags: (id, tags) => {
+      const posters = updateSavedPosterTags(get().savedPosters, id, tags)
+      writeSavedPosters(posters)
+      set({ savedPosters: posters })
+    },
+
+    // -------------------------------------------------------------------------
+    // Daily Swiss Briefs
+    // -------------------------------------------------------------------------
+
+    applyDailyBrief: (date) => {
+      const current = get().design
+      const applied = buildDailyBriefDesign(date, current.format)
+      commit(applied.design)
+      const saved = createSavedPoster(applied.design, {
+        source: 'daily',
+        title: applied.brief.title,
+      })
+      const posters = [saved, ...get().savedPosters].slice(0, 80)
+      writeSavedPosters(posters)
+      set({
+        dailyBrief: { date: applied.date, brief: applied.brief },
+        savedPosters: posters,
+        selectedId: null,
+        selectedIds: [],
+      })
+    },
+
+    // -------------------------------------------------------------------------
+    // System Recipes
+    // -------------------------------------------------------------------------
+
+    saveCurrentRecipe: (name) => {
+      const recipe = createSystemRecipe(get().design, { name })
+      const recipes = [recipe, ...get().systemRecipes].slice(0, 30)
+      writeSystemRecipes(recipes)
+      set({ systemRecipes: recipes })
+      return recipe
+    },
+
+    applyRecipe: (id) => {
+      const recipe = get().systemRecipes.find(item => item.id === id)
+      if (!recipe) return
+      const next = applySystemRecipe(get().design, recipe)
+      commit(next)
+      set({ selectedId: null, selectedIds: [] })
+    },
+
+    deleteRecipe: (id) => {
+      const recipes = deleteSystemRecipe(get().systemRecipes, id)
+      writeSystemRecipes(recipes)
+      set({ systemRecipes: recipes })
+    },
+
+    // -------------------------------------------------------------------------
+    // Swiss Grid Coach
+    // -------------------------------------------------------------------------
+
+    applyCoachFix: (fixId) => {
+      commit(applyCoachFixToDesign(get().design, fixId))
+    },
+
+    // -------------------------------------------------------------------------
+    // Campaign Studio
+    // -------------------------------------------------------------------------
+
+    setCampaignRaw: (raw) => {
+      const items = parseSeriesItems(raw)
+      set({
+        campaignRaw: raw,
+        campaignItems: buildCampaignItems(get().design, items),
+        activeCampaignId: null,
+      })
+    },
+
+    loadCampaignItem: (id) => {
+      const item = get().campaignItems.find(candidate => candidate.id === id)
+      if (!item) return
+      commit(item.design)
+      set({ activeCampaignId: id, selectedId: null, selectedIds: [] })
+    },
+
+    updateCampaignTitle: (id, title) => {
+      const items = updateCampaignItemTitle(get().campaignItems, id, title)
+      set({ campaignItems: items })
+      if (get().activeCampaignId === id) {
+        const active = items.find(item => item.id === id)
+        if (active) commit(active.design, { coalesceKey: `campaign:${id}` })
+      }
     },
 
     closeRiff: () => {

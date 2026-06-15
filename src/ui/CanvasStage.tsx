@@ -2,13 +2,14 @@ import type React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { Minus, Plus, Maximize, Scan } from 'lucide-react'
+import { Minus, Plus, Maximize, Scan, X as XIcon } from 'lucide-react'
 import { Renderer } from '../render/Renderer'
 import { useDesign } from '../store/useDesign'
 import { canvasFor } from '../design/formats'
 import { ComposerOverlay } from './ComposerOverlay'
 import { GrainAnimator } from './GrainAnimator'
 import { useImageEffectProcessor } from './useImageEffectProcessor'
+import type { Guide } from '../design/guides'
 
 // ── ZoomHUD ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,9 @@ function ZoomHUD() {
 export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement | null> }) {
   const design = useDesign(s => s.design)
   const snap = useDesign(s => s.snap)
+  const guides = useDesign(s => s.guides)
+  const addGuide = useDesign(s => s.addGuide)
+  const removeGuide = useDesign(s => s.removeGuide)
   const zoom = useDesign(s => s.zoom)
   const pan = useDesign(s => s.pan)
   const setZoom = useDesign(s => s.setZoom)
@@ -86,6 +90,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+  const safeScale = scale > 0 ? scale : 1
 
   useLayoutEffect(() => {
     const el = containerRef.current
@@ -104,6 +109,7 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
 
   const [isSpaceHeld, setIsSpaceHeld] = useState(false)
   const [isPanning, setIsPanning] = useState(false)
+  const [draftGuide, setDraftGuide] = useState<Guide | null>(null)
 
   // Track pan drag state in a ref to avoid stale closures in pointer handlers
   const panDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
@@ -194,6 +200,47 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
   // ── Cursor style ──────────────────────────────────────────────────────────
 
   const cursor = isPanning ? 'grabbing' : isSpaceHeld ? 'grab' : 'default'
+
+  const guideFromPointer = (axis: 'x' | 'y', clientX: number, clientY: number): Guide | null => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect || rect.width <= 0 || rect.height <= 0) return null
+    const pos = axis === 'x'
+      ? ((clientX - rect.left) / rect.width) * c.w
+      : ((clientY - rect.top) / rect.height) * c.h
+    return { axis, pos: Math.round(Math.max(0, Math.min(axis === 'x' ? c.w : c.h, pos))) }
+  }
+
+  const startGuideDrag = (axis: 'x' | 'y', e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    let latest = guideFromPointer(axis, e.clientX, e.clientY)
+    setDraftGuide(latest)
+
+    const move = (ev: PointerEvent) => {
+      latest = guideFromPointer(axis, ev.clientX, ev.clientY)
+      setDraftGuide(latest)
+    }
+    const cleanup = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+    const up = (ev: PointerEvent) => {
+      cleanup()
+      const guide = guideFromPointer(axis, ev.clientX, ev.clientY) ?? latest
+      if (guide) addGuide(guide)
+      setDraftGuide(null)
+    }
+    const cancel = () => {
+      cleanup()
+      setDraftGuide(null)
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+  }
 
   // ── Tracks for add-element pop and surprise detection ─────────────────────
   const prevSlotsLenRef = useRef(design.slots.length)
@@ -307,6 +354,16 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
     return () => mm.revert()
   }, { scope: containerRef, dependencies: [design.slots.length] })
 
+  const guideLayerScale = scale / (zoom > 0 ? zoom : 1)
+  const guideHandleSize = 18 / safeScale
+  const guideHandleVisualSize = 10 / safeScale
+  const guideRulerOffset = 16 / safeScale
+  const guideLineWidth = 1 / safeScale
+  const guideLayerGuides = draftGuide ? [...guides, draftGuide] : guides
+  const addCenteredGuide = (axis: 'x' | 'y') => {
+    addGuide({ axis, pos: Math.round((axis === 'x' ? c.w : c.h) / 2) })
+  }
+
   return (
     <div
       ref={stageRef}
@@ -334,7 +391,153 @@ export function CanvasStage({ svgRef }: { svgRef: React.RefObject<SVGSVGElement 
           }}
         >
           <Renderer design={design} svgRef={svgRef} />
+          <div
+            data-ruler-top
+            role="button"
+            tabIndex={0}
+            aria-label="Add vertical guide"
+            onPointerDown={e => startGuideDrag('x', e)}
+            onKeyDown={e => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              addCenteredGuide('x')
+            }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: -18,
+              width: '100%',
+              height: 14,
+              border: '1px solid #18181b',
+              background: '#ffffff',
+              backgroundImage: 'repeating-linear-gradient(to right, #18181b 0 1px, transparent 1px 24px)',
+              pointerEvents: 'all',
+            }}
+          />
+          <div
+            data-ruler-left
+            role="button"
+            tabIndex={0}
+            aria-label="Add horizontal guide"
+            onPointerDown={e => startGuideDrag('y', e)}
+            onKeyDown={e => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              addCenteredGuide('y')
+            }}
+            style={{
+              position: 'absolute',
+              left: -18,
+              top: 0,
+              width: 14,
+              height: '100%',
+              border: '1px solid #18181b',
+              background: '#ffffff',
+              backgroundImage: 'repeating-linear-gradient(to bottom, #18181b 0 1px, transparent 1px 24px)',
+              pointerEvents: 'all',
+            }}
+          />
           <ComposerOverlay scale={scale} zoom={zoom} snap={snap} />
+          <div
+            data-guide-layer
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: c.w,
+              height: c.h,
+              transform: `scale(${guideLayerScale})`,
+              transformOrigin: 'top left',
+              pointerEvents: 'none',
+              zIndex: 70,
+            }}
+          >
+            {guideLayerGuides.map((guide, index) => (
+              <div
+                key={`${guide.axis}-${guide.pos}-${index}${index === guides.length ? '-draft' : ''}`}
+                data-user-guide
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: guide.axis === 'x' ? guide.pos : 0,
+                  top: guide.axis === 'y' ? guide.pos : 0,
+                  width: guide.axis === 'x' ? guideLineWidth : c.w,
+                  height: guide.axis === 'y' ? guideLineWidth : c.h,
+                  background: draftGuide && index === guides.length ? '#ec4899' : '#2354d8',
+                  opacity: draftGuide && index === guides.length ? 0.9 : 0.75,
+                  pointerEvents: 'none',
+                }}
+              />
+            ))}
+          </div>
+          <div
+            data-guide-handles
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: c.w,
+              height: c.h,
+              transform: `scale(${guideLayerScale})`,
+              transformOrigin: 'top left',
+              pointerEvents: 'none',
+              zIndex: 90,
+            }}
+          >
+            {guides.map((guide, index) => {
+              const vertical = guide.axis === 'x'
+              return (
+                <button
+                  key={`${guide.axis}-${guide.pos}-${index}`}
+                  type="button"
+                  data-guide-handle
+                  aria-label={`Remove ${vertical ? 'vertical' : 'horizontal'} guide at ${guide.pos}`}
+                  title="Remove guide"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => {
+                    e.stopPropagation()
+                    removeGuide(index)
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: vertical ? guide.pos - guideHandleSize / 2 : -guideRulerOffset,
+                    top: vertical ? -guideRulerOffset : guide.pos - guideHandleSize / 2,
+                    width: guideHandleSize,
+                    height: guideHandleSize,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    background: 'transparent',
+                    border: 0,
+                    borderRadius: 0,
+                    color: '#18181b',
+                    cursor: 'pointer',
+                    pointerEvents: 'all',
+                  }}
+                >
+                  <span
+                    data-guide-handle-marker
+                    aria-hidden
+                    style={{
+                      width: guideHandleVisualSize,
+                      height: guideHandleVisualSize,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(255, 255, 255, 0.62)',
+                      border: `${1 / safeScale}px solid rgba(24, 24, 27, 0.46)`,
+                      boxShadow: 'none',
+                      color: 'rgba(24, 24, 27, 0.72)',
+                    }}
+                  >
+                    <XIcon size={7 / safeScale} strokeWidth={2.5} />
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
       <GrainAnimator svgRef={svgRef} enabled={design.style.filmGrain} />

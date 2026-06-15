@@ -1,7 +1,8 @@
-import type { Design, Format, GridCell, Slot, TextStyle } from '../types'
+import type { Design, ExpressiveMove, Format, GenerationBrief, GenerationReadability, GridCell, Slot, SwissGrammar, TextStyle } from '../types'
 import { defaultGrid } from './formats'
 import { PRESET_PALETTES } from './palettes'
 import { DEFAULT_TYPOGRAPHY } from './typeclass'
+import { mulberry32 } from '../lib/rng'
 
 // ---------------------------------------------------------------------------
 // Editorial content pools (expanded for variety)
@@ -80,26 +81,77 @@ const CAPTIONS = [
 ]
 
 // ---------------------------------------------------------------------------
-// Seeded-ish helpers (we use Math.random, called once per generate call)
+// Seeded helpers
 // ---------------------------------------------------------------------------
+let random: () => number = Math.random
+
 function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+  return arr[Math.floor(random() * arr.length)]
+}
+
+function pickWith<T>(arr: T[], rng: () => number): T {
+  return arr[Math.floor(rng() * arr.length)]
 }
 
 function maybe(prob: number): boolean {
-  return Math.random() < prob
+  return random() < prob
 }
 
 function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+  return Math.floor(random() * (max - min + 1)) + min
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const next = [...arr]
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[next[i], next[j]] = [next[j], next[i]]
+  }
+  return next
+}
+
+function shuffleWith<T>(arr: T[], rng: () => number): T[] {
+  const next = [...arr]
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[next[i], next[j]] = [next[j], next[i]]
+  }
+  return next
+}
+
+export function contentForRole(role: Slot['role'], rng: () => number, slot?: Slot): string {
+  switch (role) {
+    case 'headline':
+      return pickWith(HEADLINES, rng)
+    case 'glyph':
+      return pickWith(HEADLINE_WORDS, rng)
+    case 'subhead':
+      return pickWith(KICKERS, rng)
+    case 'caption':
+      return rng() > 0.45
+        ? pickWith(CAPTIONS, rng)
+        : `${pickWith(CITIES, rng)} — ${pickWith(VOLUMES, rng)}`
+    case 'date':
+      return `${pickWith(DATES, rng)}, ${pickWith(YEARS, rng)}`
+    case 'index': {
+      const count = Math.max(1, Math.min(slot?.cell.rs ?? 3, INDEX_LINES.length))
+      return shuffleWith(INDEX_LINES, rng).slice(0, count).join('\n')
+    }
+    case 'mark':
+      return pickWith(FOOTERS, rng)
+    case 'image':
+    case 'block':
+    case 'line':
+      return ''
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Slot id counter (simple sequential, reset per call via closure)
 // ---------------------------------------------------------------------------
-function makeIdGen() {
+function makeIdGen(seed: number, candidateIndex: number) {
   let n = 0
-  return () => `gen-${Date.now()}-${n++}`
+  return () => `gen-${seed}-${candidateIndex}-${n++}`
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +182,16 @@ function cellsIntersect(a: GridCell, b: GridCell): boolean {
   const aC = a.c + a.cs   // exclusive right
   const bC = b.c + b.cs
   return a.r < bR && aR > b.r && a.c < bC && aC > b.c
+}
+
+function cellArea(cell: GridCell): number {
+  return cell.cs * cell.rs
+}
+
+function cellIntersectionArea(a: GridCell, b: GridCell): number {
+  const r = Math.max(0, Math.min(a.r + a.rs, b.r + b.rs) - Math.max(a.r, b.r))
+  const c = Math.max(0, Math.min(a.c + a.cs, b.c + b.cs) - Math.max(a.c, b.c))
+  return r * c
 }
 
 /**
@@ -259,7 +321,7 @@ class OccupancyGrid {
   }
 }
 
-// Tracks which cells contain image pixels — used for scrim decisions
+// Tracks which cells contain image pixels for placement constraints.
 class ImageRegionSet {
   private grid: boolean[][]
   readonly cols: number
@@ -298,13 +360,15 @@ class ImageRegionSet {
 // Skeleton decision space — the "infinite" dimension
 // ---------------------------------------------------------------------------
 
-type ImageTreatment = 'none' | 'full-bleed' | 'framed-block' | 'half-split-left' | 'half-split-right' | 'h-band' | 'v-band'
-type DominantType = 'mega-word' | 'headline-stack' | 'giant-numeral' | 'oversized-glyph'
+type ImageTreatment = 'none' | 'full-bleed' | 'framed-block' | 'half-split-left' | 'half-split-right' | 'h-band'
+type DominantType = 'mega-word' | 'headline-stack' | 'giant-numeral'
 type DominantAnchor = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'left-band' | 'right-band' | 'top-band' | 'bottom-band' | 'mid-left' | 'mid-right'
 type AccentType = 'none' | 'h-rule' | 'v-rule' | 'accent-block'
 type ClusterKind = 'meta' | 'caption' | 'index' | 'date' | 'kicker' | 'footer-mark'
 
 interface Skeleton {
+  grammar: SwissGrammar
+  expressiveMove: ExpressiveMove
   imageTreatment: ImageTreatment
   dominantType: DominantType
   dominantAnchor: DominantAnchor
@@ -314,49 +378,214 @@ interface Skeleton {
   accentType: AccentType
 }
 
-// Weighted pool (repeats = higher chance). Biased toward the cleanest, most
-// editorial treatments. 'v-band' (thin vertical strip) is dropped — it read as
-// an accidental sliver. full-bleed is kept rare (it's the type-over-photo style).
-const IMAGE_TREATMENTS: ImageTreatment[] = [
-  'none', 'none',
-  'framed-block', 'framed-block', 'framed-block',
-  'half-split-left', 'half-split-right',
-  'h-band',
-  'full-bleed',
-]
-// Weighted: word/phrase headlines dominate; the single-letter 'oversized-glyph'
-// is dropped (it produced lone letters). Numerals stay but are the minority.
-const DOMINANT_TYPES: DominantType[] = [
-  'mega-word', 'mega-word', 'mega-word',
-  'headline-stack', 'headline-stack', 'headline-stack',
-  'giant-numeral',
-]
 // Anchors exclude pure center — Swiss grid prefers edge tension
 const DOMINANT_ANCHORS: DominantAnchor[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left-band', 'right-band', 'top-band', 'bottom-band', 'mid-left', 'mid-right']
-const CLUSTER_KINDS: ClusterKind[] = ['meta', 'caption', 'index', 'date', 'kicker', 'footer-mark']
+const SWISS_GRAMMARS: SwissGrammar[] = [
+  'split-field',
+  'asymmetric-headline',
+  'modular-catalog',
+  'typographic-monument',
+  'image-diptych',
+  'index-rail',
+  'occlusion-bar',
+]
 
-function chooseSkeleton(): Skeleton {
-  const dominantType = pick(DOMINANT_TYPES)
+function chooseGenerationBrief(grammar: SwissGrammar): GenerationBrief {
+  const density = grammar === 'modular-catalog' || grammar === 'index-rail'
+    ? pick(['balanced', 'dense', 'dense'] as GenerationBrief['density'][])
+    : grammar === 'typographic-monument'
+      ? pick(['quiet', 'quiet', 'balanced'] as GenerationBrief['density'][])
+      : pick(['quiet', 'balanced', 'balanced', 'dense'] as GenerationBrief['density'][])
+
+  const imageMode = density === 'dense'
+    ? pick(['none', 'optional', 'required'] as GenerationBrief['imageMode'][])
+    : pick(['none', 'optional', 'required', 'required'] as GenerationBrief['imageMode'][])
+
+  const accentMode = grammar === 'occlusion-bar'
+    ? 'required'
+    : pick(['none', 'none', 'optional', 'required'] as GenerationBrief['accentMode'][])
+
+  return { density, imageMode, accentMode }
+}
+
+function grammarSkeleton(grammar: SwissGrammar): Pick<Skeleton, 'expressiveMove' | 'imageTreatment' | 'dominantType' | 'dominantAnchor' | 'clusterKinds' | 'accentType'> {
+  switch (grammar) {
+    case 'split-field':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['half-split-left', 'half-split-right', 'framed-block'] as ImageTreatment[]),
+        dominantType: pick(['mega-word', 'headline-stack'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'mid-left', 'mid-right'] as DominantAnchor[]),
+        clusterKinds: shuffle(['meta', 'date', 'footer-mark', 'caption']).slice(0, randInt(1, 2)) as ClusterKind[],
+        accentType: pick(['none', 'h-rule', 'v-rule'] as AccentType[]),
+      }
+    case 'asymmetric-headline':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['none', 'framed-block', 'h-band'] as ImageTreatment[]),
+        dominantType: pick(['mega-word', 'mega-word', 'headline-stack'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'bottom-left', 'top-right', 'bottom-right', 'left-band', 'right-band'] as DominantAnchor[]),
+        clusterKinds: shuffle(['kicker', 'date', 'caption', 'footer-mark']).slice(0, randInt(1, 3)) as ClusterKind[],
+        accentType: pick(['none', 'none', 'h-rule', 'accent-block'] as AccentType[]),
+      }
+    case 'modular-catalog':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['framed-block', 'framed-block', 'none'] as ImageTreatment[]),
+        dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'top-right', 'left-band', 'right-band'] as DominantAnchor[]),
+        clusterKinds: shuffle(['index', 'meta', 'caption', 'date']).slice(0, 3) as ClusterKind[],
+        accentType: pick(['none', 'h-rule', 'v-rule'] as AccentType[]),
+      }
+    case 'typographic-monument':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['none', 'none', 'full-bleed'] as ImageTreatment[]),
+        dominantType: pick(['mega-word', 'giant-numeral'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'bottom-left', 'top-right', 'bottom-right', 'mid-left', 'mid-right'] as DominantAnchor[]),
+        clusterKinds: shuffle(['date', 'footer-mark', 'meta']).slice(0, 1) as ClusterKind[],
+        accentType: pick(['none', 'none', 'accent-block'] as AccentType[]),
+      }
+    case 'image-diptych':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['half-split-left', 'half-split-right', 'framed-block'] as ImageTreatment[]),
+        dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as DominantAnchor[]),
+        clusterKinds: shuffle(['caption', 'date', 'meta']).slice(0, randInt(1, 2)) as ClusterKind[],
+        accentType: pick(['none', 'h-rule'] as AccentType[]),
+      }
+    case 'index-rail':
+      return {
+        expressiveMove: 'none',
+        imageTreatment: pick(['none', 'h-band', 'framed-block'] as ImageTreatment[]),
+        dominantType: pick(['headline-stack', 'mega-word'] as DominantType[]),
+        dominantAnchor: pick(['left-band', 'right-band', 'top-left', 'top-right'] as DominantAnchor[]),
+        clusterKinds: ['index', ...shuffle(['footer-mark', 'date', 'meta']).slice(0, randInt(1, 2))] as ClusterKind[],
+        accentType: pick(['v-rule', 'none', 'h-rule'] as AccentType[]),
+      }
+    case 'occlusion-bar':
+      return {
+        expressiveMove: 'controlled-occlusion',
+        imageTreatment: pick(['none', 'framed-block', 'h-band'] as ImageTreatment[]),
+        dominantType: pick(['mega-word', 'headline-stack'] as DominantType[]),
+        dominantAnchor: pick(['top-left', 'top-right', 'mid-left', 'mid-right', 'bottom-left', 'bottom-right'] as DominantAnchor[]),
+        clusterKinds: shuffle(['meta', 'date', 'footer-mark', 'caption']).slice(0, randInt(1, 2)) as ClusterKind[],
+        accentType: 'none',
+      }
+  }
+}
+
+function clusterPoolForGrammar(grammar: SwissGrammar): ClusterKind[] {
+  switch (grammar) {
+    case 'split-field':
+      return ['meta', 'date', 'footer-mark', 'caption', 'kicker']
+    case 'asymmetric-headline':
+      return ['kicker', 'date', 'caption', 'footer-mark', 'meta']
+    case 'modular-catalog':
+      return ['index', 'meta', 'caption', 'date', 'footer-mark']
+    case 'typographic-monument':
+      return ['date', 'footer-mark', 'meta', 'caption']
+    case 'image-diptych':
+      return ['caption', 'date', 'meta', 'footer-mark']
+    case 'index-rail':
+      return ['index', 'footer-mark', 'date', 'meta', 'caption']
+    case 'occlusion-bar':
+      return ['meta', 'date', 'footer-mark', 'caption']
+  }
+}
+
+function targetClusterCount(density: GenerationBrief['density']): number {
+  switch (density) {
+    case 'quiet': return 1
+    case 'balanced': return 2
+    case 'dense': return 3
+  }
+}
+
+function fitClusterKinds(
+  grammar: SwissGrammar,
+  clusterKinds: ClusterKind[],
+  density: GenerationBrief['density'],
+): ClusterKind[] {
+  const target = targetClusterCount(density)
+  const result = [...clusterKinds]
+
+  for (const kind of shuffle(clusterPoolForGrammar(grammar))) {
+    if (result.length >= target) break
+    if (!result.includes(kind)) result.push(kind)
+  }
+
+  return result.slice(0, target)
+}
+
+function imageTreatmentsForGrammar(grammar: SwissGrammar, density: GenerationBrief['density']): ImageTreatment[] {
+  const spatialTreatments: ImageTreatment[] = ['framed-block', 'half-split-left', 'half-split-right', 'h-band']
+  switch (grammar) {
+    case 'typographic-monument':
+      return density === 'dense' ? ['framed-block', 'h-band'] : ['full-bleed', 'framed-block']
+    case 'image-diptych':
+    case 'split-field':
+      return ['half-split-left', 'half-split-right', 'framed-block']
+    case 'modular-catalog':
+    case 'index-rail':
+      return ['framed-block', 'h-band']
+    case 'asymmetric-headline':
+    case 'occlusion-bar':
+      return density === 'dense' ? ['framed-block', 'h-band'] : spatialTreatments
+  }
+}
+
+function fitImageTreatment(
+  grammar: SwissGrammar,
+  treatment: ImageTreatment,
+  brief: GenerationBrief,
+): ImageTreatment {
+  if (brief.imageMode === 'none') return 'none'
+  if (brief.imageMode === 'required' && treatment === 'none') {
+    return pick(imageTreatmentsForGrammar(grammar, brief.density))
+  }
+  if (brief.density === 'dense' && treatment === 'full-bleed') {
+    return pick(imageTreatmentsForGrammar(grammar, brief.density))
+  }
+  return treatment
+}
+
+function fitAccentType(
+  grammar: SwissGrammar,
+  accentType: AccentType,
+  brief: GenerationBrief,
+): AccentType {
+  if (grammar === 'occlusion-bar') return 'none'
+  if (brief.accentMode === 'none') return 'none'
+  if (brief.accentMode === 'required' && accentType === 'none') {
+    return pick(['h-rule', 'v-rule', 'accent-block'] as AccentType[])
+  }
+  return accentType
+}
+
+function chooseSkeleton(grammar: SwissGrammar, brief: GenerationBrief): Skeleton {
+  const grammarDefaults = grammarSkeleton(grammar)
+  const dominantType = grammarDefaults.dominantType
   // Size range varies by type
-  const dominantSize = dominantType === 'mega-word' || dominantType === 'oversized-glyph'
+  const dominantSize = dominantType === 'mega-word'
     ? randInt(240, 380)
     : dominantType === 'giant-numeral'
       ? randInt(280, 400)
       : randInt(120, 220) // headline-stack
 
-  const clusterCount = randInt(1, 3) // 1–3 supporting blocks — never cluttered
-  // Pick unique cluster kinds
-  const shuffled = [...CLUSTER_KINDS].sort(() => Math.random() - 0.5)
-  const clusterKinds = shuffled.slice(0, clusterCount) as ClusterKind[]
+  const clusterKinds = fitClusterKinds(grammar, grammarDefaults.clusterKinds, brief.density)
 
   return {
-    imageTreatment: pick(IMAGE_TREATMENTS),
+    grammar,
+    expressiveMove: grammarDefaults.expressiveMove,
+    imageTreatment: fitImageTreatment(grammar, grammarDefaults.imageTreatment, brief),
     dominantType,
-    dominantAnchor: pick(DOMINANT_ANCHORS),
+    dominantAnchor: grammarDefaults.dominantAnchor,
     dominantSize,
-    clusterCount,
+    clusterCount: clusterKinds.length,
     clusterKinds,
-    accentType: pick(['none', 'none', 'h-rule', 'v-rule', 'accent-block'] as AccentType[]), // bias toward none
+    accentType: fitAccentType(grammar, grammarDefaults.accentType, brief),
   }
 }
 
@@ -393,7 +622,6 @@ function imageCandidates(treatment: ImageTreatment): GridCell[] {
         { c: 0, cs: COLS, r: Math.floor((ROWS - rs) / 2), rs },
       ].map(clampCell)
     }
-    case 'v-band': return [] // dropped — read as an accidental sliver
   }
 }
 
@@ -415,7 +643,7 @@ function placeImage(
   }
   if (treatment === 'full-bleed') return make(FULL_BLEED_CELL, false)
 
-  for (const cell of imageCandidates(treatment)) {
+  for (const cell of shuffle(imageCandidates(treatment))) {
     if (occ.isFree(cell)) return make(cell, true)
   }
   // No clean spot beside the dominant — become a full-bleed photo behind it.
@@ -430,7 +658,7 @@ function placeImage(
  *  Biases toward edges and corners — never the exact center. */
 function resolveDominantCell(anchor: DominantAnchor, dominantType: DominantType): GridCell {
   // Row/col spans vary by type:
-  //   mega-word / oversized-glyph: wide & tall
+  //   mega-word: wide & tall
   //   giant-numeral: wide & medium
   //   headline-stack: medium width, taller
   const cs = dominantType === 'headline-stack' ? randInt(6, 10) : randInt(8, 12)
@@ -473,7 +701,7 @@ function placeDominant(
   // full-bleed the grid is unclaimed, so the chosen anchor wins — type over photo.)
   const anchorOrder = [
     skeleton.dominantAnchor,
-    ...DOMINANT_ANCHORS.filter(a => a !== skeleton.dominantAnchor).sort(() => Math.random() - 0.5),
+    ...shuffle(DOMINANT_ANCHORS.filter(a => a !== skeleton.dominantAnchor)),
   ]
   let cell = resolveDominantCell(skeleton.dominantAnchor, skeleton.dominantType)
   let align = anchorAlign(skeleton.dominantAnchor)
@@ -511,17 +739,6 @@ function placeDominant(
         typeClass: 'title',
       }
       break
-    case 'oversized-glyph':
-      // Retired from the dominant pool (it produced lone letters). Kept for the
-      // exhaustive switch — now emits a full short word, never a single char.
-      slot = {
-        id: id(), role: 'glyph', z,
-        cell,
-        content: pick(HEADLINE_WORDS),
-        text: titleText(skeleton.dominantSize, align),
-        typeClass: 'title',
-      }
-      break
   }
 
   // Claim occupancy with the dominant element
@@ -529,6 +746,35 @@ function placeDominant(
   void imgRegions; void bgColor // no scrims — real photos carry their own contrast
 
   return [slot!]
+}
+
+function placeControlledOcclusion(
+  skeleton: Skeleton,
+  dominantSlots: Slot[],
+  occ: OccupancyGrid,
+  id: () => string,
+): Slot | null {
+  if (skeleton.expressiveMove !== 'controlled-occlusion') return null
+
+  const title = dominantSlots.find(s => s.typeClass === 'title')
+  if (!title) return null
+
+  const barRow = Math.min(
+    ROWS - 1,
+    title.cell.r + Math.max(0, Math.floor(title.cell.rs * 0.45)),
+  )
+  const cell = clampCell({ c: 0, cs: COLS, r: barRow, rs: 1 })
+  occ.claim(cell)
+
+  return {
+    id: id(),
+    role: 'block',
+    z: 6,
+    cell,
+    content: '',
+    fill: 'accent',
+    name: 'controlled-occlusion',
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -562,7 +808,7 @@ function clusterCandidates(): GridCell[] {
     clampCell({ c: COLS - 6, cs: 6, r: ROWS - 1, rs: 1 }),
   ]
   // Shuffle order so clusters don't always land in the same priority corner
-  return candidates.sort(() => Math.random() - 0.5)
+  return shuffle(candidates)
 }
 
 /** Create a cluster slot for the given kind and cell. */
@@ -619,8 +865,7 @@ function clusterSlot(kind: ClusterKind, cell: GridCell, z: number, id: () => str
   }
 }
 
-/** Place 0..n supporting clusters in free occupancy slots.
- *  Each cluster gets a scrim if it lands on an image region. */
+/** Place 0..n supporting clusters in free occupancy slots. */
 function placeSupportingClusters(
   skeleton: Skeleton,
   occ: OccupancyGrid,
@@ -719,12 +964,6 @@ function enforceWhitespace(slots: Slot[], occ: OccupancyGrid): Slot[] {
     const toDrop = droppable[i]
     const idx = result.findIndex(s => s.id === toDrop.id)
     if (idx !== -1) result.splice(idx, 1)
-    // Remove paired scrim: same cell position, role: 'block', z = toDrop.z - 1
-    const scrimIdx = result.findIndex(
-      s => s.role === 'block' && s.z === (toDrop.z! - 1) &&
-        s.cell.c === toDrop.cell.c && s.cell.r === toDrop.cell.r
-    )
-    if (scrimIdx !== -1) result.splice(scrimIdx, 1)
   }
   return result
 }
@@ -736,11 +975,10 @@ function enforceWhitespace(slots: Slot[], occ: OccupancyGrid): Slot[] {
 function compose(
   id: () => string,
   palette: { bg: string; text: string; accent: string },
+  skeleton: Skeleton,
 ): Slot[] {
   const occ = new OccupancyGrid(COLS, ROWS)
   const imgRegions = new ImageRegionSet(COLS, ROWS)
-
-  const skeleton = chooseSkeleton()
 
   const allSlots: Slot[] = []
 
@@ -749,7 +987,12 @@ function compose(
   const dominantSlots = placeDominant(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...dominantSlots)
 
-  // 2. Image (z:1) — placed in free space beside the dominant, or full-bleed behind.
+  // 2. Optional expressive move — one grid-aligned violation, claimed so small
+  //    supporting text does not land underneath it.
+  const occlusionSlot = placeControlledOcclusion(skeleton, dominantSlots, occ, id)
+  if (occlusionSlot) allSlots.push(occlusionSlot)
+
+  // 3. Image (z:1) — placed in free space beside the dominant, or full-bleed behind.
   const imageSlot = placeImage(skeleton.imageTreatment, occ, imgRegions, id)
   if (imageSlot) allSlots.push(imageSlot)
 
@@ -763,30 +1006,195 @@ function compose(
     skeleton.clusterKinds = skeleton.clusterKinds.slice(0, 1)
   }
 
-  // 3. Supporting clusters (z:4) — placed only in free cells (around the image).
+  // 4. Supporting clusters (z:4) — placed only in free cells (around the image).
   const clusterSlots = placeSupportingClusters(skeleton, occ, imgRegions, palette.bg, id)
   allSlots.push(...clusterSlots)
 
-  // 4. Accent (z:2, optional)
+  // 5. Accent (z:2, optional)
   const accentSlot = placeAccent(skeleton, occ, id)
   if (accentSlot) allSlots.push(accentSlot)
 
-  // 5. Whitespace enforcement: drop clusters if over 70% cell budget
+  // 6. Whitespace enforcement: drop clusters if over 70% cell budget
   const budgetedSlots = enforceWhitespace(allSlots, occ)
 
-  // 6. Final collision guard: text-on-text overlap resolution
+  // 7. Final collision guard: text-on-text overlap resolution
   return resolveTextCollisions(budgetedSlots, COLS, ROWS)
 }
 
 // ---------------------------------------------------------------------------
-// Main export
+// Candidate scoring
 // ---------------------------------------------------------------------------
 
-export function generate(format: Format): Design {
-  const id = makeIdGen()
+const TEXT_ROLES_SET = new Set(['headline', 'subhead', 'caption', 'date', 'index', 'glyph', 'mark'])
+
+function isFullBleedCell(cell: GridCell): boolean {
+  return cell.c === 0 && cell.cs === COLS && cell.r === 0 && cell.rs === ROWS
+}
+
+function isControlledOcclusion(slot: Slot): boolean {
+  return slot.role === 'block' && slot.name === 'controlled-occlusion'
+}
+
+function occupiedFraction(slots: Slot[]): number {
+  const claimed = new Set<string>()
+  for (const slot of slots.filter(s => s.role !== 'image' && s.role !== 'line')) {
+    for (let r = slot.cell.r; r < slot.cell.r + slot.cell.rs; r++) {
+      for (let c = slot.cell.c; c < slot.cell.c + slot.cell.cs; c++) {
+        claimed.add(`${r},${c}`)
+      }
+    }
+  }
+  return claimed.size / TOTAL_CELLS
+}
+
+function analyzeReadability(slots: Slot[]): GenerationReadability {
+  const textSlots = slots.filter(s => TEXT_ROLES_SET.has(s.role) && s.text)
+  let textOverlapCount = 0
+  for (let i = 0; i < textSlots.length; i++) {
+    for (let j = i + 1; j < textSlots.length; j++) {
+      if (cellsIntersect(textSlots[i].cell, textSlots[j].cell)) textOverlapCount++
+    }
+  }
+
+  const imageCells = slots.filter(s => s.role === 'image').map(s => s.cell)
+  const framedImages = imageCells.filter(c => !isFullBleedCell(c))
+  let nonFullBleedTextImageOverlaps = 0
+  for (const slot of textSlots) {
+    if (framedImages.some(img => cellsIntersect(slot.cell, img))) {
+      nonFullBleedTextImageOverlaps++
+    }
+  }
+
+  const sizes = textSlots.map(s => s.text?.size ?? 0).sort((a, b) => b - a)
+  const dominantRatio = sizes.length < 2 ? 3 : sizes[0] / Math.max(1, sizes[1])
+  const title = slots.find(s => s.typeClass === 'title' && s.text)
+  const controlledOcclusions = slots.filter(isControlledOcclusion)
+  const occludedTitleArea = title
+    ? controlledOcclusions.reduce((sum, s) => sum + cellIntersectionArea(s.cell, title.cell), 0)
+    : 0
+  const occludedTitleFraction = title
+    ? Math.min(1, occludedTitleArea / Math.max(1, cellArea(title.cell)))
+    : 0
+
+  return {
+    textOverlapCount,
+    nonFullBleedTextImageOverlaps,
+    titleCount: slots.filter(s => s.typeClass === 'title' && s.text).length,
+    supportingTextCount: slots.filter(s => s.text && s.typeClass !== 'title').length,
+    dominantRatio,
+    occupiedFraction: occupiedFraction(slots),
+    expressiveMoveCount: controlledOcclusions.length,
+    occludedTitleFraction,
+  }
+}
+
+function edgeTensionScore(slots: Slot[]): number {
+  const title = slots.find(s => s.typeClass === 'title' && s.text)
+  if (!title) return 0
+  const touchesEdge =
+    title.cell.c === 0 ||
+    title.cell.r === 0 ||
+    title.cell.c + title.cell.cs === COLS ||
+    title.cell.r + title.cell.rs === ROWS
+  const centered = title.cell.c > 2 && title.cell.c + title.cell.cs < COLS - 2
+  return touchesEdge ? 8 : centered ? -6 : 3
+}
+
+function countImageSlots(slots: Slot[]): number {
+  return slots.filter(s => s.role === 'image').length
+}
+
+function countAccentSlots(slots: Slot[]): number {
+  return slots.filter(s => s.role === 'line' || s.role === 'block').length
+}
+
+function densityScore(readability: GenerationReadability, slotCount: number, density: GenerationBrief['density']): number {
+  switch (density) {
+    case 'quiet': {
+      const supportDelta = Math.abs(readability.supportingTextCount - 1)
+      const slotPenalty = slotCount > 4 ? (slotCount - 4) * 3 : 0
+      return 8 - supportDelta * 5 - slotPenalty
+    }
+    case 'balanced': {
+      const supportDelta = Math.abs(readability.supportingTextCount - 2)
+      const slotPenalty = slotCount < 4 || slotCount > 5 ? 4 : 0
+      return 8 - supportDelta * 5 - slotPenalty
+    }
+    case 'dense': {
+      const supportDelta = Math.max(0, 3 - readability.supportingTextCount)
+      const slotPenalty = slotCount < 5 ? (5 - slotCount) * 4 : 0
+      return 9 - supportDelta * 6 - slotPenalty
+    }
+  }
+}
+
+function briefScore(slots: Slot[], readability: GenerationReadability, brief: GenerationBrief): number {
+  const imageCount = countImageSlots(slots)
+  const accentCount = countAccentSlots(slots)
+  let score = densityScore(readability, slots.length, brief.density)
+
+  if (brief.imageMode === 'none') score += imageCount === 0 ? 6 : -18
+  if (brief.imageMode === 'required') score += imageCount > 0 ? 6 : -18
+
+  if (brief.accentMode === 'none') score += accentCount === 0 ? 7 : -20
+  if (brief.accentMode === 'required') score += accentCount > 0 ? 6 : -16
+
+  return score
+}
+
+function scoreCandidate(slots: Slot[], skeleton: Skeleton, brief: GenerationBrief): { score: number; readability: GenerationReadability } {
+  const readability = analyzeReadability(slots)
+  let score = 86
+
+  score -= readability.textOverlapCount * 24
+  score -= readability.nonFullBleedTextImageOverlaps * 24
+  score -= Math.abs(readability.titleCount - 1) * 18
+  if (readability.supportingTextCount === 0) score -= 12
+  if (readability.dominantRatio < 2) score -= Math.round((2 - readability.dominantRatio) * 14)
+  if (readability.occupiedFraction > 0.7) score -= Math.round((readability.occupiedFraction - 0.7) * 80)
+  if (readability.occupiedFraction < 0.08) score -= 8
+  if (readability.expressiveMoveCount > 1) score -= (readability.expressiveMoveCount - 1) * 30
+  if (skeleton.expressiveMove === 'controlled-occlusion') {
+    if (readability.expressiveMoveCount !== 1) score -= 30
+    if (readability.occludedTitleFraction <= 0) score -= 20
+    if (readability.occludedTitleFraction > 0.35) {
+      score -= Math.round((readability.occludedTitleFraction - 0.35) * 100)
+    }
+  } else if (readability.occludedTitleFraction > 0) {
+    score -= 24
+  }
+  score += briefScore(slots, readability, brief)
+  score += edgeTensionScore(slots)
+  if (skeleton.grammar === 'modular-catalog' || skeleton.grammar === 'index-rail') {
+    if (slots.some(s => s.role === 'index')) score += 5
+  }
+  if (skeleton.grammar === 'typographic-monument' && readability.supportingTextCount <= 1) score += 4
+  if (slots.length > 6) score -= 3
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    readability,
+  }
+}
+
+interface GenerateOptions {
+  seed?: number
+  candidateCount?: number
+  grammar?: SwissGrammar
+}
+
+function buildCandidate(
+  format: Format,
+  seed: number,
+  candidateIndex: number,
+  candidateCount: number,
+  grammar: SwissGrammar,
+  brief: GenerationBrief,
+): Design {
+  const id = makeIdGen(seed, candidateIndex)
 
   // Random palette
-  const paletteIdx = Math.floor(Math.random() * PRESET_PALETTES.length)
+  const paletteIdx = Math.floor(random() * PRESET_PALETTES.length)
   const palette = { ...PRESET_PALETTES[paletteIdx].palette }
 
   // Random style — bias bwImage + filmGrain ~70%, gridOverlay ~25%
@@ -797,8 +1205,10 @@ export function generate(format: Format): Design {
     gridOverlay: maybe(0.25),
   }
 
+  const skeleton = chooseSkeleton(grammar, brief)
+
   // Compose slots via the occupancy-grid procedural composer
-  const rawSlots = compose(id, palette)
+  const rawSlots = compose(id, palette, skeleton)
 
   // Ensure all slots have z
   const slots = rawSlots.map((s, i) => ({ ...s, z: s.z ?? i }))
@@ -814,18 +1224,56 @@ export function generate(format: Format): Design {
     typeface: maybe(0.6) ? 'display' as const : 'sans' as const,
   }
 
+  const generation = scoreCandidate(slots, skeleton, brief)
+
   return {
     format,
     grid: defaultGrid(),
     archetype: 'generated',
     palette,
-    seed: Math.floor(Math.random() * 1_000_000_000),
+    seed,
     mode: 'grid',
     slots,
     typography,
     style,
     layout: 0,
+    generation: {
+      grammar,
+      expressiveMove: skeleton.expressiveMove,
+      brief,
+      score: generation.score,
+      candidateCount,
+      readability: generation.readability,
+    },
   }
 }
 
-export { cellsIntersect, resolveTextCollisions }
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
+
+export function generate(format: Format, opts: GenerateOptions = {}): Design {
+  const seed = opts.seed ?? Math.floor(Math.random() * 1_000_000_000)
+  const candidateCount = Math.max(1, Math.floor(opts.candidateCount ?? 18))
+  const previousRandom = random
+  random = mulberry32(seed)
+
+  try {
+    const grammar = opts.grammar ?? pick(SWISS_GRAMMARS)
+    const brief = chooseGenerationBrief(grammar)
+    let best: Design | null = null
+
+    for (let i = 0; i < candidateCount; i++) {
+      const candidate = buildCandidate(format, seed, i, candidateCount, grammar, brief)
+      if (!best || (candidate.generation?.score ?? 0) > (best.generation?.score ?? 0)) {
+        best = candidate
+      }
+    }
+
+    return best!
+  } finally {
+    random = previousRandom
+  }
+}
+
+export { OccupancyGrid, cellsIntersect, resolveTextCollisions }

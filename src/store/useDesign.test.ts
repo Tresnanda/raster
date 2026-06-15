@@ -1,9 +1,49 @@
-import { expect, test, beforeEach } from 'vitest'
+import { expect, test, beforeEach, vi } from 'vitest'
 import { useDesign } from './useDesign'
 import { classOf, DEFAULT_TYPOGRAPHY, DEFAULT_STYLE } from '../design/typeclass'
+import { readStreak } from '../design/streak'
+import { TYPE_SYSTEMS } from '../design/type-systems'
+import { generate } from '../design/generate'
 import '../archetypes/index'
 
-beforeEach(() => { localStorage.clear(); useDesign.getState().reset('mega-word', '4:5') })
+beforeEach(() => {
+  localStorage.clear()
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.setState({
+    mineOpen: false,
+    savedPosters: [],
+    posterMineError: null,
+    systemRecipes: [],
+    campaignRaw: '',
+    campaignItems: [],
+    activeCampaignId: null,
+    dailyBrief: null,
+    dailyStreak: { current: 0, longest: 0, lastDate: null },
+    shuffleScope: 'all',
+    componentLibrary: [],
+    guides: [],
+    motionSequence: {
+      effect: 'rise',
+      tempo: 100,
+      delayMs: 0,
+      staggerMs: 80,
+      loop: false,
+    },
+  } as any)
+})
+
+function textContents() {
+  return useDesign.getState().design.slots.filter(slot => slot.text).map(slot => slot.content).sort()
+}
+
+function layoutFingerprint() {
+  return JSON.stringify(useDesign.getState().design.slots.map(slot => ({
+    role: slot.role,
+    cell: slot.cell,
+    text: slot.text,
+    typeClass: slot.typeClass,
+  })))
+}
 
 test('reset builds a design for the archetype/format', () => {
   expect(useDesign.getState().design.archetype).toBe('mega-word')
@@ -19,6 +59,71 @@ test('shuffle advances the seed', () => {
   const before = useDesign.getState().design.seed
   useDesign.getState().shuffle()
   expect(useDesign.getState().design.seed).not.toBe(before)
+})
+
+test('setShuffleScope switches the next shuffle mode', () => {
+  useDesign.getState().setShuffleScope('content')
+  expect(useDesign.getState().shuffleScope).toBe('content')
+})
+
+test('content-scope shuffle keeps layout and changes at least one content string', () => {
+  useDesign.getState().loadDesign(generate('4:5', { seed: 16000, candidateCount: 18 }))
+  const beforeLayout = layoutFingerprint()
+  const beforeContent = textContents()
+  useDesign.getState().setShuffleScope('content')
+  useDesign.getState().shuffle()
+
+  expect(layoutFingerprint()).toBe(beforeLayout)
+  expect(textContents()).not.toEqual(beforeContent)
+})
+
+test('system-scope shuffle keeps current text content and changes the layout', () => {
+  useDesign.getState().loadDesign(generate('4:5', { seed: 16001, candidateCount: 18 }))
+  const beforeLayout = layoutFingerprint()
+  const beforeContent = textContents()
+  useDesign.getState().setShuffleScope('system')
+  useDesign.getState().shuffle()
+
+  expect(textContents()).toEqual(beforeContent)
+  expect(layoutFingerprint()).not.toBe(beforeLayout)
+})
+
+test('surprise ignores shuffle scope and always invents a generated poster', () => {
+  useDesign.getState().setShuffleScope('content')
+  useDesign.getState().surprise()
+
+  expect(useDesign.getState().design.archetype).toBe('generated')
+  expect(useDesign.getState().design.layout).toBe(0)
+  expect(useDesign.getState().design.generation).toBeDefined()
+
+  useDesign.getState().reset('mega-word', '4:5')
+  useDesign.getState().setShuffleScope('system')
+  useDesign.getState().surprise()
+
+  expect(useDesign.getState().design.archetype).toBe('generated')
+  expect(useDesign.getState().design.layout).toBe(0)
+  expect(useDesign.getState().design.generation).toBeDefined()
+})
+
+test('all-scope shuffle remixes a generated poster without inventing new content or style', () => {
+  useDesign.getState().loadDesign(generate('4:5', { seed: 16002, candidateCount: 18 }))
+  const beforeLayout = layoutFingerprint()
+  const beforeContent = textContents()
+  const beforePalette = { ...useDesign.getState().design.palette }
+  const beforeTypography = { ...useDesign.getState().design.typography }
+  const beforeStyle = { ...useDesign.getState().design.style }
+
+  useDesign.getState().setShuffleScope('all')
+  useDesign.getState().shuffle()
+
+  const after = useDesign.getState().design
+  expect(after.archetype).toBe('generated')
+  expect(after.layout).toBe(0)
+  expect(textContents()).toEqual(beforeContent)
+  expect(after.palette).toEqual(beforePalette)
+  expect(after.typography).toEqual(beforeTypography)
+  expect(after.style).toEqual(beforeStyle)
+  expect(layoutFingerprint()).not.toBe(beforeLayout)
 })
 
 test('setFormat switches canvas', () => {
@@ -40,6 +145,20 @@ test('setBox sets a free-mode absolute box on a slot', () => {
   expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.box).toEqual({ x: 100, y: 100, w: 400, h: 200 })
 })
 
+test('autoTidy snaps free boxes back to the grid and is undoable', () => {
+  useDesign.getState().setPalette({ bg: '#111111', text: '#181818', accent: '#222222' })
+  useDesign.getState().setBox('word', { x: 650, y: 520, w: 420, h: 150 })
+  const before = useDesign.getState().past.length
+  useDesign.getState().autoTidy()
+  const word = useDesign.getState().design.slots.find(s => s.id === 'word')!
+
+  expect(word.box).toBeUndefined()
+  expect(useDesign.getState().design.palette.text).toBe('#ffffff')
+  expect(useDesign.getState().past.length).toBe(before + 1)
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.box).toEqual({ x: 650, y: 520, w: 420, h: 150 })
+})
+
 // ── new v2 actions ─────────────────────────────────────────────────────────────
 
 test('setTypography merges a patch into current typography', () => {
@@ -50,6 +169,14 @@ test('setTypography merges a patch into current typography', () => {
   // unchanged fields preserved
   expect(typo.typeface).toBe('display')
   expect(typo.headline).toBe(220)
+})
+
+test('applyTypeSystem applies a curated type system through history', () => {
+  const before = useDesign.getState().past.length
+  useDesign.getState().applyTypeSystem('mono-technical')
+  expect(useDesign.getState().design.typography.typeface).toBe('mono')
+  expect(useDesign.getState().design.typography.title).toBe(TYPE_SYSTEMS.find(system => system.id === 'mono-technical')!.title)
+  expect(useDesign.getState().past.length).toBe(before + 1)
 })
 
 test('setStyle merges a patch into current style', () => {
@@ -65,6 +192,13 @@ test('setStyle merges a patch into current style', () => {
 test('setAccent updates palette.accent', () => {
   useDesign.getState().setAccent('#00ff00')
   expect(useDesign.getState().design.palette.accent).toBe('#00ff00')
+})
+
+test('applyExtractedPalette commits a palette from image extraction', () => {
+  const before = useDesign.getState().past.length
+  useDesign.getState().applyExtractedPalette({ bg: '#eeeeee', text: '#0a0a0a', accent: '#d6231f' })
+  expect(useDesign.getState().design.palette).toEqual({ bg: '#eeeeee', text: '#0a0a0a', accent: '#d6231f' })
+  expect(useDesign.getState().past.length).toBe(before + 1)
 })
 
 test('setLayout changes layout and rebuilds slots, preserving content for matching ids', () => {
@@ -120,6 +254,12 @@ test('surprise clears selectedId', () => {
   useDesign.getState().selectElement('word')
   useDesign.getState().surprise()
   expect(useDesign.getState().selectedId).toBeNull()
+})
+
+test('surprise clears multi-selection state', () => {
+  useDesign.getState().setSelection(['word', 'caption'])
+  useDesign.getState().surprise()
+  expect(useDesign.getState().selectedIds).toEqual([])
 })
 
 test('reset populates typography and style with defaults', () => {
@@ -952,4 +1092,112 @@ test('setListStyle coalesces repeated calls', () => {
   useDesign.getState().setListStyle(id, 'none')
   expect(useDesign.getState().past.length).toBe(before + 1)
   expect(useDesign.getState().design.slots.find(s => s.id === id)!.listStyle).toBe('none')
+})
+
+// ── Addictive feature loops ───────────────────────────────────────────────────
+
+test('saveCurrentPoster stores a design snapshot in Poster Mine', () => {
+  useDesign.getState().setContent('word', 'MINE THIS')
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+  expect(saved?.title).toBe('MINE THIS')
+  expect(useDesign.getState().savedPosters).toHaveLength(1)
+  expect(useDesign.getState().posterMineError).toBeNull()
+  expect(localStorage.getItem('raster:poster-mine')).toContain('MINE THIS')
+})
+
+test('saveCurrentPoster surfaces storage failures instead of claiming a saved poster', () => {
+  const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key) => {
+    if (key === 'raster:poster-mine') throw new Error('QuotaExceededError')
+  })
+
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+
+  expect(saved).toBeNull()
+  expect(useDesign.getState().savedPosters).toHaveLength(0)
+  expect(useDesign.getState().posterMineError).toMatch(/storage/i)
+  setItemSpy.mockRestore()
+})
+
+test('loadSavedPoster loads a poster without deleting the mine', () => {
+  useDesign.getState().setContent('word', 'ARCHIVED')
+  const saved = useDesign.getState().saveCurrentPoster('manual')
+  useDesign.getState().setContent('word', 'CURRENT')
+  useDesign.getState().loadSavedPoster(saved!.id)
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('ARCHIVED')
+  expect(useDesign.getState().savedPosters).toHaveLength(1)
+})
+
+test('applyDailyBrief creates a deterministic generated poster and saves it to the mine', () => {
+  useDesign.getState().applyDailyBrief('2026-06-14')
+  const d = useDesign.getState().design
+  expect(d.archetype).toBe('generated')
+  expect(useDesign.getState().dailyBrief?.date).toBe('2026-06-14')
+  expect(useDesign.getState().savedPosters[0].source).toBe('daily')
+  expect(useDesign.getState().dailyStreak).toEqual({ current: 1, longest: 1, lastDate: '2026-06-14' })
+  expect(readStreak()).toEqual(useDesign.getState().dailyStreak)
+})
+
+test('saveSelectedComponent and insertComponent round-trip a reusable element group', () => {
+  useDesign.getState().setSelection(['word', 'subhead'])
+  const component = useDesign.getState().saveSelectedComponent('Hero Pair')
+  expect(component?.name).toBe('Hero Pair')
+  const beforeCount = useDesign.getState().design.slots.length
+  useDesign.getState().insertComponent(component!.id)
+  expect(useDesign.getState().design.slots.length).toBe(beforeCount + component!.slots.length)
+})
+
+test('guide actions add, remove, and clear guides', () => {
+  useDesign.getState().addGuide({ axis: 'x', pos: 100 })
+  useDesign.getState().addGuide({ axis: 'y', pos: 200 })
+  expect(useDesign.getState().guides).toHaveLength(2)
+  useDesign.getState().removeGuide(0)
+  expect(useDesign.getState().guides).toEqual([{ axis: 'y', pos: 200 }])
+  useDesign.getState().clearGuides()
+  expect(useDesign.getState().guides).toEqual([])
+})
+
+test('pinSnapshot and restoreSnapshot create an undoable design checkpoint', () => {
+  useDesign.getState().setContent('word', 'SNAP ONE')
+  const snapshot = useDesign.getState().pinSnapshot()
+  useDesign.getState().setContent('word', 'SNAP TWO')
+  useDesign.getState().restoreSnapshot(snapshot!.id)
+  expect(useDesign.getState().design.slots.find(slot => slot.id === 'word')!.content).toBe('SNAP ONE')
+  useDesign.getState().undo()
+  expect(useDesign.getState().design.slots.find(slot => slot.id === 'word')!.content).toBe('SNAP TWO')
+})
+
+test('saveCurrentRecipe and applyRecipe reuse a visual system while preserving content', () => {
+  useDesign.getState().setContent('word', 'FIRST')
+  const recipe = useDesign.getState().saveCurrentRecipe('Sprint System')
+  useDesign.getState().setLayout(2)
+  const before = useDesign.getState().design.slots.filter(s => s.text).map(s => s.content)
+  useDesign.getState().applyRecipe(recipe.id)
+  const after = useDesign.getState().design.slots.filter(s => s.text).map(s => s.content).slice(0, before.length)
+  expect(after).toEqual(before)
+  expect(useDesign.getState().design.palette).toEqual(recipe.palette)
+})
+
+test('applyCoachFix updates the current design through the Swiss Grid Coach', () => {
+  useDesign.getState().setPalette({ bg: '#111111', text: '#181818', accent: '#222222' })
+  useDesign.getState().applyCoachFix('increase-contrast')
+  expect(useDesign.getState().design.palette.text).toBe('#ffffff')
+})
+
+test('setCampaignRaw builds a campaign board and loadCampaignItem loads one poster', () => {
+  useDesign.getState().setCampaignRaw('One\nTwo')
+  expect(useDesign.getState().campaignItems.map(item => item.title)).toEqual(['One', 'Two'])
+  useDesign.getState().loadCampaignItem('campaign-2')
+  expect(useDesign.getState().activeCampaignId).toBe('campaign-2')
+  expect(useDesign.getState().design.slots.find(s => s.id === 'word')!.content).toBe('Two')
+})
+
+test('setMotionSequence normalizes Motion Lab sequence state', () => {
+  useDesign.getState().setMotionSequence({ tempo: 250, delayMs: -10, staggerMs: 999, loop: true })
+  expect(useDesign.getState().motionSequence).toEqual({
+    effect: 'rise',
+    tempo: 200,
+    delayMs: 0,
+    staggerMs: 300,
+    loop: true,
+  })
 })

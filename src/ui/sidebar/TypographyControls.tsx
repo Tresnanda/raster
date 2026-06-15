@@ -1,8 +1,10 @@
 // src/ui/sidebar/TypographyControls.tsx
 import { useDesign } from '../../store/useDesign'
+import { TYPE_SYSTEMS } from '../../design/type-systems'
 import { Slider } from '../controls/Slider'
 import { Select } from '../controls/Select'
 import type { FontFamily } from '../../types'
+import { Button } from '../../components/ui/button'
 
 const TYPEFACE_OPTIONS: { value: FontFamily; label: string }[] = [
   { value: 'display', label: 'Archivo Display' },
@@ -42,9 +44,38 @@ function SliderRow({ label, value, min, max, step, onChange }: SliderRowProps) {
 export function TypographyControls() {
   const typography = useDesign(s => s.design.typography)
   const setTypography = useDesign(s => s.setTypography)
+  const applyTypeSystem = useDesign(s => s.applyTypeSystem)
+  const activeSystemId = TYPE_SYSTEMS.find(system =>
+    system.typeface === typography.typeface &&
+    system.title === typography.title &&
+    system.headline === typography.headline &&
+    system.body === typography.body &&
+    system.tracking === typography.tracking &&
+    system.leading === typography.leading
+  )?.id
 
   return (
     <div className="sb-section space-y-4">
+      <div className="space-y-1.5">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Type systems
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TYPE_SYSTEMS.map(system => (
+            <Button
+              key={system.id}
+              type="button"
+              variant={activeSystemId === system.id ? 'default' : 'outline'}
+              size="xs"
+              onClick={() => applyTypeSystem(system.id)}
+              aria-label={`Apply ${system.name}`}
+            >
+              {system.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-1">
         <label
           htmlFor="tc-typeface"

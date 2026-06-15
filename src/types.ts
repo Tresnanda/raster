@@ -57,7 +57,7 @@ export interface Shadow {
 }
 
 export type ImageEffectKind =
-  | 'none' | 'halftone' | 'duotone' | 'dither'
+  | 'none' | 'halftone' | 'color-halftone' | 'duotone' | 'dither'
   | 'posterize' | 'threshold' | 'invert' | 'grayscale'
 
 export interface ImageEffect {
@@ -141,6 +141,43 @@ export interface Slot {
 
 export interface Palette { bg: string; text: string; accent: string }
 
+export type SwissGrammar =
+  | 'split-field'
+  | 'asymmetric-headline'
+  | 'modular-catalog'
+  | 'typographic-monument'
+  | 'image-diptych'
+  | 'index-rail'
+  | 'occlusion-bar'
+
+export type ExpressiveMove = 'none' | 'controlled-occlusion'
+
+export interface GenerationBrief {
+  density: 'quiet' | 'balanced' | 'dense'
+  imageMode: 'none' | 'optional' | 'required'
+  accentMode: 'none' | 'optional' | 'required'
+}
+
+export interface GenerationReadability {
+  textOverlapCount: number
+  nonFullBleedTextImageOverlaps: number
+  titleCount: number
+  supportingTextCount: number
+  dominantRatio: number
+  occupiedFraction: number
+  expressiveMoveCount: number
+  occludedTitleFraction: number
+}
+
+export interface GenerationMeta {
+  grammar: SwissGrammar
+  expressiveMove: ExpressiveMove
+  brief: GenerationBrief
+  score: number
+  candidateCount: number
+  readability: GenerationReadability
+}
+
 export interface Design {
   format: Format
   grid: Grid
@@ -154,4 +191,6 @@ export interface Design {
   style: StyleOptions
   /** Layout number 1–19, or `0` for a procedurally generated design. */
   layout: number
+  /** Diagnostics for procedurally generated Surprise posters. */
+  generation?: GenerationMeta
 }

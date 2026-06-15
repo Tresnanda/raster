@@ -34,6 +34,28 @@ function getFirstImageSlot(container: HTMLElement): Element | null {
   return container.querySelector('[data-slot-role="image"]')
 }
 
+async function openContextMenu(container: HTMLElement) {
+  const firstSlot = getSlots(container)[0] as HTMLElement
+  expect(firstSlot).toBeTruthy()
+  const slotId = firstSlot.getAttribute('data-composer-slot')!
+
+  await act(async () => {
+    fireEvent.contextMenu(firstSlot, { clientX: 48, clientY: 64 })
+  })
+
+  expect(container.querySelector('[data-composer-context-menu]')).toBeTruthy()
+  return slotId
+}
+
+async function clickContextMenuAction(container: HTMLElement, label: string) {
+  const btn = container.querySelector(`[aria-label="${label}"]`) as HTMLElement
+  expect(btn).toBeTruthy()
+
+  await act(async () => {
+    fireEvent.click(btn)
+  })
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 test('renders slot hit areas for all design slots', () => {
@@ -106,6 +128,42 @@ test('toolbar has Duplicate, Delete, Bring forward, Send backward buttons', asyn
   expect(container.querySelector('[aria-label="Delete"]')).toBeTruthy()
   expect(container.querySelector('[aria-label="Bring forward"]')).toBeTruthy()
   expect(container.querySelector('[aria-label="Send backward"]')).toBeTruthy()
+})
+
+test('right-clicking a slot opens the context menu with component and tidy actions', async () => {
+  const { container } = render(<ComposerOverlay scale={1} />)
+  await openContextMenu(container)
+
+  expect(container.querySelector('[data-composer-context-menu]')).toBeTruthy()
+  expect(container.querySelector('[aria-label="Save as component"]')).toBeTruthy()
+  expect(container.querySelector('[aria-label="Auto-tidy from context"]')).toBeTruthy()
+})
+
+test.each([
+  ['Cut', 'cutSelected', []],
+  ['Copy', 'copySelected', []],
+  ['Paste', 'paste', []],
+  ['Duplicate', 'duplicateElement', ['slot']],
+  ['Bring forward', 'bringForward', ['slot']],
+  ['Send backward', 'sendBackward', ['slot']],
+  ['Lock', 'toggleLocked', ['slot']],
+  ['Hide', 'toggleHidden', ['slot']],
+  ['Align left', 'alignSelection', ['left']],
+  ['Align top', 'alignSelection', ['top']],
+  ['Save as component', 'saveSelectedComponent', ['Component']],
+  ['Auto-tidy from context', 'autoTidy', []],
+  ['Delete', 'deleteElement', ['slot']],
+] as const)('context menu dispatches %s', async (label, actionName, expectedArgs) => {
+  const store = useDesign.getState() as unknown as Record<string, (...args: unknown[]) => unknown>
+  const action = vi.spyOn(store, actionName)
+  const { container } = render(<ComposerOverlay scale={1} />)
+  const slotId = await openContextMenu(container)
+  const args = expectedArgs.map(arg => arg === 'slot' ? slotId : arg)
+
+  await clickContextMenuAction(container, label)
+
+  expect(action).toHaveBeenCalledWith(...args)
+  expect(container.querySelector('[data-composer-context-menu]')).toBeNull()
 })
 
 test('clicking Delete in toolbar calls deleteElement with correct id', async () => {

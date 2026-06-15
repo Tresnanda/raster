@@ -8,6 +8,7 @@ import { orderedSlots } from '../design/order'
 import { resolveTextStyle } from '../render/resolve-style'
 import { FONT_STACK } from '../lib/measure'
 import { classOf } from '../design/typeclass'
+import { snapToGuides } from '../design/guides'
 import type { Slot } from '../types'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -102,12 +103,21 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   const setSelection = useDesign(s => s.setSelection)
   const setBox = useDesign(s => s.setBox)
   const setBoxes = useDesign(s => s.setBoxes)
+  const userGuides = useDesign(s => s.guides)
   const setContent = useDesign(s => s.setContent)
   const requestCrop = useDesign(s => s.requestCrop)
   const deleteElement = useDesign(s => s.deleteElement)
   const duplicateElement = useDesign(s => s.duplicateElement)
   const bringForward = useDesign(s => s.bringForward)
   const sendBackward = useDesign(s => s.sendBackward)
+  const copySelected = useDesign(s => s.copySelected)
+  const cutSelected = useDesign(s => s.cutSelected)
+  const paste = useDesign(s => s.paste)
+  const toggleHidden = useDesign(s => s.toggleHidden)
+  const toggleLocked = useDesign(s => s.toggleLocked)
+  const alignSelection = useDesign(s => s.alignSelection)
+  const saveSelectedComponent = useDesign(s => s.saveSelectedComponent)
+  const autoTidy = useDesign(s => s.autoTidy)
   // Note: global keyboard shortcuts (Delete, arrows, Cmd+D, Esc, etc.) are handled
   // by useKeyboardShortcuts in App.tsx — not here. Only textarea-local handling remains.
 
@@ -123,6 +133,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
   const [hud, setHud] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   // Marquee rubber-band rect (canvas units) while drag-selecting on empty canvas.
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; slotId: string } | null>(null)
 
   const slots = orderedSlots(design).filter(s => !s.hidden) // hidden layers aren't interactive
   const boundaries = gridBoundaries(canvas, design.grid)
@@ -193,6 +204,8 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
         px = snapToNearest(px, boundaries.xs, SNAP_THRESHOLD)
         py = snapToNearest(py, boundaries.ys, SNAP_THRESHOLD)
       }
+      px = snapToGuides(px, userGuides, T, 'x')
+      py = snapToGuides(py, userGuides, T, 'y')
 
       // Smart guides: snap the primary's left/center/right edge to any target.
       const vGuides: number[] = []
@@ -238,6 +251,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
     const startBox = slotBox(canvas, design.grid, slot)
     const startX = e.clientX
     const startY = e.clientY
+    const T = CENTER_SNAP_PX / safeScale
 
     const move = (ev: PointerEvent) => {
       const dx = (ev.clientX - startX) / safeScale
@@ -248,24 +262,28 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
       // Horizontal: west handles move x and shrink w; east handles grow w
       if (handle.includes('w')) {
         const rawX = startBox.x + dx
-        const snapX = snap ? snapToNearest(rawX, boundaries.xs, SNAP_THRESHOLD) : rawX
+        const snappedGridX = snap ? snapToNearest(rawX, boundaries.xs, SNAP_THRESHOLD) : rawX
+        const snapX = snapToGuides(snappedGridX, userGuides, T, 'x')
         const newW = startBox.x + startBox.w - snapX
         if (newW >= MIN_SIZE) { x = snapX; w = newW }
       } else if (handle.includes('e')) {
         const rawRight = startBox.x + startBox.w + dx
-        const snapRight = snap ? snapToNearest(rawRight, boundaries.xs, SNAP_THRESHOLD) : rawRight
+        const snappedGridRight = snap ? snapToNearest(rawRight, boundaries.xs, SNAP_THRESHOLD) : rawRight
+        const snapRight = snapToGuides(snappedGridRight, userGuides, T, 'x')
         w = Math.max(MIN_SIZE, snapRight - startBox.x)
       }
 
       // Vertical: north handles move y and shrink h; south handles grow h
       if (handle.startsWith('n')) {
         const rawY = startBox.y + dy
-        const snapY = snap ? snapToNearest(rawY, boundaries.ys, SNAP_THRESHOLD) : rawY
+        const snappedGridY = snap ? snapToNearest(rawY, boundaries.ys, SNAP_THRESHOLD) : rawY
+        const snapY = snapToGuides(snappedGridY, userGuides, T, 'y')
         const newH = startBox.y + startBox.h - snapY
         if (newH >= MIN_SIZE) { y = snapY; h = newH }
       } else if (handle.startsWith('s')) {
         const rawBottom = startBox.y + startBox.h + dy
-        const snapBottom = snap ? snapToNearest(rawBottom, boundaries.ys, SNAP_THRESHOLD) : rawBottom
+        const snappedGridBottom = snap ? snapToNearest(rawBottom, boundaries.ys, SNAP_THRESHOLD) : rawBottom
+        const snapBottom = snapToGuides(snappedGridBottom, userGuides, T, 'y')
         h = Math.max(MIN_SIZE, snapBottom - startBox.y)
       }
 
@@ -326,7 +344,7 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
       <div
         data-overlay-bg
         style={{ position: 'absolute', inset: 0, pointerEvents: 'all' }}
-        onClick={() => { if (!editingId) selectElement(null) }}
+        onClick={() => { setContextMenu(null); if (!editingId) selectElement(null) }}
         onPointerDown={e => {
           if (editingId) return
           if (e.button !== 0) return
@@ -405,6 +423,59 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
         </div>
       )}
 
+      {contextMenu && (
+        <div
+          data-composer-context-menu
+          style={{
+            position: 'absolute',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            display: 'grid',
+            gap: 1,
+            minWidth: 150,
+            padding: 4,
+            background: '#ffffff',
+            border: `${1.5 / safeScale}px solid #18181b`,
+            boxShadow: `${3 / safeScale}px ${3 / safeScale}px 0 0 #18181b`,
+            zIndex: 80,
+            transform: `scale(${1 / safeScale})`,
+            transformOrigin: 'top left',
+            pointerEvents: 'all',
+          }}
+          onPointerDown={e => e.stopPropagation()}
+        >
+          {([
+            ['Cut', () => cutSelected()],
+            ['Copy', () => copySelected()],
+            ['Paste', () => paste()],
+            ['Duplicate', () => duplicateElement(contextMenu.slotId)],
+            ['Bring forward', () => bringForward(contextMenu.slotId)],
+            ['Send backward', () => sendBackward(contextMenu.slotId)],
+            ['Lock', () => toggleLocked(contextMenu.slotId)],
+            ['Hide', () => toggleHidden(contextMenu.slotId)],
+            ['Align left', () => alignSelection('left')],
+            ['Align top', () => alignSelection('top')],
+            ['Save as component', () => saveSelectedComponent('Component')],
+            ['Auto-tidy from context', () => autoTidy()],
+            ['Delete', () => deleteElement(contextMenu.slotId)],
+          ] as const).map(([label, action]) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              onClick={e => {
+                e.stopPropagation()
+                action()
+                setContextMenu(null)
+              }}
+              style={contextMenuBtnStyle}
+            >
+              {label === 'Auto-tidy from context' ? 'Auto-tidy' : label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {slots.map(slot => {
         const b = slotBox(canvas, design.grid, slot)
         const isSelected = selectedIds.includes(slot.id)
@@ -432,10 +503,20 @@ export function ComposerOverlay({ scale, zoom = 1, snap = true }: ComposerOverla
             }}
             onClick={e => {
               e.stopPropagation()
+              setContextMenu(null)
               if (isEditing) return
               // Shift/Cmd-click toggles; plain click selects just this element.
               if (e.shiftKey || e.metaKey || e.ctrlKey) toggleSelection(slot.id)
               else selectElement(slot.id)
+            }}
+            onContextMenu={e => {
+              e.preventDefault()
+              e.stopPropagation()
+              const rect = overlayRef.current!.getBoundingClientRect()
+              const x = (e.clientX - rect.left) / safeScale
+              const y = (e.clientY - rect.top) / safeScale
+              if (!selectedIds.includes(slot.id)) selectElement(slot.id)
+              setContextMenu({ x, y, slotId: slot.id })
             }}
             onDoubleClick={e => {
               e.stopPropagation()
@@ -649,6 +730,18 @@ const toolbarBtnStyle: React.CSSProperties = {
   color: '#374151',
   fontSize: 'inherit',
   fontFamily: 'inherit',
+}
+
+const contextMenuBtnStyle: React.CSSProperties = {
+  padding: '5px 8px',
+  border: 'none',
+  background: 'transparent',
+  color: '#18181b',
+  cursor: 'pointer',
+  textAlign: 'left',
+  fontSize: 11,
+  fontWeight: 700,
+  fontFamily: "'Inter', sans-serif",
 }
 
 // ─── Cursor helpers ───────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import '../../archetypes/index'
 
 beforeEach(() => {
   useDesign.getState().setLayout(1)
+  useDesign.setState({ shuffleScope: 'all' } as any)
 })
 
 test('Shuffle button calls shuffle()', () => {
@@ -28,6 +29,16 @@ test('Surprise me button calls surprise()', () => {
   render(<LayoutGrid />)
   fireEvent.click(screen.getByTitle('Generate a brand-new unique design'))
   expect(surprise).toHaveBeenCalled()
+})
+
+test('shuffle scope buttons switch between all, content, and system', () => {
+  render(<LayoutGrid />)
+  fireEvent.click(screen.getByRole('button', { name: /copy scope/i }))
+  expect(useDesign.getState().shuffleScope).toBe('content')
+  fireEvent.click(screen.getByRole('button', { name: /system scope/i }))
+  expect(useDesign.getState().shuffleScope).toBe('system')
+  fireEvent.click(screen.getByRole('button', { name: /all scope/i }))
+  expect(useDesign.getState().shuffleScope).toBe('all')
 })
 
 test('three buttons are visually distinct — Surprise has primary (ink) class', () => {

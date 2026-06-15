@@ -5,6 +5,15 @@ import type { Design, GridCell } from '../types'
 const COLS = 12
 const ROWS = 16
 const VALID_HEX = /^#[0-9a-fA-F]{6}$/
+const SWISS_GRAMMARS = new Set([
+  'split-field',
+  'asymmetric-headline',
+  'modular-catalog',
+  'typographic-monument',
+  'image-diptych',
+  'index-rail',
+  'occlusion-bar',
+])
 
 function cellInBounds(cell: GridCell): boolean {
   return (
@@ -94,6 +103,24 @@ function countTextOverlaps(d: Design): number {
   return overlaps
 }
 
+function designFingerprint(d: Design): string {
+  return JSON.stringify({
+    palette: d.palette,
+    style: d.style,
+    typography: d.typography,
+    generation: d.generation,
+    slots: d.slots.map(s => ({
+      role: s.role,
+      cell: s.cell,
+      content: s.content,
+      text: s.text,
+      fill: s.fill,
+      typeClass: s.typeClass,
+      z: s.z,
+    })),
+  })
+}
+
 /** Legibility / "text respects the image" invariant:
  *  - A FULL-BLEED image (cell covers the whole 12×16 grid) is the intentional
  *    type-over-photo style — text MAY sit on it.
@@ -125,7 +152,7 @@ function checkLegibility(d: Design): { pass: boolean; detail: string } {
 
 test('200 runs: all slot cells in-bounds', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       expect(cellInBounds(slot.cell), `run ${i} slot ${slot.role}: ${JSON.stringify(slot.cell)}`).toBe(true)
     }
@@ -134,7 +161,7 @@ test('200 runs: all slot cells in-bounds', () => {
 
 test('200 runs: zero text-on-text overlaps', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const overlaps = countTextOverlaps(d)
     expect(overlaps, `run ${i}: ${overlaps} overlap(s) in ${JSON.stringify(d.slots.filter(s => TEXT_ROLES.has(s.role)).map(s => ({ role: s.role, cell: s.cell })))}`).toBe(0)
   }
@@ -142,7 +169,7 @@ test('200 runs: zero text-on-text overlaps', () => {
 
 test('200 runs: legibility — non-full-bleed images never have text on them', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const { pass, detail } = checkLegibility(d)
     expect(pass, `run ${i}: ${detail}`).toBe(true)
   }
@@ -150,7 +177,7 @@ test('200 runs: legibility — non-full-bleed images never have text on them', (
 
 test('200 runs: exactly one dominant text element with size ≥ 2× second-largest', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const textSizes = getTextSlots(d)
       .map(s => s.text!.size)
       .sort((a, b) => b - a)
@@ -173,7 +200,7 @@ test('200 runs: exactly one dominant text element with size ≥ 2× second-large
 test('200 runs: whitespace ≤ 70% (≤134 distinct non-image occupied cells)', () => {
   const MAX = Math.floor(192 * 0.70) // 134
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     // Count distinct occupied cells from non-image, non-line slots
     // Scrims and text can overlap (same cell) — count as one unique cell
     const nonImageSlots = d.slots.filter(s => s.role !== 'image' && s.role !== 'line')
@@ -192,7 +219,7 @@ test('200 runs: whitespace ≤ 70% (≤134 distinct non-image occupied cells)', 
 test('200 runs: dominant anchor is not centered (≤40% centered across runs)', () => {
   let centeredCount = 0
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const dominantSlot = d.slots.find(s => s.typeClass === 'title')
     if (!dominantSlot) continue
     const cell = dominantSlot.cell
@@ -212,7 +239,7 @@ test('200 runs: dominant anchor is not centered (≤40% centered across runs)', 
 test('50 runs: image treatments vary (not always same treatment)', () => {
   const treatmentFingerprints = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const imgSlots = d.slots.filter(s => s.role === 'image')
     const key = imgSlots.length === 0 ? 'none' : `${imgSlots[0].cell.cs}x${imgSlots[0].cell.rs}@${imgSlots[0].cell.c},${imgSlots[0].cell.r}`
     treatmentFingerprints.add(key)
@@ -224,7 +251,7 @@ test('50 runs: image treatments vary (not always same treatment)', () => {
 test('50 runs: dominant anchor varies (not all in same position)', () => {
   const anchors = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const dom = d.slots.find(s => s.typeClass === 'title')
     if (dom) anchors.add(`${dom.cell.c},${dom.cell.r}`)
   }
@@ -234,7 +261,7 @@ test('50 runs: dominant anchor varies (not all in same position)', () => {
 test('50 runs: content phrases vary (low duplicate rate)', () => {
   const contentSets = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     contentSets.add(d.slots.map(s => s.content).join('|'))
   }
   // Very few duplicates expected from expanded pool
@@ -244,7 +271,7 @@ test('50 runs: content phrases vary (low duplicate rate)', () => {
 test('50 runs: palettes vary', () => {
   const paletteSets = new Set<string>()
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     paletteSets.add(JSON.stringify(d.palette))
   }
   expect(paletteSets.size).toBeGreaterThan(2)
@@ -256,7 +283,7 @@ test('50 runs: palettes vary', () => {
 
 test('50 runs: all in-bounds, title/headline present, valid palette, no crash', () => {
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     checkDesign(d)
   }
 })
@@ -264,7 +291,7 @@ test('50 runs: all in-bounds, title/headline present, valid palette, no crash', 
 test('line slots stay in bounds across runs', () => {
   let lineCount = 0
   for (let i = 0; i < 100; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'line') {
         lineCount++
@@ -278,7 +305,7 @@ test('line slots stay in bounds across runs', () => {
 
 test('block slots in bounds', () => {
   for (let i = 0; i < 100; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'block') {
         expect(cellInBounds(slot.cell)).toBe(true)
@@ -289,7 +316,7 @@ test('block slots in bounds', () => {
 
 test('image slots have empty content string', () => {
   for (let i = 0; i < 50; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     for (const slot of d.slots) {
       if (slot.role === 'image') {
         expect(slot.content).toBe('')
@@ -304,6 +331,111 @@ test('generate returns fresh seed each call', () => {
     seeds.add(generate('3:4').seed)
   }
   expect(seeds.size).toBeGreaterThan(5)
+})
+
+test('generate is reproducible when given an explicit seed', () => {
+  const a = generate('4:5', { seed: 123456, candidateCount: 12 })
+  const b = generate('4:5', { seed: 123456, candidateCount: 12 })
+  const c = generate('4:5', { seed: 654321, candidateCount: 12 })
+
+  expect(a.seed).toBe(123456)
+  expect(b.seed).toBe(123456)
+  expect(designFingerprint(a)).toBe(designFingerprint(b))
+  expect(designFingerprint(a)).not.toBe(designFingerprint(c))
+})
+
+test('generate records a scored Swiss grammar candidate', () => {
+  const d = generate('3:4', { seed: 314159, candidateCount: 16 })
+
+  expect(d.generation?.grammar).toBeDefined()
+  expect(SWISS_GRAMMARS.has(d.generation!.grammar)).toBe(true)
+  expect(d.generation?.candidateCount).toBeGreaterThanOrEqual(12)
+  expect(d.generation?.score).toBeGreaterThanOrEqual(78)
+  expect(d.generation?.readability.textOverlapCount).toBe(0)
+  expect(d.generation?.readability.nonFullBleedTextImageOverlaps).toBe(0)
+  expect(d.generation?.readability.titleCount).toBe(1)
+  expect(d.generation?.readability.supportingTextCount).toBeGreaterThanOrEqual(1)
+})
+
+test('80 seeded runs: Surprise uses several explicit Swiss grammars', () => {
+  const grammars = new Set<string>()
+  for (let i = 0; i < 80; i++) {
+    grammars.add(generate('3:4', { seed: 5000 + i, candidateCount: 10 }).generation!.grammar)
+  }
+
+  expect(grammars.size).toBeGreaterThanOrEqual(4)
+})
+
+test('120 seeded runs: Surprise does not collapse into one visible structure recipe', () => {
+  const sample = Array.from({ length: 120 }, (_, i) =>
+    generate('4:5', { seed: 20000 + i, candidateCount: 18 })
+  )
+  const recipeCounts = new Map<string, number>()
+
+  for (const design of sample) {
+    const imageCount = design.slots.filter(s => s.role === 'image').length
+    const textCount = design.slots.filter(s => s.text).length
+    const supportingTextCount = design.generation?.readability.supportingTextCount ?? 0
+    const accentCount = design.slots.filter(s => s.role === 'line' || s.role === 'block').length
+    const recipe = `img${imageCount}/text${textCount}/support${supportingTextCount}/accent${accentCount}/slots${design.slots.length}`
+    recipeCounts.set(recipe, (recipeCounts.get(recipe) ?? 0) + 1)
+  }
+
+  const mostCommonRecipeCount = Math.max(...recipeCounts.values())
+  const accentFreeCount = sample.filter(d =>
+    d.slots.every(s => s.role !== 'line' && s.role !== 'block')
+  ).length
+  const imageFreeCount = sample.filter(d =>
+    d.slots.every(s => s.role !== 'image')
+  ).length
+  const denseCount = sample.filter(d =>
+    (d.generation?.readability.supportingTextCount ?? 0) >= 3
+  ).length
+
+  expect(mostCommonRecipeCount).toBeLessThanOrEqual(42)
+  expect(accentFreeCount).toBeGreaterThanOrEqual(20)
+  expect(imageFreeCount).toBeGreaterThanOrEqual(20)
+  expect(denseCount).toBeGreaterThanOrEqual(18)
+})
+
+test('generate records the creative brief used to select candidates', () => {
+  const d = generate('4:5', { seed: 6142026, candidateCount: 12 })
+
+  expect(d.generation?.brief).toEqual({
+    density: expect.stringMatching(/^(quiet|balanced|dense)$/),
+    imageMode: expect.stringMatching(/^(none|optional|required)$/),
+    accentMode: expect.stringMatching(/^(none|optional|required)$/),
+  })
+})
+
+test('occlusion-bar grammar creates one controlled readable title occlusion', () => {
+  const d = generate('4:5', {
+    seed: 240614,
+    candidateCount: 16,
+    grammar: 'occlusion-bar',
+  })
+  const generation = d.generation
+  const occlusion = d.slots.find(s => s.name === 'controlled-occlusion')
+  const title = d.slots.find(s => s.typeClass === 'title' && s.text)
+
+  expect(generation?.grammar).toBe('occlusion-bar')
+  expect(generation?.expressiveMove).toBe('controlled-occlusion')
+  expect(generation?.readability.expressiveMoveCount).toBeLessThanOrEqual(1)
+  expect(generation?.readability.occludedTitleFraction).toBeGreaterThan(0)
+  expect(generation?.readability.occludedTitleFraction).toBeLessThanOrEqual(0.35)
+  expect(occlusion).toBeDefined()
+  expect(title).toBeDefined()
+  expect(cellsIntersect(occlusion!.cell, title!.cell)).toBe(true)
+  expect((occlusion!.z ?? 0)).toBeGreaterThan(title!.z ?? 0)
+})
+
+test('80 seeded runs: expressive rule breaks are singular and readable', () => {
+  for (let i = 0; i < 80; i++) {
+    const d = generate('3:4', { seed: 9000 + i, candidateCount: 12 })
+    const generation = d.generation
+    expect(generation?.readability.expressiveMoveCount).toBeLessThanOrEqual(1)
+    expect(generation?.readability.occludedTitleFraction).toBeLessThanOrEqual(0.35)
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -330,7 +462,7 @@ test('cellsIntersect: non-overlapping cells return false', () => {
 
 test('200 runs: the dominant headline is never a single character', () => {
   for (let i = 0; i < 200; i++) {
-    const d = generate('3:4')
+    const d = generate('3:4', { seed: i })
     const titles = d.slots.filter(s => s.typeClass === 'title' && s.text)
     for (const t of titles) {
       expect(t.content.trim().length, `run ${i}: dominant "${t.content}" too short`).toBeGreaterThan(1)

@@ -6,6 +6,12 @@ import { useGSAP } from '@gsap/react'
 import { Header } from './sidebar/Header'
 import { LayoutGrid } from './sidebar/LayoutGrid'
 import { CanvasChips } from './sidebar/CanvasChips'
+import { PosterMineControls } from './sidebar/PosterMineControls'
+import { ArrangeControls } from './sidebar/ArrangeControls'
+import { DailyBriefControls } from './sidebar/DailyBriefControls'
+import { ComponentsControls } from './sidebar/ComponentsControls'
+import { SystemRecipeControls } from './sidebar/SystemRecipeControls'
+import { GridCoachControls } from './sidebar/GridCoachControls'
 import { ContentFields } from './sidebar/ContentFields'
 import { TypographyControls } from './sidebar/TypographyControls'
 import { StyleControls } from './sidebar/StyleControls'
@@ -60,6 +66,48 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
+        {/* Arrange */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-arrange" title="Arrange" defaultOpen>
+            <ArrangeControls />
+          </Section>
+        </div>
+
+        {/* Poster Mine — persistent local archive */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-mine" title="Mine" defaultOpen>
+            <PosterMineControls />
+          </Section>
+        </div>
+
+        {/* Components */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-components" title="Components" defaultOpen={false}>
+            <ComponentsControls />
+          </Section>
+        </div>
+
+        {/* Daily brief */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-daily" title="Daily" defaultOpen={false}>
+            <DailyBriefControls />
+          </Section>
+        </div>
+
+        {/* Swiss Grid Coach */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-coach" title="Coach" defaultOpen={false}>
+            <GridCoachControls />
+          </Section>
+        </div>
+
+        {/* System recipes */}
+        <div className="sb-section border-t border-border/40">
+          <Section id="sidebar-recipes" title="Systems" defaultOpen={false}>
+            <SystemRecipeControls />
+          </Section>
+        </div>
+
         {/* Typography — collapsed by default */}
         <div className="sb-section border-t border-border/40">
           <Section id="sidebar-type" title="Type" defaultOpen={false}>
@@ -88,9 +136,9 @@ export function Sidebar({ svgRef }: SidebarProps) {
           </Section>
         </div>
 
-        {/* Series — list → matched poster set */}
+        {/* Studio — list → matched poster set */}
         <div className="sb-section border-t border-border/40">
-          <Section id="sidebar-series" title="Series" defaultOpen={false}>
+          <Section id="sidebar-series" title="Studio" defaultOpen={false}>
             <SeriesControls />
           </Section>
         </div>

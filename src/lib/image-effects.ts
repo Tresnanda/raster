@@ -209,6 +209,119 @@ export function drawHalftone(
 }
 
 // ---------------------------------------------------------------------------
+// Colour halftone -- CMYK / RGB channel separation, canvas drawing
+// ---------------------------------------------------------------------------
+
+export type ColorHalftoneMode = 'cmyk' | 'rgb'
+
+// CMYK separation from normalised rgb (0..1). Returns ink amount 0..1.
+function cmykK(r: number, g: number, b: number): number {
+  return 1 - Math.max(r, g, b)
+}
+function cmykInk(channel: number, r: number, g: number, b: number): number {
+  const k = cmykK(r, g, b)
+  if (k >= 1) return 0
+  return (1 - channel - k) / (1 - k)
+}
+
+interface ChannelSpec {
+  /** angle offset added to the master angle, in degrees */
+  off: number
+  /** dot ink colour */
+  color: string
+  /** ink amount 0..1 from normalised rgb */
+  amount: (r: number, g: number, b: number) => number
+}
+
+/**
+ * Draw a colour halftone screen onto an already-sized canvas that already has
+ * the source image drawn on it. Each colour channel is rendered as its own
+ * rotated dot screen, then the screens are overprinted:
+ *   - CMYK: Cyan/Magenta/Yellow/Black inks composited with `multiply` onto the
+ *     paper colour (subtractive, print look).
+ *   - RGB: Red/Green/Blue dots composited with `lighter` onto the background
+ *     (additive, screen look).
+ */
+export function drawColorHalftone(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  mode: ColorHalftoneMode,
+  cell: number,
+  angleDeg: number,
+  bgHex: string,
+): void {
+  const srcData = ctx.getImageData(0, 0, width, height).data
+
+  // Paper / background (drawn with default source-over before we switch ops).
+  ctx.fillStyle = bgHex
+  ctx.fillRect(0, 0, width, height)
+
+  const channels: ChannelSpec[] =
+    mode === 'rgb'
+      ? [
+          { off: 15, color: '#ff0000', amount: r => r },
+          { off: 75, color: '#00ff00', amount: (_r, g) => g },
+          { off: 0, color: '#0000ff', amount: (_r, _g, b) => b },
+        ]
+      : [
+          // Classic process screen angles (relative to master): C=15, M=75, Y=0, K=45.
+          { off: 15, color: '#00ffff', amount: (r, g, b) => cmykInk(r, r, g, b) },
+          { off: 75, color: '#ff00ff', amount: (r, g, b) => cmykInk(g, r, g, b) },
+          { off: 0, color: '#ffff00', amount: (r, g, b) => cmykInk(b, r, g, b) },
+          { off: 45, color: '#000000', amount: (r, g, b) => cmykK(r, g, b) },
+        ]
+
+  ctx.globalCompositeOperation = mode === 'rgb' ? 'lighter' : 'multiply'
+
+  const halfCell = cell / 2
+  const maxR = halfCell * 0.95
+  const diag = Math.sqrt(width * width + height * height)
+  const steps = Math.ceil(diag / cell) + 2
+
+  for (const ch of channels) {
+    ctx.fillStyle = ch.color
+    const angleRad = ((angleDeg + ch.off) * Math.PI) / 180
+    const cos = Math.cos(angleRad)
+    const sin = Math.sin(angleRad)
+
+    for (let gi = -steps; gi <= steps; gi++) {
+      for (let gj = -steps; gj <= steps; gj++) {
+        const gx = gi * cell
+        const gy = gj * cell
+        const sx = Math.round(gx * cos - gy * sin + width / 2)
+        const sy = Math.round(gx * sin + gy * cos + height / 2)
+
+        if (sx < -halfCell || sx > width + halfCell) continue
+        if (sy < -halfCell || sy > height + halfCell) continue
+
+        // Average rgb over a 3x3 neighbourhood.
+        let r = 0, g = 0, b = 0, n = 0
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const px = Math.min(width - 1, Math.max(0, sx + dx))
+            const py = Math.min(height - 1, Math.max(0, sy + dy))
+            const idx = (py * width + px) * 4
+            r += srcData[idx]; g += srcData[idx + 1]; b += srcData[idx + 2]; n++
+          }
+        }
+        if (n === 0) continue
+
+        const amt = ch.amount(r / n / 255, g / n / 255, b / n / 255)
+        const radius = maxR * Math.sqrt(Math.max(0, Math.min(1, amt)))
+
+        if (radius < 0.5) continue
+        ctx.beginPath()
+        ctx.arc(sx, sy, radius, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }
+
+  ctx.globalCompositeOperation = 'source-over'
+}
+
+// ---------------------------------------------------------------------------
 // Default params per kind
 // ---------------------------------------------------------------------------
 
@@ -221,6 +334,7 @@ export const EFFECT_DEFAULTS: Record<ImageEffectKind, Record<string, number | st
   duotone:    { dark: '#000000', light: '#ffffff' },
   dither:     { scale: 2, dark: '#000000', light: '#ffffff' },
   halftone:   { cell: 8, angle: 45, dark: '#000000', light: '#ffffff' },
+  'color-halftone': { mode: 'cmyk', cell: 8, angle: 0, bg: '#f2ecd9' },
 }
 
 // ---------------------------------------------------------------------------
@@ -262,6 +376,13 @@ export async function applyImageEffect(
       const dark = String(effect.params.dark ?? '#000000')
       const light = String(effect.params.light ?? '#ffffff')
       drawHalftone(ctx, canvas.width, canvas.height, cell, angle, dark, light)
+    } else if (effect.kind === 'color-halftone') {
+      const mode: ColorHalftoneMode =
+        String(effect.params.mode ?? 'cmyk') === 'rgb' ? 'rgb' : 'cmyk'
+      const cell = Number(effect.params.cell ?? 8)
+      const angle = Number(effect.params.angle ?? 0)
+      const bg = String(effect.params.bg ?? '#f2ecd9')
+      drawColorHalftone(ctx, canvas.width, canvas.height, mode, cell, angle, bg)
     } else {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const { data } = imageData

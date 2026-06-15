@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { render, act } from '@testing-library/react'
+import { render, act, fireEvent } from '@testing-library/react'
 import { CanvasStage } from './CanvasStage'
 import { useDesign } from '../store/useDesign'
 import '../archetypes/index'
@@ -99,5 +99,72 @@ test('ComposerOverlay still renders at non-1 zoom', () => {
   // ComposerOverlay renders with data-composer-overlay attribute
   const overlay = container.querySelector('[data-composer-overlay]')
   expect(overlay).toBeTruthy()
+  unmount()
+})
+
+test('dragging from top ruler creates a vertical guide at release position', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().clearGuides()
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { container, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  const topRuler = container.querySelector('[data-ruler-top]') as HTMLElement
+  const canvasBox = topRuler.parentElement as HTMLElement
+  canvasBox.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 100,
+    height: 100,
+    right: 100,
+    bottom: 100,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  })
+
+  act(() => {
+    fireEvent.pointerDown(topRuler, { clientX: 10, clientY: -10, pointerId: 1 })
+    fireEvent.pointerMove(window, { clientX: 80, clientY: -10, pointerId: 1 })
+    fireEvent.pointerUp(window, { clientX: 80, clientY: -10, pointerId: 1 })
+  })
+
+  expect(useDesign.getState().guides).toEqual([{ axis: 'x', pos: 864 }])
+  unmount()
+})
+
+test('clicking a guide handle removes the guide', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().clearGuides()
+  act(() => {
+    useDesign.getState().addGuide({ axis: 'x', pos: 120 })
+    useDesign.getState().addGuide({ axis: 'y', pos: 220 })
+  })
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { getByLabelText, unmount } = render(<CanvasStage svgRef={svgRef} />)
+
+  act(() => {
+    fireEvent.click(getByLabelText('Remove vertical guide at 120'))
+  })
+
+  expect(useDesign.getState().guides).toEqual([{ axis: 'y', pos: 220 }])
+  unmount()
+})
+
+test('guide remove marker is compact and visually quiet', () => {
+  useDesign.getState().reset('mega-word', '1:1')
+  useDesign.getState().clearGuides()
+  act(() => {
+    useDesign.getState().addGuide({ axis: 'x', pos: 120 })
+  })
+  const svgRef = { current: null } as React.RefObject<SVGSVGElement | null>
+  const { getByLabelText, unmount } = render(<CanvasStage svgRef={svgRef} />)
+  const handle = getByLabelText('Remove vertical guide at 120') as HTMLElement
+  const marker = handle.querySelector('[data-guide-handle-marker]') as HTMLElement
+
+  expect(marker).toBeTruthy()
+  expect(Number.parseFloat(marker.style.width)).toBeLessThanOrEqual(10)
+  expect(marker.style.boxShadow).toBe('none')
+  expect(marker.style.border).toContain('rgba')
+  expect(handle.style.background).toBe('transparent')
+  expect(handle.style.borderWidth).toBe('0px')
   unmount()
 })

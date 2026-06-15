@@ -254,13 +254,16 @@ describe('applyImageEffect', () => {
 // EFFECT_DEFAULTS sanity
 // ---------------------------------------------------------------------------
 describe('EFFECT_DEFAULTS', () => {
-  test('all eight kinds have entries', () => {
-    const kinds = ['none','grayscale','invert','threshold','posterize','duotone','dither','halftone']
+  test('all nine kinds have entries', () => {
+    const kinds = ['none','grayscale','invert','threshold','posterize','duotone','dither','halftone','color-halftone']
     for (const kind of kinds) {
       expect(EFFECT_DEFAULTS).toHaveProperty(kind)
     }
   })
   test('halftone defaults have cell, angle, dark, light', () => {
     expect(EFFECT_DEFAULTS.halftone).toMatchObject({ cell: 8, angle: 45, dark: '#000000', light: '#ffffff' })
+  })
+  test('color-halftone defaults have mode, cell, angle, bg', () => {
+    expect(EFFECT_DEFAULTS['color-halftone']).toMatchObject({ mode: 'cmyk', cell: 8, angle: 0, bg: '#f2ecd9' })
   })
 })

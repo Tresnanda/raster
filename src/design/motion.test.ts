@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest'
-import { playPosterMotion, MOTION_EFFECTS } from './motion'
+import {
+  DEFAULT_MOTION_SEQUENCE,
+  MOTION_EFFECTS,
+  motionSequenceDurationMs,
+  normalizeMotionSequence,
+  playPosterMotion,
+} from './motion'
 
 test('playPosterMotion returns null when there is no svg', () => {
   expect(playPosterMotion(null, 'rise')).toBeNull()
@@ -25,4 +31,26 @@ test('builds a timeline when slot groups exist', () => {
 
 test('exposes the five motion presets', () => {
   expect(MOTION_EFFECTS.map(e => e.value)).toEqual(['rise', 'wipe', 'scale', 'stagger', 'roll'])
+})
+
+test('normalizeMotionSequence clamps tempo, delay, and stagger values', () => {
+  expect(normalizeMotionSequence({
+    effect: 'rise',
+    tempo: 400,
+    delayMs: -50,
+    staggerMs: 999,
+    loop: true,
+  })).toEqual({
+    effect: 'rise',
+    tempo: 200,
+    delayMs: 0,
+    staggerMs: 300,
+    loop: true,
+  })
+})
+
+test('motionSequenceDurationMs estimates a loop length from slot count', () => {
+  expect(motionSequenceDurationMs(DEFAULT_MOTION_SEQUENCE, 4)).toBeGreaterThan(1000)
+  expect(motionSequenceDurationMs({ ...DEFAULT_MOTION_SEQUENCE, delayMs: 300 }, 4))
+    .toBe(motionSequenceDurationMs(DEFAULT_MOTION_SEQUENCE, 4) + 300)
 })

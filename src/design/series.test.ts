@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest'
-import { buildSeries, parseSeriesItems, dominantTextSlot } from './series'
+import {
+  buildCampaignItems,
+  buildSeries,
+  dominantTextSlot,
+  parseSeriesItems,
+  updateCampaignItemTitle,
+} from './series'
 import { buildDesign } from './build'
 import '../archetypes/index'
 
@@ -28,4 +34,26 @@ test('buildSeries swaps the dominant text per item, keeping the system', () => {
 
 test('buildSeries returns empty for no items', () => {
   expect(buildSeries(buildDesign('mega-word', '4:5', 0), [])).toEqual([])
+})
+
+test('buildCampaignItems gives each item an editable design snapshot', () => {
+  const template = buildDesign('mega-word', '4:5', 0)
+  const items = buildCampaignItems(template, ['Run one', 'Run two'], '2026-06-14T08:00:00.000Z')
+  expect(items).toHaveLength(2)
+  expect(items[0].id).toBe('campaign-1')
+  expect(items[0].title).toBe('Run one')
+  expect(items[0].design).not.toBe(template)
+  expect(items[1].createdAt).toBe('2026-06-14T08:00:00.000Z')
+})
+
+test('updateCampaignItemTitle changes one item and its dominant design text', () => {
+  const template = buildDesign('mega-word', '4:5', 0)
+  const items = buildCampaignItems(template, ['Run one', 'Run two'], '2026-06-14T08:00:00.000Z')
+  const next = updateCampaignItemTitle(items, 'campaign-2', 'Run three', '2026-06-14T09:00:00.000Z')
+  const target = dominantTextSlot(next[1].design)!
+
+  expect(next[0].title).toBe('Run one')
+  expect(next[1].title).toBe('Run three')
+  expect(next[1].updatedAt).toBe('2026-06-14T09:00:00.000Z')
+  expect(next[1].design.slots.find(s => s.id === target.id)!.content).toBe('Run three')
 })

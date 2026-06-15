@@ -271,12 +271,17 @@ function ImageFillControl({
 const EFFECT_CHIPS: { kind: ImageEffectKind; label: string }[] = [
   { kind: 'none',       label: 'None' },
   { kind: 'halftone',   label: 'Halftone' },
+  { kind: 'color-halftone', label: 'Color HT' },
   { kind: 'duotone',   label: 'Duotone' },
   { kind: 'dither',    label: 'Dither' },
   { kind: 'posterize', label: 'Posterize' },
   { kind: 'threshold', label: 'Threshold' },
   { kind: 'invert',    label: 'Invert' },
 ]
+
+// Mode-appropriate default background for colour halftone: warm paper for CMYK
+// (print), dark blue for RGB (screen). Switching mode resets bg to these.
+const COLOR_HT_BG = { cmyk: '#f2ecd9', rgb: '#0a1a4d' } as const
 
 function ImageEffectsPanel({
   slotId,
@@ -385,6 +390,79 @@ function ImageEffectsPanel({
                 className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeKind === 'color-halftone' && (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <FieldLabel>Mode</FieldLabel>
+            <div className="grid grid-cols-2 gap-1">
+              {(['cmyk', 'rgb'] as const).map(m => {
+                const active = String(params.mode ?? 'cmyk') === m
+                return (
+                  <button
+                    key={m}
+                    aria-label={m === 'cmyk' ? 'CMYK mode' : 'RGB mode'}
+                    onClick={() =>
+                      onSetEffect(slotId, {
+                        kind: 'color-halftone',
+                        params: { ...params, mode: m, bg: COLOR_HT_BG[m] },
+                      })
+                    }
+                    className={chipCls(active)}
+                  >
+                    {m.toUpperCase()}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <FieldLabel>Dot size</FieldLabel>
+            <div className="flex items-center gap-2">
+              <Slider
+                aria-label="Dot size"
+                min={4}
+                max={24}
+                step={1}
+                value={Number(params.cell ?? 8)}
+                onChange={v => updateParam('cell', v)}
+                className="flex-1"
+              />
+              <span className="w-6 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
+                {Number(params.cell ?? 8)}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <FieldLabel>Angle</FieldLabel>
+            <div className="flex items-center gap-2">
+              <Slider
+                aria-label="Angle"
+                min={0}
+                max={90}
+                step={1}
+                value={Number(params.angle ?? 0)}
+                onChange={v => updateParam('angle', v)}
+                className="flex-1"
+              />
+              <span className="w-6 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
+                {Number(params.angle ?? 0)}&#xb0;
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <FieldLabel>Background</FieldLabel>
+            <input
+              id={`ef-bg-${slotId}`}
+              type="color"
+              aria-label="Background colour"
+              value={String(params.bg ?? '#f2ecd9')}
+              onChange={e => updateParam('bg', e.target.value)}
+              className="h-7 w-full cursor-pointer rounded-md border-2 border-foreground p-0.5"
+            />
           </div>
         </div>
       )}

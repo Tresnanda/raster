@@ -57,7 +57,7 @@ export interface Shadow {
 }
 
 export type ImageEffectKind =
-  | 'none' | 'halftone' | 'duotone' | 'dither'
+  | 'none' | 'halftone' | 'color-halftone' | 'duotone' | 'dither'
   | 'posterize' | 'threshold' | 'invert' | 'grayscale'
 
 export interface ImageEffect {
